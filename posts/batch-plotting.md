@@ -7,7 +7,7 @@ title: "Batch Plotting in Python"
 
 In many experimental workflows, you may encounter situations where you need to process multiple data files from different trials and overlay them on a single plot. This script streamlines what would otherwise be a tedious, manual process. A basic understanding of Bash or PowerShell is helpful. Since I primarily use a MacBook for data processing, this tutorial will focus on macOS-specific instructions. The same set of instructions should work seamlessly on Windows as well.
 
-This code is based on an original script developed by Dr. Adam Luke Baskerville (https://adambaskerville.github.io/posts/PythonGUIPlotter/)[https://adambaskerville.github.io/posts/PythonGUIPlotter/] for a Python GUI plotting tool. While my version does not include the GUI functionality, it incorporates improved error handling and enhanced formatting for better usability.
+This code is based on an original script developed by Dr. Adam Luke Baskerville [https://adambaskerville.github.io/posts/PythonGUIPlotter/](https://adambaskerville.github.io/posts/PythonGUIPlotter/) for a Python GUI plotting tool. While my version does not include the GUI functionality, it incorporates improved error handling and enhanced formatting for better usability.
 
 ```python
 """
