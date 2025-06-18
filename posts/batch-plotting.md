@@ -1,6 +1,7 @@
 ---
-layout: default
-title: Batch Plotting in Python
+# layout: page
+# title: "Batch Plotting in Python"
+permalink: /batch-plotting/
 ---
 
 ## Batch Plotting multiple datasets in Python
