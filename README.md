@@ -1,6 +1,6 @@
 # Indra's Webpage
 
-Welcome to the source code of [indranil.codes](https://indranil.codes) — a personal website built using **GitHub Pages**. This site shares programming tidbits, academic projects, research notes, and snippets from my work in computational chemistry, optics and spectroscopy.
+Welcome to the source code of [indras_webpage](https://indranil-sscu.github.io/indras_webpage/) — a personal website built using **GitHub Pages**. This site shares programming tidbits, academic projects, research notes, and snippets from my work in computational chemistry, optics and spectroscopy.
 
 ## About Me
 
