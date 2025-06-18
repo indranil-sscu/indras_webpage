@@ -19,7 +19,7 @@ You can reach out to me at [indranilroy@iisc.ac.in](indranilroy@iisc.ac.in).
 .
 ├── index.md             # Home page written in Markdown
 ├── _config.yml          # Site coniguration for Jekyll
-├── CNAME                # Custom domain (indranil.codes)
+├── CNAME                # Custom domain (indras_webpage)
 ├── assets/              # Static assets like images, CSS, JS
 ├── posts/               # Project notes
 ├── README.md            # This file
