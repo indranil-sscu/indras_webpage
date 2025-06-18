@@ -6,6 +6,8 @@ github_username: indranil-sscu
 theme: minima
 
 minima:
+  skin: dark
+
   navigation:
     - title: "Home"
       url: "/"
