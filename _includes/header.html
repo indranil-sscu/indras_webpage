@@ -6,14 +6,49 @@
       </a>
     </div>
 
+    <input type="checkbox" id="nav-toggle" class="nav-toggle" style="display: none;" />
+    <label for="nav-toggle" class="nav-toggle-label" style="cursor: pointer; display: none;">
+      <span style="font-size: 1.5em;">☰</span>
+    </label>
+
     {% if site.minima.navigation %}
-      <nav class="site-nav" style="font-size: 0.95em;">
+      <nav class="site-nav">
         {% for item in site.minima.navigation %}
-          <a class="page-link" href="{{ item.url | relative_url }}" style="margin-left: 1em; color: #555; text-decoration: none;">
+          <a class="page-link" href="{{ item.url | relative_url }}">
             {{ item.title | escape }}
           </a>
         {% endfor %}
       </nav>
     {% endif %}
   </div>
+
+  <style>
+    .site-nav {
+      display: flex;
+      gap: 1em;
+    }
+
+    .page-link {
+      text-decoration: none;
+      color: #555;
+      font-size: 0.95em;
+    }
+
+    @media (max-width: 768px) {
+      .nav-toggle-label {
+        display: block;
+      }
+
+      .site-nav {
+        display: none;
+        flex-direction: column;
+        margin-top: 1em;
+      }
+
+      .nav-toggle:checked + .nav-toggle-label + .site-nav {
+        display: flex;
+      }
+    }
+  </style>
 </header>
+

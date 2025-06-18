@@ -6,10 +6,10 @@ github_username: indranil-sscu
 theme: minima
 
 minima:
-  skin: dark
-
   navigation:
     - title: "Home"
       url: "/"
     - title: "Posts"
       url: "/posts/"
+    - title: "Personal Site"
+      url: "http://sites.google.com/iisc.ac.in/indranilroy/"
