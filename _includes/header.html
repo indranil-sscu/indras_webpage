@@ -1,54 +1,57 @@
 <header class="site-header" role="banner">
-  <div class="wrapper" style="display: flex; justify-content: space-between; align-items: center; padding: 1em 0;">
-    <div style="font-size: 1.6em; font-weight: bold;">
-      <a class="site-title" href="{{ "/" | relative_url }}" style="text-decoration: none; color: #333;">
-        {{ site.title | escape }}
-      </a>
-    </div>
+  <div class="wrapper" style="display: flex; justify-content: space-between; align-items: center; padding: 1em;">
+    <a class="site-title" href="{{ "/" | relative_url }}" style="text-decoration: none;">
+      {{ site.title | escape }}
+    </a>
 
-    <input type="checkbox" id="nav-toggle" class="nav-toggle" style="display: none;" />
-    <label for="nav-toggle" class="nav-toggle-label" style="cursor: pointer; display: none;">
-      <span style="font-size: 1.5em;">☰</span>
-    </label>
+    <nav class="site-nav">
+      <input type="checkbox" id="menu-toggle" />
+      <label for="menu-toggle" class="menu-icon">&#9776;</label>
 
-    {% if site.minima.navigation %}
-      <nav class="site-nav">
+      <div class="menu">
         {% for item in site.minima.navigation %}
-          <a class="page-link" href="{{ item.url | relative_url }}">
-            {{ item.title | escape }}
-          </a>
+          <a class="page-link" href="{{ item.url | relative_url }}">{{ item.title | escape }}</a>
         {% endfor %}
-      </nav>
-    {% endif %}
+      </div>
+    </nav>
   </div>
 
   <style>
-    .site-nav {
+    .menu-icon {
+      display: none;
+      cursor: pointer;
+      font-size: 1.5em;
+      user-select: none;
+    }
+
+    #menu-toggle {
+      display: none;
+    }
+
+    .site-nav .menu {
       display: flex;
       gap: 1em;
     }
 
-    .page-link {
-      text-decoration: none;
-      color: #555;
-      font-size: 0.95em;
-    }
-
     @media (max-width: 768px) {
-      .nav-toggle-label {
+      .menu-icon {
         display: block;
       }
 
-      .site-nav {
+      .site-nav .menu {
         display: none;
         flex-direction: column;
+        background: #f8f8f8;
         margin-top: 1em;
+        padding: 1em;
+        border-radius: 5px;
       }
 
-      .nav-toggle:checked + .nav-toggle-label + .site-nav {
+      #menu-toggle:checked + .menu-icon + .menu {
         display: flex;
       }
     }
   </style>
 </header>
+
 
