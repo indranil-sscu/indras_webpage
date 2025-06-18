@@ -12,4 +12,4 @@ This site hosts quick code snippets, CLI tricks, data viz recipes and scientific
 
 ## Posts Directory
 
-> Navigate to `/posts/` for more. 
+> Navigate to [Posts](./posts/) for more. 
