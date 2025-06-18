@@ -14,8 +14,6 @@ You can reach out to me at [indranilroy@iisc.ac.in](indranilroy@iisc.ac.in).
 
 - Blog-style code notes and project logs
 - Tips and scripts for scientific computing
-- Clean and responsive layout (mobile-friendly)
-- Modular and easily extendable design
 
 ---
 
@@ -27,5 +25,5 @@ You can reach out to me at [indranilroy@iisc.ac.in](indranilroy@iisc.ac.in).
 ├── _config.yml          # Site coniguration for Jekyll
 ├── CNAME                # Custom domain (indranil.codes)
 ├── assets/              # Static assets like images, CSS, JS
-├── posts/               # Optional: blog posts or project notes
+├── posts/               # Project notes
 ├── README.md            # This file
