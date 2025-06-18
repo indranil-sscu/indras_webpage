@@ -1,6 +1,6 @@
 ---
-# layout: page
-# title: "Batch Plotting in Python"
+layout: none
+title: "Batch Plotting in Python"
 permalink: /batch-plotting/
 ---
 
