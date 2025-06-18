@@ -5,7 +5,9 @@ title: "Batch Plotting in Python"
 
 ## Batch Plotting multiple datasets in Python
 
-Here's how I wrote a script to automatically parse multiple data files and plot them in a single figure using `matplotlib` and `seaborn`:
+In many experimental workflows, you may encounter situations where you need to process multiple data files from different trials and overlay them on a single plot. This script streamlines what would otherwise be a tedious, manual process. A basic understanding of Bash or PowerShell is helpful. Since I primarily use a MacBook for data processing, this tutorial will focus on macOS-specific instructions. The same set of instructions should work seamlessly on Windows as well.
+
+This code is based on an original script developed by Dr. Adam Luke Baskerville (https://adambaskerville.github.io/posts/PythonGUIPlotter/)[https://adambaskerville.github.io/posts/PythonGUIPlotter/] for a Python GUI plotting tool. While my version does not include the GUI functionality, it incorporates improved error handling and enhanced formatting for better usability.
 
 ```python
 """
@@ -126,3 +128,18 @@ ax.legend()
 plt.tight_layout()
 plt.show()
 ```
+
+To run the script, ensure that Seaborn, Pandas, and Matplotlib are installed in your Python environment. Open your terminal and use the following shell command to execute the script. It’s recommended to use the absolute path to the script and change the working directory (cd) to the location of your data files before running the code. There's no need to worry about delimiters—this script is designed to handle most commonly used separators automatically.
+```bash
+cd ~\path
+python3 script_name.py . file_name1 file_name2 ...
+```
+If your data files are named sequentially or follow a consistent naming pattern, you can simplify the command using a wildcard. For example, the following will process all .txt files in the directory:
+```bash
+cd ~\path
+python3 script_name.py . *.txt
+```
+Simply follow the on-screen prompts—and voilà! Your plot will be generated in no time.
+
+
+
