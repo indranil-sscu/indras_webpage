@@ -8,14 +8,10 @@ I am a third-year Integrated PhD student in the Solid State and Structural Chemi
 Currently I am a graduate research student in Dr Vivek Tiwari's Multidimensional Spectroscopy and Imaging Group which I joined in May 2023.
 You can reach out to me at [indranilroy@iisc.ac.in](indranilroy@iisc.ac.in). 
 
----
-
 ## Features
 
 - Blog-style code notes and project logs
 - Tips and scripts for scientific computing
-
----
 
 ## Structure
 
