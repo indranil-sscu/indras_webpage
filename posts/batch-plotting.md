@@ -1,7 +1,7 @@
-___
+---
 title: Batch Plotting in Python
 layout: default
-___
+---
 
 ## Batch Plotting multiple datasets in Python
 
