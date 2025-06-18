@@ -1,3 +1,10 @@
 title: indra's webpage
 description: Programming Snippets, Data Viz, and Scientific Computing
 theme: minima
+
+minima:
+  navigation:
+    - title: "Home"
+      url: "/"
+    - title: "Python Plotter"
+      url: "/batch-plotting"

@@ -1,6 +1,6 @@
 ---
 layout: default
-title: indra's webpage
+title: Home
 ---
 
 # Welcome to My Webpage
