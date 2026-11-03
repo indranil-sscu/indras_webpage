@@ -1,4 +1,4 @@
-// Unit tests for assets/js/sci-tools.js — run with: node --test tests/
+// Unit tests for assets/js/sci-tools.js — run with: node --test tests/*.test.js
 const test = require("node:test");
 const assert = require("node:assert");
 const T = require("../assets/js/sci-tools.js");

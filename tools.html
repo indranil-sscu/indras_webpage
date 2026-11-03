@@ -37,6 +37,13 @@ permalink: /tools/
   <li><a href="#delay">Delay line</a></li>
   <li><a href="#pulse">Pulse energy &amp; intensity</a></li>
   <li><a href="#gdd">Dispersion broadening</a></li>
+  <li><a href="#material">Material dispersion</a></li>
+  <li><a href="#compressor">Prism &amp; grating compressors</a></li>
+  <li><a href="#phasematch">Phase matching</a></li>
+  <li><a href="#beam">Gaussian beams</a></li>
+  <li><a href="#autocorr">Autocorrelation</a></li>
+  <li><a href="#fft">Sampling &amp; FFT axis</a></li>
+  <li><a href="../reference/">Constants &amp; cheat sheet →</a></li>
 </ul>
 
 <!-- 1 ------------------------------------------------------------ -->
@@ -117,7 +124,140 @@ permalink: /tools/
   <p class="note">Unchirped Gaussian: τ<sub>out</sub> = τ<sub>in</sub>·√(1 + (4 ln2 · GDD / τ<sub>in</sub>²)²). For fused silica at 800 nm, GDD ≈ 36 fs² per mm.</p>
 </section>
 
-{% endraw %}<script src="{{ '/assets/js/sci-tools.js' | relative_url }}"></script>{% raw %}
+<!-- 6 ------------------------------------------------------------ -->
+<section class="tool" id="material">
+  <h2>Material dispersion</h2>
+  <div class="grid">
+    <div class="field"><label>Material</label><select id="md-mat"></select></div>
+    <div class="field"><label>Wavelength</label><div class="row"><input id="md-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Thickness</label><div class="row"><input id="md-L" type="number" value="1" step="any"><span class="unit">mm</span></div></div>
+  </div>
+  <h3 class="sub">Results</h3>
+  <div class="grid">
+    <div class="field"><label>Refractive index n</label><div class="row"><input id="md-n" class="out" readonly><span class="unit">–</span></div></div>
+    <div class="field"><label>Group index n<sub>g</sub></label><div class="row"><input id="md-ng" class="out" readonly><span class="unit">–</span></div></div>
+    <div class="field"><label>GVD</label><div class="row"><input id="md-gvd" class="out" readonly><span class="unit">fs²/mm</span></div></div>
+    <div class="field"><label>TOD</label><div class="row"><input id="md-tod" class="out" readonly><span class="unit">fs³/mm</span></div></div>
+    <div class="field"><label>GDD of thickness</label><div class="row"><input id="md-gdd" class="out" readonly><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Group delay of thickness</label><div class="row"><input id="md-gd" class="out" readonly><span class="unit">fs</span></div></div>
+    <div class="field"><label>Pulse after (TL input)</label><div class="row"><input id="md-tin" type="number" value="20" step="any" title="input FWHM, fs"><span class="unit">fs in</span></div></div>
+    <div class="field"><label>Output duration</label><div class="row"><input id="md-tout" class="out" readonly><span class="unit">fs</span></div></div>
+  </div>
+  <canvas id="md-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:1em;border:1px solid #eee;border-radius:4px"></canvas>
+  <div class="err" id="md-err"></div>
+  <p class="note" id="md-ref"></p>
+</section>
+
+<!-- 7 ------------------------------------------------------------ -->
+<section class="tool" id="compressor">
+  <h2>Prism &amp; grating compressors</h2>
+  <h3 class="sub">Grating pair (Treacy), double pass</h3>
+  <div class="grid">
+    <div class="field"><label>Wavelength</label><div class="row"><input id="gc-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Groove density</label><div class="row"><input id="gc-N" type="number" value="1200" step="any"><span class="unit">l/mm</span></div></div>
+    <div class="field"><label>Angle of incidence</label><div class="row"><input id="gc-a" type="number" value="30" step="any"><span class="unit">deg</span></div></div>
+    <div class="field"><label>Perpendicular separation</label><div class="row"><input id="gc-G" type="number" value="10" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Diffraction angle</label><div class="row"><input id="gc-d" class="out" readonly><span class="unit">deg</span></div></div>
+    <div class="field"><label>GDD</label><div class="row"><input id="gc-gdd" class="out" readonly><span class="unit">fs²</span></div></div>
+    <div class="field"><label>TOD</label><div class="row"><input id="gc-tod" class="out" readonly><span class="unit">fs³</span></div></div>
+    <div class="field"><label>Separation to cancel GDD of</label><div class="row"><input id="gc-target" type="number" value="5000" step="any"><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Required separation</label><div class="row"><input id="gc-sep" class="out" readonly><span class="unit">mm</span></div></div>
+  </div>
+  <div class="err" id="gc-err"></div>
+  <h3 class="sub">Brewster prism pair, double pass</h3>
+  <div class="grid">
+    <div class="field"><label>Prism material</label><select id="pc-mat"></select></div>
+    <div class="field"><label>Wavelength</label><div class="row"><input id="pc-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Apex-to-apex separation</label><div class="row"><input id="pc-L" type="number" value="500" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Total glass path (all passes)</label><div class="row"><input id="pc-g" type="number" value="10" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Net GDD</label><div class="row"><input id="pc-gdd" class="out" readonly><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Geometric / material</label><div class="row"><input id="pc-split" class="out" readonly><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Brewster angle</label><div class="row"><input id="pc-b" class="out" readonly><span class="unit">deg</span></div></div>
+    <div class="field"><label>Brewster prism apex angle</label><div class="row"><input id="pc-apex" class="out" readonly><span class="unit">deg</span></div></div>
+    <div class="field"><label>Separation to cancel GDD of</label><div class="row"><input id="pc-target" type="number" value="1000" step="any"><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Required separation</label><div class="row"><input id="pc-sep" class="out" readonly><span class="unit">mm</span></div></div>
+  </div>
+  <div class="err" id="pc-err"></div>
+  <p class="note">Grating pair: GDD = −λ³G / (πc²d² cos³θ<sub>d</sub>), first order, G = perpendicular separation (E. B. Treacy, IEEE J. Quantum Electron. 5, 454 (1969)). Prism pair: leading-order geometric term −4Lλ³(dn/dλ)²/(πc²) plus material GVD × glass path (R. L. Fork <i>et al.</i>, Opt. Lett. 9, 150 (1984)); the glass path is adjusted by prism insertion. The prism result is an estimate for alignment and design.</p>
+</section>
+
+<!-- 8 ------------------------------------------------------------ -->
+<section class="tool" id="phasematch">
+  <h2>Phase matching (SHG / SFG) in uniaxial crystals</h2>
+  <div class="grid">
+    <div class="field"><label>Crystal</label><select id="pm-x"><option value="bbo">β-BBO</option><option value="kdp">KDP</option></select></div>
+    <div class="field"><label>Type</label><select id="pm-t"><option value="I">Type I (o + o → e)</option><option value="II">Type II (e + o → e)</option></select></div>
+    <div class="field"><label>λ₁</label><div class="row"><input id="pm-l1" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>λ₂ (= λ₁ for SHG)</label><div class="row"><input id="pm-l2" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Generated λ₃</label><div class="row"><input id="pm-l3" class="out" readonly><span class="unit">nm</span></div></div>
+    <div class="field"><label>Phase-matching angle θ</label><div class="row"><input id="pm-th" class="out" readonly><span class="unit">deg</span></div></div>
+    <div class="field"><label>Walk-off angle ρ</label><div class="row"><input id="pm-w" class="out" readonly><span class="unit">mrad</span></div></div>
+  </div>
+  <div class="err" id="pm-err"></div>
+  <p class="note">Collinear, birefringent phase matching: n₃(θ)/λ₃ = n₁/λ₁ + n₂/λ₂ with n<sub>e</sub>(θ)⁻² = cos²θ/n<sub>o</sub>² + sin²θ/n<sub>e</sub>². Sellmeier equations: BBO — Eimerl <i>et al.</i> (1987); KDP — Zernike (1964). Angles from other Sellmeier sets can differ by a few tenths of a degree.</p>
+</section>
+
+<!-- 9 ------------------------------------------------------------ -->
+<section class="tool" id="beam">
+  <h2>Gaussian beams &amp; focusing</h2>
+  <h3 class="sub">Beam propagation</h3>
+  <div class="grid">
+    <div class="field"><label>Wavelength</label><div class="row"><input id="gb-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Waist radius w₀ (1/e²)</label><div class="row"><input id="gb-w0" type="number" value="500" step="any"><span class="unit">µm</span></div></div>
+    <div class="field"><label>M²</label><div class="row"><input id="gb-m2" type="number" value="1" step="any"><span class="unit">–</span></div></div>
+    <div class="field"><label>Distance from waist z</label><div class="row"><input id="gb-z" type="number" value="1000" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Rayleigh range</label><div class="row"><input id="gb-zr" class="out" readonly><span class="unit">mm</span></div></div>
+    <div class="field"><label>Divergence (half-angle)</label><div class="row"><input id="gb-div" class="out" readonly><span class="unit">mrad</span></div></div>
+    <div class="field"><label>Radius w(z)</label><div class="row"><input id="gb-wz" class="out" readonly><span class="unit">µm</span></div></div>
+    <div class="field"><label>Wavefront curvature R(z)</label><div class="row"><input id="gb-R" class="out" readonly><span class="unit">mm</span></div></div>
+    <div class="field"><label>Waist FWHM (intensity)</label><div class="row"><input id="gb-fw" class="out" readonly><span class="unit">µm</span></div></div>
+  </div>
+  <h3 class="sub">Focusing a collimated beam with a lens</h3>
+  <div class="grid">
+    <div class="field"><label>Input beam diameter (1/e²)</label><div class="row"><input id="fs-D" type="number" value="4" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Focal length</label><div class="row"><input id="fs-f" type="number" value="100" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Focused spot diameter (1/e²)</label><div class="row"><input id="fs-d" class="out" readonly><span class="unit">µm</span></div></div>
+    <div class="field"><label>Depth of focus (2 z<sub>R</sub>)</label><div class="row"><input id="fs-dof" class="out" readonly><span class="unit">mm</span></div></div>
+  </div>
+  <div class="err" id="gb-err"></div>
+  <p class="note">z<sub>R</sub> = πw₀²/(M²λ), w(z) = w₀√(1 + (z/z<sub>R</sub>)²), focused waist w₀ = M²λf/(πw<sub>in</sub>) (uses the wavelength and M² above). FWHM = 1.177 w.</p>
+</section>
+
+<!-- 10 ----------------------------------------------------------- -->
+<section class="tool" id="autocorr">
+  <h2>Autocorrelation deconvolution</h2>
+  <div class="grid">
+    <div class="field"><label>Autocorrelation FWHM</label><div class="row"><input id="ac-t" type="number" value="141.4" step="any"><span class="unit">fs</span></div></div>
+    <div class="field"><label>Assumed pulse shape</label><select id="ac-s"><option value="gaussian">Gaussian (÷ 1.414)</option><option value="sech2">sech² (÷ 1.543)</option><option value="lorentzian">Lorentzian (÷ 2.000)</option></select></div>
+    <div class="field"><label>Pulse FWHM</label><div class="row"><input id="ac-p" class="out" readonly><span class="unit">fs</span></div></div>
+  </div>
+  <p class="note">Intensity (background-free) autocorrelation. The deconvolution factor depends on the assumed shape. FROG or SPIDER measure the pulse directly without that assumption.</p>
+</section>
+
+<!-- 11 ----------------------------------------------------------- -->
+<section class="tool" id="fft">
+  <h2>Sampling &amp; FFT axis designer</h2>
+  <div class="grid">
+    <div class="field"><label>Time step Δt</label><div class="row"><input id="ff-dt" type="number" value="1" step="any"><span class="unit">fs</span></div></div>
+    <div class="field"><label>Number of points N</label><div class="row"><input id="ff-N" type="number" value="512" step="1"><span class="unit">–</span></div></div>
+    <div class="field"><label>Rotating frame (0 = none)</label><div class="row"><input id="ff-f0" type="number" value="0" step="any"><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Time window N·Δt</label><div class="row"><input id="ff-T" class="out" readonly><span class="unit">fs</span></div></div>
+    <div class="field"><label>Frequency resolution</label><div class="row"><input id="ff-df" class="out" readonly><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Nyquist frequency ±</label><div class="row"><input id="ff-ny" class="out" readonly><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Axis min</label><div class="row"><input id="ff-min" class="out" readonly><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Axis max</label><div class="row"><input id="ff-max" class="out" readonly><span class="unit">cm⁻¹</span></div></div>
+  </div>
+  <h3 class="sub">Where does a signal appear?</h3>
+  <div class="grid">
+    <div class="field"><label>Signal frequency</label><div class="row"><input id="ff-sig" type="number" value="12500" step="any"><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Appears at</label><div class="row"><input id="ff-app" class="out" readonly><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Aliased?</label><div class="row"><input id="ff-al" class="out" readonly><span class="unit">–</span></div></div>
+  </div>
+  <p class="note">Δf = 1/(NΔt), f<sub>Nyquist</sub> = 1/(2Δt). The axis after <code>fftshift</code> runs from −⌊N/2⌋Δf to (⌈N/2⌉−1)Δf, so it is asymmetric for even N. Signals beyond the Nyquist limit (relative to the rotating frame) fold back into the window. 1 THz = 33.356 cm⁻¹.</p>
+</section>
+
+{% endraw %}<script src="{{ '/assets/js/sci-tools.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/optics-tools.js' | relative_url }}"></script>{% raw %}
 <script>
 (function () {
   "use strict";
@@ -227,6 +367,145 @@ permalink: /tools/
   $("gd-t").addEventListener("input", gdd);
   $("gd-gdd").addEventListener("input", gdd);
   gdd();
+
+  /* ================= optics tools (optics-tools.js) ================= */
+  const O = window.OpticsTools;
+  const outs = (ids, vals) => ids.forEach((id, i) => ($(id).value = vals[i] === "" ? "" : fmt(vals[i])));
+  const clear = (ids) => ids.forEach((id) => ($(id).value = ""));
+  const fill = (sel, keys, def) => {
+    for (const k of keys) sel.insertAdjacentHTML("beforeend", `<option value="${k}"${k === def ? " selected" : ""}>${O.MATERIALS[k].name}</option>`);
+  };
+  const MAT_KEYS = Object.keys(O.MATERIALS);
+
+  /* ---- 6. material dispersion + plot ------------------------------- */
+  fill($("md-mat"), MAT_KEYS, "fused_silica");
+  const mdOut = ["md-n", "md-ng", "md-gvd", "md-tod", "md-gdd", "md-gd", "md-tout"];
+  function plotDispersion(key, lnow) {
+    const cv = $("md-plot"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+    const m = O.MATERIALS[key];
+    const lo = Math.max(m.range[0] * 1000, 250), hi = Math.min(m.range[1] * 1000, 2000);
+    const pts = [];
+    for (let i = 0; i <= 200; i++) {
+      const l = lo + ((hi - lo) * i) / 200, d = O.dispersion(key, l);
+      pts.push([l, d.n, d.gvd_fs2_mm]);
+    }
+    const pad = { l: 58, r: 62, t: 14, b: 34 };
+    const nMin = Math.min(...pts.map((p) => p[1])), nMax = Math.max(...pts.map((p) => p[1]));
+    const gMin = Math.min(...pts.map((p) => p[2])), gMax = Math.max(...pts.map((p) => p[2]));
+    const X = (l) => pad.l + ((l - lo) / (hi - lo)) * (W - pad.l - pad.r);
+    const Yn = (n) => H - pad.b - ((n - nMin) / (nMax - nMin || 1)) * (H - pad.t - pad.b);
+    const Yg = (g) => H - pad.b - ((g - gMin) / (gMax - gMin || 1)) * (H - pad.t - pad.b);
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = "12px sans-serif"; ctx.lineWidth = 1;
+    ctx.strokeStyle = "#ccc"; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+    ctx.fillStyle = "#444"; ctx.textAlign = "center";
+    for (let k = 0; k <= 4; k++) { const l = lo + ((hi - lo) * k) / 4; ctx.fillText(Math.round(l), X(l), H - pad.b + 15); }
+    ctx.fillText("Wavelength (nm)", (W + pad.l - pad.r) / 2, H - 4);
+    const line = (Y, idx, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
+      pts.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[idx])) : ctx.moveTo(X(p[0]), Y(p[idx])))); ctx.stroke(); };
+    line(Yn, 1, "#2a7ae2"); line(Yg, 2, "#d9480f");
+    ctx.textAlign = "right"; ctx.fillStyle = "#2a7ae2";
+    ctx.fillText(nMax.toFixed(4), pad.l - 4, Yn(nMax) + 4); ctx.fillText(nMin.toFixed(4), pad.l - 4, Yn(nMin));
+    ctx.save(); ctx.translate(12, H / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("n", 0, 0); ctx.restore();
+    ctx.textAlign = "left"; ctx.fillStyle = "#d9480f";
+    ctx.fillText(gMax.toFixed(0), W - pad.r + 4, Yg(gMax) + 4); ctx.fillText(gMin.toFixed(0), W - pad.r + 4, Yg(gMin));
+    ctx.save(); ctx.translate(W - 10, H / 2); ctx.rotate(Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("GVD (fs²/mm)", 0, 0); ctx.restore();
+    if (lnow >= lo && lnow <= hi) { ctx.strokeStyle = "#888"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(X(lnow), pad.t); ctx.lineTo(X(lnow), H - pad.b); ctx.stroke(); ctx.setLineDash([]); }
+  }
+  function material() {
+    const key = $("md-mat").value, l = num("md-l"), L = num("md-L") || 0, tin = num("md-tin");
+    $("md-ref").textContent = "Sellmeier data: " + O.MATERIALS[key].ref + ". Valid " +
+      O.MATERIALS[key].range[0] * 1000 + "–" + O.MATERIALS[key].range[1] * 1000 + " nm.";
+    if (!(l > 0)) { clear(mdOut); return setErr("md-err", "Enter a wavelength."); }
+    const d = O.dispersion(key, l);
+    setErr("md-err", d.inRange ? "" : "Wavelength outside the fitted range of this Sellmeier equation; results are extrapolated.");
+    const gdd = d.gvd_fs2_mm * L;
+    const gd = ((d.ng * L * 1e-3) / T.C.c) * 1e15; // group delay n_g L / c, fs
+    outs(mdOut, [d.n, d.ng, d.gvd_fs2_mm, d.tod_fs3_mm, gdd, gd, tin > 0 ? T.gddBroadening(tin, gdd) : ""]);
+    plotDispersion(key, l);
+  }
+  ["md-l", "md-L", "md-tin"].forEach((i) => $(i).addEventListener("input", material));
+  $("md-mat").addEventListener("change", material);
+  material();
+
+  /* ---- 7. compressors -------------------------------------------- */
+  function grating() {
+    const l = num("gc-l"), N = num("gc-N"), a = num("gc-a"), G = num("gc-G"), target = num("gc-target");
+    const ids = ["gc-d", "gc-gdd", "gc-tod", "gc-sep"];
+    if (!(l > 0 && N > 0 && G >= 0 && isFinite(a))) { clear(ids); return setErr("gc-err", "Enter positive values."); }
+    try {
+      const r = O.gratingCompressor(l, N, a, G), per = O.gratingCompressor(l, N, a, 1).gdd_fs2;
+      setErr("gc-err");
+      outs(ids, [r.diffraction_deg, r.gdd_fs2, r.tod_fs3, target > 0 ? O.separationForGdd(-target, per) : ""]);
+    } catch (e) { clear(ids); setErr("gc-err", e.message); }
+  }
+  ["gc-l", "gc-N", "gc-a", "gc-G", "gc-target"].forEach((i) => $(i).addEventListener("input", grating));
+  grating();
+
+  fill($("pc-mat"), ["fused_silica", "bk7", "sf10", "caf2"], "fused_silica");
+  function prism() {
+    const key = $("pc-mat").value, l = num("pc-l"), L = num("pc-L"), g = num("pc-g") || 0, target = num("pc-target");
+    const ids = ["pc-gdd", "pc-b", "pc-apex", "pc-sep"];
+    if (!(l > 0 && L >= 0)) { clear(ids); $("pc-split").value = ""; return setErr("pc-err", "Enter positive values."); }
+    setErr("pc-err");
+    const r = O.prismCompressor(key, l, L, g), perMm = O.prismCompressor(key, l, 1, 0).geometric_fs2;
+    outs(ids, [r.gdd_fs2, r.brewster_deg, r.apex_deg, target > 0 ? O.separationForGdd(-target, perMm, r.material_fs2) : ""]);
+    $("pc-split").value = fmt(r.geometric_fs2) + " / +" + fmt(r.material_fs2);
+  }
+  ["pc-l", "pc-L", "pc-g", "pc-target"].forEach((i) => $(i).addEventListener("input", prism));
+  $("pc-mat").addEventListener("change", prism);
+  prism();
+
+  /* ---- 8. phase matching ------------------------------------------ */
+  function phase() {
+    const ids = ["pm-l3", "pm-th", "pm-w"];
+    const l1 = num("pm-l1"), l2 = num("pm-l2");
+    if (!(l1 > 0 && l2 > 0)) { clear(ids); return setErr("pm-err", "Enter both wavelengths."); }
+    const r = O.phaseMatch($("pm-x").value, l1, l2, $("pm-t").value);
+    if (!r.possible) { outs(ids, [r.lambda3_nm, "", ""]); return setErr("pm-err", "Not phase-matchable in this crystal and type."); }
+    setErr("pm-err", r.inRange ? "" : "A wavelength lies outside the Sellmeier fit range; the angle is extrapolated.");
+    outs(ids, [r.lambda3_nm, r.theta_deg, r.walkoff_mrad]);
+  }
+  ["pm-l1", "pm-l2"].forEach((i) => $(i).addEventListener("input", phase));
+  ["pm-x", "pm-t"].forEach((i) => $(i).addEventListener("change", phase));
+  phase();
+
+  /* ---- 9. Gaussian beams ------------------------------------------ */
+  function beam() {
+    const l = num("gb-l"), w0 = num("gb-w0"), m2 = num("gb-m2") || 1, z = num("gb-z") || 0;
+    const ids = ["gb-zr", "gb-div", "gb-wz", "gb-R", "gb-fw"];
+    if (!(l > 0 && w0 > 0 && m2 >= 1)) { clear(ids); clear(["fs-d", "fs-dof"]); return setErr("gb-err", "Need λ > 0, w₀ > 0 and M² ≥ 1."); }
+    setErr("gb-err");
+    const r = O.gaussianBeam(l, w0, m2, z);
+    outs(ids, [r.rayleigh_mm, r.divergence_mrad, r.w_at_z_um, isFinite(r.R_at_z_mm) ? r.R_at_z_mm : "", r.fwhm_um]);
+    if (!isFinite(r.R_at_z_mm)) $("gb-R").value = "∞ (flat)";
+    const D = num("fs-D"), f = num("fs-f");
+    if (D > 0 && f > 0) { const s = O.focusSpot(l, D, f, m2); outs(["fs-d", "fs-dof"], [s.spot_diameter_um, s.depth_of_focus_mm]); }
+    else clear(["fs-d", "fs-dof"]);
+  }
+  ["gb-l", "gb-w0", "gb-m2", "gb-z", "fs-D", "fs-f"].forEach((i) => $(i).addEventListener("input", beam));
+  beam();
+
+  /* ---- 10. autocorrelation ---------------------------------------- */
+  function ac() { const t = num("ac-t"); $("ac-p").value = t > 0 ? fmt(O.pulseFromAutocorrelation(t, $("ac-s").value)) : ""; }
+  $("ac-t").addEventListener("input", ac); $("ac-s").addEventListener("change", ac); ac();
+
+  /* ---- 11. sampling / FFT ----------------------------------------- */
+  function fft() {
+    const dt = num("ff-dt"), N = parseInt($("ff-N").value, 10), f0 = num("ff-f0") || 0, sig = num("ff-sig");
+    const ids = ["ff-T", "ff-df", "ff-ny", "ff-min", "ff-max"];
+    if (!(dt > 0 && N > 1)) { clear(ids); clear(["ff-app", "ff-al"]); return; }
+    const a = O.fftAxis(dt, N, f0);
+    outs(ids, [a.window_fs, a.resolution_cm1, a.nyquist_cm1, a.axisMin_cm1, a.axisMax_cm1]);
+    if (isFinite(sig)) {
+      const r = O.aliasedFrequency(sig, dt, f0);
+      $("ff-app").value = fmt(f0 === 0 ? Math.abs(r.apparent_cm1) : r.apparent_cm1);
+      $("ff-al").value = r.aliased ? "yes — folded" : "no";
+    } else clear(["ff-app", "ff-al"]);
+  }
+  ["ff-dt", "ff-N", "ff-f0", "ff-sig"].forEach((i) => $(i).addEventListener("input", fft));
+  fft();
 })();
 </script>
 {% endraw %}

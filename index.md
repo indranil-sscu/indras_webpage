@@ -19,7 +19,10 @@ Short, practical write-ups of scripts and command-line workflows I use for data 
 
 ## Tools
 
-[Spectroscopy & optics calculators](./tools/): convert between energy, frequency and wavelength units (nm, cm⁻¹, eV, THz, Hartree, kJ/mol, …), spectral bandwidth and transform-limited pulse durations, delay-stage distance and time, pulse energy, peak power and intensity, and GDD broadening. Everything runs in your browser.
+- [Spectroscopy & optics calculators](./tools/): unit conversion (nm, cm⁻¹, eV, THz, Hartree, kJ/mol, …), bandwidth and transform-limited pulses, delay stages, pulse energy and intensity, GDD broadening, material dispersion (n, GVD, TOD), prism and grating compressors, SHG/SFG phase matching, Gaussian beams and focusing, autocorrelation deconvolution, and sampling/FFT axis design.
+- [Constants & lab cheat sheet](./reference/): CODATA constants, laser and calibration lines, and the optics rules of thumb that are easy to forget.
+
+Everything runs in your browser.
 
 ---
 
