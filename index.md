@@ -20,6 +20,7 @@ Short, practical write-ups of scripts and command-line workflows I use for data 
 ## Tools
 
 - [Spectroscopy & optics calculators](./tools/): unit conversion (nm, cm⁻¹, eV, THz, Hartree, kJ/mol, …), bandwidth and transform-limited pulses, delay stages, pulse energy and intensity, GDD broadening, material dispersion (n, GVD, TOD), prism and grating compressors, SHG/SFG phase matching, Gaussian beams and focusing, autocorrelation deconvolution, and sampling/FFT axis design.
+- [Plot digitizer](./tools/digitizer/): extract numbers from an image of a published plot (linear or log axes, multiple series, CSV export). The image stays in your browser.
 - [Constants & lab cheat sheet](./reference/): CODATA constants, laser and calibration lines, and the optics rules of thumb that are easy to forget.
 
 Everything runs in your browser.
