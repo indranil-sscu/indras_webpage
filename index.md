@@ -17,6 +17,12 @@ Short, practical write-ups of scripts and command-line workflows I use for data 
 
 ---
 
+## Tools
+
+[Spectroscopy & optics calculators](./tools/): convert between energy, frequency and wavelength units (nm, cm⁻¹, eV, THz, Hartree, kJ/mol, …), spectral bandwidth and transform-limited pulse durations, delay-stage distance and time, pulse energy, peak power and intensity, and GDD broadening. Everything runs in your browser.
+
+---
+
 ## Recent posts
 
 - [Batch Plotting in Python](./posts/batch-plotting) — overlay many data files in one publication-style plot from the command line.

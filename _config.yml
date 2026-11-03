@@ -14,5 +14,11 @@ minima:
       url: "/"
     - title: "Posts"
       url: "/posts/"
+    - title: "Tools"
+      url: "/tools/"
     - title: "Homepage"
       url: "https://sites.google.com/iisc.ac.in/indranilroy"
+
+exclude:
+  - tests/
+  - README.md

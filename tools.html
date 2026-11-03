@@ -1,0 +1,232 @@
+---
+layout: page
+title: Spectroscopy & Optics Calculators
+permalink: /tools/
+---
+{% raw %}
+<style>
+  .tools-intro { color: #555; margin-bottom: 1.5em; }
+  .tools-toc { display: flex; flex-wrap: wrap; gap: .5em 1.2em; margin: 0 0 2em; padding: 0; list-style: none; font-size: .95em; }
+  .tool { border: 1px solid #e3e3e3; border-radius: 8px; padding: 1.2em 1.4em; margin: 0 0 1.8em; background: #fff; }
+  .tool h2 { margin-top: 0; font-size: 1.3em; }
+  .tool p.note { color: #666; font-size: .85em; margin: .8em 0 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .7em 1.2em; }
+  .field label { display: block; font-size: .8em; color: #555; margin-bottom: .2em; }
+  .field .row { display: flex; align-items: stretch; }
+  .field input, .field select { width: 100%; box-sizing: border-box; padding: .45em .55em; font: inherit; font-size: .95em;
+    border: 1px solid #ccc; border-radius: 4px 0 0 4px; background: #fff; }
+  .field select { border-radius: 4px; }
+  .field .unit { padding: .45em .55em; background: #f4f4f4; border: 1px solid #ccc; border-left: 0; border-radius: 0 4px 4px 0;
+    font-size: .85em; color: #444; white-space: nowrap; min-width: 4.2em; text-align: center; }
+  .field input:focus { outline: 2px solid #2a7ae2; outline-offset: -1px; }
+  .field input.out { background: #f8fafc; }
+  .field input.src { background: #eef5ff; }
+  .err { color: #b00020; font-size: .85em; min-height: 1.2em; margin-top: .4em; }
+  .sub { font-size: 1em; margin: 1.2em 0 .6em; color: #333; }
+</style>
+
+<p class="tools-intro">
+  Calculators for everyday unit and pulse conversions in ultrafast spectroscopy. Type into any field and the rest update. Everything runs in your browser.
+  Constants are the exact SI values (2019) and CODATA 2018 for the Hartree energy. Source and tests:
+  <a href="https://github.com/indranil-sscu/indras_webpage">GitHub</a>.
+</p>
+
+<ul class="tools-toc">
+  <li><a href="#energy">Energy &amp; wavelength</a></li>
+  <li><a href="#bandwidth">Bandwidth &amp; transform limit</a></li>
+  <li><a href="#delay">Delay line</a></li>
+  <li><a href="#pulse">Pulse energy &amp; intensity</a></li>
+  <li><a href="#gdd">Dispersion broadening</a></li>
+</ul>
+
+<!-- 1 ------------------------------------------------------------ -->
+<section class="tool" id="energy">
+  <h2>Energy, frequency &amp; wavelength</h2>
+  <div class="grid" id="energy-grid"></div>
+  <div class="err" id="energy-err"></div>
+  <p class="note">Photon / per-particle quantities: E = hν = hc/λ = hc·ν̃; molar values multiply by N<sub>A</sub>; temperature is E/k<sub>B</sub>.
+    1 Hartree = 27.211386 eV = 219474.63 cm⁻¹ = 627.5095 kcal/mol.</p>
+</section>
+
+<!-- 2 ------------------------------------------------------------ -->
+<section class="tool" id="bandwidth">
+  <h2>Spectral bandwidth &amp; transform-limited pulse</h2>
+  <div class="grid">
+    <div class="field"><label>Centre wavelength λ₀</label><div class="row"><input id="bw-l0" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Bandwidth (FWHM) Δλ</label><div class="row"><input id="bw-dl" type="number" value="10" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Δν</label><div class="row"><input id="bw-dnu" type="number" step="any"><span class="unit">THz</span></div></div>
+    <div class="field"><label>Δν̃</label><div class="row"><input id="bw-dk" type="number" step="any"><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>ΔE</label><div class="row"><input id="bw-dE" type="number" step="any"><span class="unit">meV</span></div></div>
+  </div>
+  <h3 class="sub">Transform-limited duration (intensity FWHM)</h3>
+  <div class="grid">
+    <div class="field"><label>Gaussian (ΔνΔt = 0.441)</label><div class="row"><input id="bw-tg" type="number" step="any"><span class="unit">fs</span></div></div>
+    <div class="field"><label>sech² (ΔνΔt = 0.315)</label><div class="row"><input id="bw-ts" type="number" step="any"><span class="unit">fs</span></div></div>
+  </div>
+  <div class="err" id="bw-err"></div>
+  <p class="note">Bandwidths are exact for the band λ₀ ± Δλ/2 (no small-bandwidth approximation). Enter a pulse duration to get the minimum bandwidth it requires.</p>
+</section>
+
+<!-- 3 ------------------------------------------------------------ -->
+<section class="tool" id="delay">
+  <h2>Optical delay line</h2>
+  <div class="grid">
+    <div class="field"><label>Stage displacement</label><div class="row"><input id="dl-mm" type="number" value="1" step="any"><span class="unit">mm</span></div></div>
+    <div class="field"><label>Time delay</label><div class="row"><input id="dl-fs" type="number" step="any"><span class="unit">fs</span></div></div>
+    <div class="field"><label>Time delay</label><div class="row"><input id="dl-ps" type="number" step="any"><span class="unit">ps</span></div></div>
+    <div class="field"><label>Passes</label><select id="dl-passes"><option value="1">1 (single pass)</option><option value="2" selected>2 (retro-reflector)</option><option value="4">4 (double retro)</option></select></div>
+    <div class="field"><label>Group index n<sub>g</sub></label><div class="row"><input id="dl-ng" type="number" value="1" step="any"><span class="unit">–</span></div></div>
+  </div>
+  <div class="err" id="dl-err"></div>
+  <p class="note">t = passes · n<sub>g</sub> · L / c. In air n<sub>g</sub> ≈ 1.0003; use 1 for vacuum.</p>
+</section>
+
+<!-- 4 ------------------------------------------------------------ -->
+<section class="tool" id="pulse">
+  <h2>Pulse energy, peak power &amp; intensity</h2>
+  <div class="grid">
+    <div class="field"><label>Average power</label><div class="row"><input id="pu-P" type="number" value="1" step="any"><span class="unit">W</span></div></div>
+    <div class="field"><label>Repetition rate</label><div class="row"><input id="pu-f" type="number" value="1" step="any"><span class="unit">kHz</span></div></div>
+    <div class="field"><label>Pulse duration (FWHM)</label><div class="row"><input id="pu-t" type="number" value="100" step="any"><span class="unit">fs</span></div></div>
+    <div class="field"><label>Temporal shape</label><select id="pu-shape"><option value="gaussian">Gaussian</option><option value="sech2">sech²</option></select></div>
+    <div class="field"><label>Beam diameter (1/e²)</label><div class="row"><input id="pu-d" type="number" value="100" step="any"><span class="unit">µm</span></div></div>
+    <div class="field"><label>Wavelength</label><div class="row"><input id="pu-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+  </div>
+  <h3 class="sub">Results</h3>
+  <div class="grid">
+    <div class="field"><label>Pulse energy</label><div class="row"><input id="pu-E" class="out" readonly><span class="unit">µJ</span></div></div>
+    <div class="field"><label>Peak power</label><div class="row"><input id="pu-Pk" class="out" readonly><span class="unit">GW</span></div></div>
+    <div class="field"><label>Peak fluence</label><div class="row"><input id="pu-F" class="out" readonly><span class="unit">mJ/cm²</span></div></div>
+    <div class="field"><label>Peak intensity</label><div class="row"><input id="pu-I" class="out" readonly><span class="unit">W/cm²</span></div></div>
+    <div class="field"><label>Photons per pulse</label><div class="row"><input id="pu-N" class="out" readonly><span class="unit">–</span></div></div>
+  </div>
+  <div class="err" id="pu-err"></div>
+  <p class="note">Gaussian beam of 1/e² radius w = D/2: peak fluence 2E/(πw²), peak intensity 2P₀/(πw²). Peak power P₀ = 0.939 E/τ (Gaussian) or 0.881 E/τ (sech²).</p>
+</section>
+
+<!-- 5 ------------------------------------------------------------ -->
+<section class="tool" id="gdd">
+  <h2>Dispersion: pulse broadening by GDD</h2>
+  <div class="grid">
+    <div class="field"><label>Input duration (FWHM, transform-limited)</label><div class="row"><input id="gd-t" type="number" value="20" step="any"><span class="unit">fs</span></div></div>
+    <div class="field"><label>Group-delay dispersion</label><div class="row"><input id="gd-gdd" type="number" value="500" step="any"><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Output duration</label><div class="row"><input id="gd-out" class="out" readonly><span class="unit">fs</span></div></div>
+    <div class="field"><label>Broadening factor</label><div class="row"><input id="gd-x" class="out" readonly><span class="unit">×</span></div></div>
+  </div>
+  <div class="err" id="gd-err"></div>
+  <p class="note">Unchirped Gaussian: τ<sub>out</sub> = τ<sub>in</sub>·√(1 + (4 ln2 · GDD / τ<sub>in</sub>²)²). For fused silica at 800 nm, GDD ≈ 36 fs² per mm.</p>
+</section>
+
+{% endraw %}<script src="{{ '/assets/js/sci-tools.js' | relative_url }}"></script>{% raw %}
+<script>
+(function () {
+  "use strict";
+  const T = window.SciTools;
+  const $ = (id) => document.getElementById(id);
+  const num = (id) => parseFloat($(id).value);
+  const fmt = (v) => {
+    if (!isFinite(v)) return "";
+    const a = Math.abs(v);
+    return a !== 0 && (a < 1e-3 || a >= 1e7) ? v.toExponential(6) : String(parseFloat(v.toPrecision(8)));
+  };
+  const setErr = (id, msg) => { $(id).textContent = msg || ""; };
+
+  /* ---- 1. energy converter ---------------------------------------- */
+  const grid = $("energy-grid");
+  const order = ["nm", "um", "cm1", "THz", "radfs", "fs", "eV", "meV", "Eh", "Ry", "kJmol", "kcalmol", "K", "J"];
+  for (const k of order) {
+    const u = T.ENERGY_UNITS[k];
+    grid.insertAdjacentHTML("beforeend",
+      `<div class="field"><label>${u.label}</label><div class="row"><input id="en-${k}" type="number" step="any"><span class="unit">${u.unit}</span></div></div>`);
+  }
+  function updateEnergy(src) {
+    const v = num("en-" + src);
+    for (const k of order) $("en-" + k).classList.toggle("src", k === src);
+    if (!(v > 0)) { setErr("energy-err", $("en-" + src).value ? "Enter a positive number." : ""); return; }
+    setErr("energy-err");
+    const out = T.convertEnergy(v, src);
+    for (const k of order) if (k !== src) $("en-" + k).value = fmt(out[k]);
+  }
+  for (const k of order) $("en-" + k).addEventListener("input", () => updateEnergy(k));
+  $("en-nm").value = 800; updateEnergy("nm");
+
+  /* ---- 2. bandwidth & transform limit ----------------------------- */
+  function bwFromDl() {
+    const l0 = num("bw-l0"), dl = num("bw-dl");
+    if (!(l0 > 0 && dl > 0 && dl < 2 * l0)) return setErr("bw-err", "Need λ₀ > 0 and 0 < Δλ < 2λ₀.");
+    setErr("bw-err");
+    const b = T.bandwidthFromNm(l0, dl);
+    $("bw-dnu").value = fmt(b.dnu_THz); $("bw-dk").value = fmt(b.dk_cm1); $("bw-dE").value = fmt(b.dE_meV);
+    $("bw-tg").value = fmt(T.transformLimitedDuration(l0, dl, "gaussian"));
+    $("bw-ts").value = fmt(T.transformLimitedDuration(l0, dl, "sech2"));
+  }
+  function bwFromDnu(dnu_THz) {
+    const l0 = num("bw-l0");
+    if (!(l0 > 0 && dnu_THz > 0)) return setErr("bw-err", "Enter positive values.");
+    $("bw-dl").value = fmt(T.bandwidthToNm(l0, dnu_THz));
+    bwFromDl();
+  }
+  $("bw-l0").addEventListener("input", bwFromDl);
+  $("bw-dl").addEventListener("input", bwFromDl);
+  $("bw-dnu").addEventListener("input", () => bwFromDnu(num("bw-dnu")));
+  $("bw-dk").addEventListener("input", () => bwFromDnu(num("bw-dk") * T.C.c * 100 / 1e12));
+  $("bw-dE").addEventListener("input", () => bwFromDnu(num("bw-dE") * 1e-3 * T.C.e / T.C.h / 1e12));
+  $("bw-tg").addEventListener("input", () => { const t = num("bw-tg"), l0 = num("bw-l0");
+    if (t > 0 && l0 > 0) { $("bw-dl").value = fmt(T.transformLimitedBandwidth(l0, t, "gaussian")); bwFromDl(); } });
+  $("bw-ts").addEventListener("input", () => { const t = num("bw-ts"), l0 = num("bw-l0");
+    if (t > 0 && l0 > 0) { $("bw-dl").value = fmt(T.transformLimitedBandwidth(l0, t, "sech2")); bwFromDl(); } });
+  bwFromDl();
+
+  /* ---- 3. delay line ---------------------------------------------- */
+  const passes = () => parseInt($("dl-passes").value, 10);
+  const ng = () => num("dl-ng") || 1;
+  function dlFromMm() {
+    const mm = num("dl-mm");
+    if (!isFinite(mm)) return;
+    const fs = T.delayFromDistance(mm, passes(), ng());
+    $("dl-fs").value = fmt(fs); $("dl-ps").value = fmt(fs / 1e3);
+  }
+  function dlFromFs(fs) {
+    if (!isFinite(fs)) return;
+    $("dl-mm").value = fmt(T.distanceFromDelay(fs, passes(), ng()));
+    $("dl-fs").value = fmt(fs); $("dl-ps").value = fmt(fs / 1e3);
+  }
+  $("dl-mm").addEventListener("input", dlFromMm);
+  $("dl-fs").addEventListener("input", () => dlFromFs(num("dl-fs")));
+  $("dl-ps").addEventListener("input", () => dlFromFs(num("dl-ps") * 1e3));
+  $("dl-passes").addEventListener("change", dlFromMm);
+  $("dl-ng").addEventListener("input", dlFromMm);
+  dlFromMm();
+
+  /* ---- 4. pulse parameters ---------------------------------------- */
+  function pulse() {
+    const P = num("pu-P"), f = num("pu-f") * 1e3;
+    if (!(P > 0 && f > 0)) { ["pu-E", "pu-Pk", "pu-F", "pu-I", "pu-N"].forEach((i) => ($(i).value = ""));
+      return setErr("pu-err", "Average power and repetition rate must be positive."); }
+    setErr("pu-err");
+    const r = T.pulseParameters({ avgPower_W: P, repRate_Hz: f, duration_fs: num("pu-t"), diameter_um: num("pu-d"),
+                                  wavelength_nm: num("pu-l"), shape: $("pu-shape").value });
+    $("pu-E").value = fmt(r.energy_J * 1e6);
+    $("pu-Pk").value = r.peakPower_W ? fmt(r.peakPower_W / 1e9) : "";
+    $("pu-F").value = r.peakFluence_Jcm2 ? fmt(r.peakFluence_Jcm2 * 1e3) : "";
+    $("pu-I").value = r.peakIntensity_Wcm2 ? fmt(r.peakIntensity_Wcm2) : "";
+    $("pu-N").value = r.photonsPerPulse ? fmt(r.photonsPerPulse) : "";
+  }
+  ["pu-P", "pu-f", "pu-t", "pu-d", "pu-l"].forEach((i) => $(i).addEventListener("input", pulse));
+  $("pu-shape").addEventListener("change", pulse);
+  pulse();
+
+  /* ---- 5. GDD broadening ------------------------------------------ */
+  function gdd() {
+    const t = num("gd-t"), g = num("gd-gdd");
+    if (!(t > 0 && isFinite(g))) { $("gd-out").value = $("gd-x").value = ""; return setErr("gd-err", "Enter a positive duration."); }
+    setErr("gd-err");
+    const out = T.gddBroadening(t, g);
+    $("gd-out").value = fmt(out); $("gd-x").value = fmt(out / t);
+  }
+  $("gd-t").addEventListener("input", gdd);
+  $("gd-gdd").addEventListener("input", gdd);
+  gdd();
+})();
+</script>
+{% endraw %}

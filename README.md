@@ -14,12 +14,16 @@ I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), In
 
 - Blog-style code notes and project logs
 - Tips and scripts for scientific computing
+- [Spectroscopy & optics calculators](https://indranil-sscu.github.io/indras_webpage/tools/) (`tools.html`, logic in `assets/js/sci-tools.js`; run the tests with `node --test tests/`)
 
 ## Structure
 
 ```plaintext
 .
 ├── index.md       # Home page (Markdown)
+├── tools.html     # Calculators page
+├── assets/js/     # Calculator logic (sci-tools.js)
+├── tests/         # Node unit tests for the calculators
 ├── posts.md       # Listing of all posts
 ├── posts/         # Individual project notes
 ├── _config.yml    # Jekyll site configuration
