@@ -1,6 +1,9 @@
-title: indra's webpage
-description: Programming Snippets, Data Viz, and Scientific Computing
+title: Indranil Roy · Code Notes
+description: Programming snippets, data visualisation and scientific computing
 name: Indranil Roy
+author:
+  name: Indranil Roy
+  email: indranilroy@iisc.ac.in
 github_username: indranil-sscu
 
 theme: minima
@@ -11,5 +14,5 @@ minima:
       url: "/"
     - title: "Posts"
       url: "/posts/"
-    - title: "Personal Site"
-      url: "http://sites.google.com/iisc.ac.in/indranilroy/"
+    - title: "Homepage"
+      url: "https://sites.google.com/iisc.ac.in/indranilroy"
