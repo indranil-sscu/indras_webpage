@@ -1,0 +1,338 @@
+---
+layout: page
+title: Plot Digitizer
+permalink: /tools/digitizer/
+---
+{% raw %}
+<style>
+  .dz-intro { color: #555; }
+  .dz-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1em; margin: 1.2em 0; }
+  .dz-card { border: 1px solid #e3e3e3; border-radius: 8px; padding: .9em 1em; background: #fff; font-size: .92em; }
+  .dz-card h3 { margin: 0 0 .5em; font-size: 1.02em; }
+  .dz-card.active { border-color: #2a7ae2; box-shadow: 0 0 0 2px rgba(42,122,226,.15); }
+  .dz-card label { font-size: .85em; color: #555; }
+  .dz-card input[type=number], .dz-card input[type=text] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid #ccc; border-radius: 4px; }
+  .dz-cal { display: grid; grid-template-columns: auto 1fr; gap: .35em .5em; align-items: center; }
+  .dz-btn { font: inherit; font-size: .88em; padding: .35em .75em; margin: .2em .2em .2em 0; border: 1px solid #bbb; border-radius: 4px; background: #f7f7f7; cursor: pointer; }
+  .dz-btn.primary { background: #2a7ae2; border-color: #2a7ae2; color: #fff; }
+  .dz-btn.on { background: #e8f0fe; border-color: #2a7ae2; }
+  .dz-btn:disabled { opacity: .45; cursor: default; }
+  .dz-status { margin: .5em 0; padding: .55em .8em; background: #f4f8ff; border-left: 3px solid #2a7ae2; font-size: .92em; }
+  .dz-status.warn { background: #fff7e6; border-color: #e69500; }
+  .dz-work { display: flex; gap: 1em; align-items: flex-start; flex-wrap: wrap; }
+  .dz-canvas-wrap { position: relative; flex: 1 1 520px; max-height: 75vh; overflow: auto; border: 1px dashed #bbb; border-radius: 6px; background: #fafafa; min-height: 260px; }
+  .dz-canvas-wrap.drag { border-color: #2a7ae2; background: #eef5ff; }
+  #dz-canvas { display: block; cursor: crosshair; }
+  .dz-drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #777; text-align: center; padding: 1em; pointer-events: none; }
+  .dz-side { flex: 0 0 210px; }
+  #dz-loupe { width: 200px; height: 200px; border: 1px solid #ccc; border-radius: 6px; background: #fff; display: block; }
+  .dz-readout { font-family: ui-monospace, Menlo, monospace; font-size: .85em; margin-top: .4em; min-height: 2.6em; color: #333; }
+  .dz-table { width: 100%; border-collapse: collapse; font-size: .85em; margin-top: .6em; }
+  .dz-table th, .dz-table td { border-bottom: 1px solid #eee; padding: .25em .4em; text-align: right; }
+  .dz-table th:first-child, .dz-table td:first-child { text-align: left; }
+  .dz-table-wrap { max-height: 320px; overflow: auto; }
+  .dz-note { color: #666; font-size: .85em; }
+  kbd { font-size: .85em; padding: 0 .3em; border: 1px solid #ccc; border-radius: 3px; background: #f7f7f7; }
+</style>
+
+<p class="dz-intro">
+  Extract numerical data from an image of a plot: load the image, calibrate the axes with four clicks, then click on the data.
+  Works with linear and logarithmic axes and with slightly rotated scans. <b>Your image never leaves your browser.</b>
+  <a href="../">← All tools</a>
+</p>
+
+<div class="dz-steps">
+  <div class="dz-card active" id="dz-step1">
+    <h3>1 · Load image</h3>
+    <input type="file" id="dz-file" accept="image/*"><br>
+    <span class="dz-note">…or drag &amp; drop onto the canvas, or paste with <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>V</kbd>.</span>
+    <div style="margin-top:.5em"><label>Zoom</label>
+      <select id="dz-zoom"><option value="fit">Fit width</option><option value="1">100 %</option><option value="1.5">150 %</option><option value="2">200 %</option><option value="3">300 %</option></select></div>
+  </div>
+  <div class="dz-card" id="dz-step2">
+    <h3>2 · Calibrate axes</h3>
+    <div class="dz-cal">
+      <button class="dz-btn" data-cal="X1">X1</button><input type="number" id="dz-x1" placeholder="x value" step="any">
+      <button class="dz-btn" data-cal="X2">X2</button><input type="number" id="dz-x2" placeholder="x value" step="any">
+      <button class="dz-btn" data-cal="Y1">Y1</button><input type="number" id="dz-y1" placeholder="y value" step="any">
+      <button class="dz-btn" data-cal="Y2">Y2</button><input type="number" id="dz-y2" placeholder="y value" step="any">
+    </div>
+    <label><input type="checkbox" id="dz-logx"> log x</label> &nbsp; <label><input type="checkbox" id="dz-logy"> log y</label><br>
+    <button class="dz-btn" id="dz-recal">Click all four again</button>
+  </div>
+  <div class="dz-card" id="dz-step3">
+    <h3>3 · Pick points</h3>
+    <label>Series</label>
+    <div style="display:flex;gap:.3em"><select id="dz-series" style="flex:1"></select><button class="dz-btn" id="dz-addseries" title="New series">＋</button></div>
+    <div style="margin-top:.4em">
+      <button class="dz-btn" id="dz-mode-add">Add points</button><button class="dz-btn" id="dz-mode-del">Delete points</button><br>
+      <button class="dz-btn" id="dz-undo">Undo</button><button class="dz-btn" id="dz-clear">Clear series</button>
+    </div>
+    <span class="dz-note">Click to add. <kbd>Shift</kbd>-click or right-click removes the nearest point. <kbd>Ctrl</kbd>/<kbd>⌘</kbd>+<kbd>Z</kbd> undoes. Arrow keys nudge the last point.</span>
+  </div>
+  <div class="dz-card" id="dz-step4">
+    <h3>4 · Export</h3>
+    <label><input type="checkbox" id="dz-sort" checked> sort by x</label> &nbsp;
+    <label>sig. figs <input type="number" id="dz-prec" value="6" min="2" max="12" style="width:3.5em"></label><br>
+    <button class="dz-btn primary" id="dz-download">Download CSV</button><button class="dz-btn" id="dz-copy">Copy</button>
+    <div class="dz-note" id="dz-count">0 points</div>
+  </div>
+</div>
+
+<div class="dz-status" id="dz-status">Load an image of a plot to begin.</div>
+
+<div class="dz-work">
+  <div class="dz-canvas-wrap" id="dz-wrap">
+    <canvas id="dz-canvas" width="10" height="10"></canvas>
+    <div class="dz-drop" id="dz-drop">Drop a plot image here<br>(PNG, JPG, GIF, WebP, SVG)</div>
+  </div>
+  <div class="dz-side">
+    <canvas id="dz-loupe" width="200" height="200"></canvas>
+    <div class="dz-readout" id="dz-readout"></div>
+    <div class="dz-table-wrap"><table class="dz-table" id="dz-table"><thead><tr><th>#</th><th>x</th><th>y</th></tr></thead><tbody></tbody></table></div>
+  </div>
+</div>
+
+<p class="dz-note" style="margin-top:1.2em">
+  <b>Tips.</b> Put the calibration points far apart, e.g. on the first and last labelled ticks, for the best accuracy; they don't have to be at the origin.
+  X1/X2 must lie on the x-axis and Y1/Y2 on the y-axis. The calibration then corrects for small rotations or skew in scanned figures.
+  Use the magnifier to place points on line centres. Recalibrating updates all existing points.
+</p>
+
+{% endraw %}<script src="{{ '/assets/js/digitizer-core.js' | relative_url }}"></script>{% raw %}
+<script>
+(function () {
+  "use strict";
+  const D = window.DigitizerCore;
+  const $ = (id) => document.getElementById(id);
+  const cv = $("dz-canvas"), ctx = cv.getContext("2d");
+  const loupe = $("dz-loupe"), lctx = loupe.getContext("2d");
+  const COLORS = ["#d62728", "#1f77b4", "#2ca02c", "#9467bd", "#ff7f0e", "#17becf", "#8c564b", "#e377c2"];
+
+  const S = {
+    img: null, scale: 1,
+    cal: { X1: null, X2: null, Y1: null, Y2: null },
+    calOrder: ["X1", "X2", "Y1", "Y2"], calTarget: null,
+    calibration: null,
+    series: ["Series 1"], current: "Series 1",
+    points: [], // {series, u, v} in image pixels
+    history: [], mode: "add", mouse: null,
+  };
+
+  /* ---------------- status & steps ---------------- */
+  function status(msg, warn) { const s = $("dz-status"); s.innerHTML = msg; s.classList.toggle("warn", !!warn); }
+  function stepActive(n) { for (let i = 1; i <= 4; i++) $("dz-step" + i).classList.toggle("active", i === n); }
+
+  /* ---------------- image loading ---------------- */
+  function loadFile(file) {
+    if (!file || !/^image\//.test(file.type)) return status("That file is not an image.", true);
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      S.img = img;
+      S.cal = { X1: null, X2: null, Y1: null, Y2: null }; S.calibration = null;
+      S.points = []; S.history = [];
+      $("dz-drop").style.display = "none";
+      fit(); startCalibration();
+    };
+    img.onerror = () => status("Could not read that image.", true);
+    img.src = url;
+  }
+  $("dz-file").addEventListener("change", (e) => loadFile(e.target.files[0]));
+  const wrap = $("dz-wrap");
+  ["dragenter", "dragover"].forEach((t) => wrap.addEventListener(t, (e) => { e.preventDefault(); wrap.classList.add("drag"); }));
+  ["dragleave", "drop"].forEach((t) => wrap.addEventListener(t, (e) => { e.preventDefault(); wrap.classList.remove("drag"); }));
+  wrap.addEventListener("drop", (e) => loadFile(e.dataTransfer.files[0]));
+  document.addEventListener("paste", (e) => {
+    const item = [...(e.clipboardData || {}).items || []].find((i) => i.type.startsWith("image/"));
+    if (item) { e.preventDefault(); loadFile(item.getAsFile()); }
+  });
+
+  /* ---------------- zoom / drawing ---------------- */
+  function fit() {
+    if (!S.img) return;
+    const z = $("dz-zoom").value;
+    S.scale = z === "fit" ? Math.min(1, (wrap.clientWidth - 2) / S.img.naturalWidth) : parseFloat(z);
+    cv.width = Math.round(S.img.naturalWidth * S.scale);
+    cv.height = Math.round(S.img.naturalHeight * S.scale);
+    draw();
+  }
+  $("dz-zoom").addEventListener("change", fit);
+  window.addEventListener("resize", () => { if ($("dz-zoom").value === "fit") fit(); });
+
+  const color = (series) => COLORS[S.series.indexOf(series) % COLORS.length];
+
+  function drawMarks(c, k, ox, oy) {
+    // k: canvas px per image px; (ox, oy): image coords at canvas origin
+    const P = (u, v) => [(u - ox) * k, (v - oy) * k];
+    for (const key of S.calOrder) {
+      const p = S.cal[key]; if (!p) continue;
+      const [x, y] = P(p[0], p[1]);
+      c.strokeStyle = key[0] === "X" ? "#0a7d32" : "#7a22b5"; c.lineWidth = 1.5;
+      c.beginPath(); c.moveTo(x - 9, y); c.lineTo(x + 9, y); c.moveTo(x, y - 9); c.lineTo(x, y + 9); c.stroke();
+      c.fillStyle = c.strokeStyle; c.font = "bold 12px sans-serif"; c.fillText(key, x + 6, y - 6);
+    }
+    for (const pt of S.points) {
+      const [x, y] = P(pt.u, pt.v);
+      c.fillStyle = color(pt.series); c.strokeStyle = "#fff"; c.lineWidth = 1;
+      c.beginPath(); c.arc(x, y, pt.series === S.current ? 4 : 3, 0, 2 * Math.PI); c.fill(); c.stroke();
+    }
+  }
+
+  function draw() {
+    if (!S.img) return;
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.imageSmoothingEnabled = S.scale < 1;
+    ctx.drawImage(S.img, 0, 0, cv.width, cv.height);
+    drawMarks(ctx, S.scale, 0, 0);
+    drawLoupe();
+  }
+
+  function drawLoupe() {
+    lctx.fillStyle = "#fff"; lctx.fillRect(0, 0, 200, 200);
+    if (!S.img || !S.mouse) return;
+    const Z = 5, half = 100 / Z, [u, v] = S.mouse;
+    lctx.imageSmoothingEnabled = false;
+    lctx.drawImage(S.img, u - half, v - half, 2 * half, 2 * half, 0, 0, 200, 200);
+    drawMarks(lctx, Z, u - half, v - half);
+    lctx.strokeStyle = "rgba(220,0,0,.8)"; lctx.lineWidth = 1;
+    lctx.beginPath(); lctx.moveTo(100, 0); lctx.lineTo(100, 200); lctx.moveTo(0, 100); lctx.lineTo(200, 100); lctx.stroke();
+  }
+
+  /* ---------------- calibration ---------------- */
+  function startCalibration() {
+    S.calibration = null; S.cal = { X1: null, X2: null, Y1: null, Y2: null };
+    S.calTarget = "X1"; stepActive(2); markCalButtons(); draw(); refresh();
+    status("Click a point on the <b>x-axis</b> whose value you know (<b>X1</b>), e.g. the first labelled tick.");
+  }
+  function markCalButtons() {
+    document.querySelectorAll("[data-cal]").forEach((b) => b.classList.toggle("on", b.dataset.cal === S.calTarget));
+  }
+  document.querySelectorAll("[data-cal]").forEach((b) => b.addEventListener("click", () => {
+    if (!S.img) return status("Load an image first.", true);
+    S.calTarget = b.dataset.cal; markCalButtons(); status(`Click the position of <b>${S.calTarget}</b> on the image.`);
+  }));
+  $("dz-recal").addEventListener("click", () => S.img && startCalibration());
+
+  const CAL_HINT = {
+    X2: "Now click a second <b>x-axis</b> point (<b>X2</b>), far from X1.",
+    Y1: "Click a point on the <b>y-axis</b> whose value you know (<b>Y1</b>).",
+    Y2: "Click a second <b>y-axis</b> point (<b>Y2</b>), far from Y1.",
+  };
+
+  function tryCalibrate() {
+    const vals = { x1: parseFloat($("dz-x1").value), x2: parseFloat($("dz-x2").value), y1: parseFloat($("dz-y1").value), y2: parseFloat($("dz-y2").value) };
+    if (S.calOrder.some((k) => !S.cal[k])) { S.calibration = null; return refresh(); }
+    if (Object.values(vals).some((v) => !isFinite(v))) {
+      S.calibration = null; refresh();
+      return status("All four points are placed. Now type the axis <b>values</b> for X1, X2, Y1 and Y2.", true);
+    }
+    try {
+      S.calibration = D.calibrate(S.cal, vals, { x: $("dz-logx").checked, y: $("dz-logy").checked });
+      stepActive(3); S.mode = "add"; markMode();
+      status("Calibrated. <b>Click on the data</b> to add points.");
+    } catch (e) { S.calibration = null; status(e.message, true); }
+    refresh();
+  }
+  ["dz-x1", "dz-x2", "dz-y1", "dz-y2"].forEach((id) => $(id).addEventListener("input", tryCalibrate));
+  ["dz-logx", "dz-logy"].forEach((id) => $(id).addEventListener("change", tryCalibrate));
+
+  /* ---------------- series & points ---------------- */
+  function renderSeries() {
+    $("dz-series").innerHTML = S.series.map((s) => `<option${s === S.current ? " selected" : ""}>${s.replace(/</g, "&lt;")}</option>`).join("");
+  }
+  $("dz-series").addEventListener("change", (e) => { S.current = e.target.value; draw(); refresh(); });
+  $("dz-addseries").addEventListener("click", () => {
+    const name = prompt("Name of the new series:", "Series " + (S.series.length + 1));
+    if (!name || S.series.includes(name)) return;
+    S.series.push(name); S.current = name; renderSeries(); draw(); refresh();
+  });
+  function markMode() { $("dz-mode-add").classList.toggle("on", S.mode === "add"); $("dz-mode-del").classList.toggle("on", S.mode === "del"); }
+  $("dz-mode-add").addEventListener("click", () => { S.mode = "add"; markMode(); });
+  $("dz-mode-del").addEventListener("click", () => { S.mode = "del"; markMode(); });
+
+  function snapshot() { S.history.push(JSON.stringify(S.points)); if (S.history.length > 200) S.history.shift(); }
+  function undo() { if (S.history.length) { S.points = JSON.parse(S.history.pop()); draw(); refresh(); } }
+  $("dz-undo").addEventListener("click", undo);
+  $("dz-clear").addEventListener("click", () => {
+    if (!S.points.some((p) => p.series === S.current)) return;
+    snapshot(); S.points = S.points.filter((p) => p.series !== S.current); draw(); refresh();
+  });
+
+  function removeNearest(u, v) {
+    const own = S.points.map((p, i) => [p, i]).filter(([p]) => p.series === S.current);
+    const k = D.nearest(own.map(([p]) => [p.u, p.v]), u, v, 12 / S.scale);
+    if (k >= 0) { snapshot(); S.points.splice(own[k][1], 1); draw(); refresh(); }
+  }
+
+  /* ---------------- canvas interaction ---------------- */
+  const imgCoords = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) / S.scale, (e.clientY - r.top) / S.scale]; };
+  cv.addEventListener("mousemove", (e) => {
+    if (!S.img) return;
+    S.mouse = imgCoords(e); drawLoupe();
+    const [u, v] = S.mouse;
+    let txt = `px  ${u.toFixed(1)}, ${v.toFixed(1)}`;
+    if (S.calibration) { const [x, y] = D.toData(S.calibration, u, v); txt += `<br>x = ${fmt(x)}<br>y = ${fmt(y)}`; }
+    $("dz-readout").innerHTML = txt;
+  });
+  cv.addEventListener("mouseleave", () => { S.mouse = null; drawLoupe(); });
+  cv.addEventListener("contextmenu", (e) => { if (S.calibration) { e.preventDefault(); removeNearest(...imgCoords(e)); } });
+  cv.addEventListener("click", (e) => {
+    if (!S.img) return;
+    const [u, v] = imgCoords(e);
+    if (S.calTarget) {
+      S.cal[S.calTarget] = [u, v];
+      const next = S.calOrder.find((k) => !S.cal[k]);
+      S.calTarget = next || null; markCalButtons(); draw();
+      if (next) status(CAL_HINT[next] || `Click <b>${next}</b>.`);
+      else { $("dz-x1").focus(); tryCalibrate(); }
+      return;
+    }
+    if (!S.calibration) return status("Finish the axis calibration first (step 2).", true);
+    if (e.shiftKey || S.mode === "del") return removeNearest(u, v);
+    snapshot(); S.points.push({ series: S.current, u, v }); draw(); refresh();
+  });
+  document.addEventListener("keydown", (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "z" && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) { e.preventDefault(); undo(); return; }
+    const arrows = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] };
+    if (arrows[e.key] && S.points.length && document.activeElement === document.body) {
+      e.preventDefault();
+      const step = (e.shiftKey ? 2 : 0.25), p = S.points[S.points.length - 1];
+      p.u += arrows[e.key][0] * step; p.v += arrows[e.key][1] * step; draw(); refresh();
+    }
+  });
+
+  /* ---------------- table & export ---------------- */
+  const fmt = (n) => { const p = parseInt($("dz-prec").value, 10) || 6; return Number(n.toPrecision(p)).toString(); };
+  function dataPoints() {
+    if (!S.calibration) return [];
+    return S.points.map((p) => { const [x, y] = D.toData(S.calibration, p.u, p.v); return { series: p.series, x, y }; });
+  }
+  function refresh() {
+    const pts = dataPoints().filter((p) => p.series === S.current);
+    if ($("dz-sort").checked) pts.sort((a, b) => a.x - b.x);
+    $("dz-table").querySelector("tbody").innerHTML = pts.map((p, i) => `<tr><td>${i + 1}</td><td>${fmt(p.x)}</td><td>${fmt(p.y)}</td></tr>`).join("");
+    const n = S.points.length, ns = new Set(S.points.map((p) => p.series)).size;
+    $("dz-count").textContent = `${n} point${n === 1 ? "" : "s"}` + (ns > 1 ? ` in ${ns} series` : "");
+    const can = S.calibration && n > 0;
+    $("dz-download").disabled = $("dz-copy").disabled = !can;
+    if (S.calibration) stepActive(n > 0 ? 4 : 3);
+  }
+  ["dz-sort", "dz-prec"].forEach((id) => $(id).addEventListener("input", refresh));
+  $("dz-sort").addEventListener("change", refresh);
+
+  const csv = () => D.toCSV(dataPoints(), { sortByX: $("dz-sort").checked, precision: parseInt($("dz-prec").value, 10) || 6 });
+  $("dz-download").addEventListener("click", () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([csv()], { type: "text/csv" }));
+    a.download = "digitized-data.csv"; a.click(); URL.revokeObjectURL(a.href);
+  });
+  $("dz-copy").addEventListener("click", async () => {
+    try { await navigator.clipboard.writeText(csv()); status("CSV copied to the clipboard."); }
+    catch { status("Copy failed; use Download instead.", true); }
+  });
+
+  renderSeries(); markMode(); refresh(); drawLoupe();
+})();
+</script>
+{% endraw %}
