@@ -1,12 +1,14 @@
 # Indra's Webpage
 
-Welcome to the source code of [indras_webpage](https://indranil-sscu.github.io/indras_webpage/) — a personal website built using **GitHub Pages**. This site shares programming tidbits, academic projects, research notes, and snippets from my work in computational chemistry, optics and spectroscopy.
+Source code of [indras_webpage](https://indranil-sscu.github.io/indras_webpage/), a small Jekyll site on **GitHub Pages** for programming notes, project logs and scientific-computing snippets from my work in spectroscopy, optics and computational chemistry.
+
+> My main academic homepage is **[sites.google.com/iisc.ac.in/indranilroy](https://sites.google.com/iisc.ac.in/indranilroy)**.
 
 ## About Me
 
-I am a third-year Integrated PhD student in the Solid State and Structural Chemistry Unit (SSCU), Indian Institute of Science, Bangalore - 560012.  I did my graduation in Chemistry from Narendrapur Ramakrishna Mission Residential College, Kolkata-700103.
-Currently I am a graduate research student in Dr Vivek Tiwari's Multidimensional Spectroscopy and Imaging Group which I joined in May 2023.
-You can reach out to me at [indranilroy@iisc.ac.in](indranilroy@iisc.ac.in). 
+I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), Indian Institute of Science, Bengaluru, working with Prof. Vivek Tiwari in the [Multidimensional Spectroscopy and Imaging Group](https://sites.google.com/view/musig/). My research uses femtosecond two-dimensional electronic spectroscopy and vibronic model Hamiltonians to study energy flow in molecular aggregates, light-harvesting systems and molecular polaritons.
+
+[Google Scholar](https://scholar.google.com/citations?user=Cz84z-0AAAAJ) · [ORCID](https://orcid.org/0009-0006-3503-9150) · [LinkedIn](https://www.linkedin.com/in/skew-hermitian/) · [indranilroy@iisc.ac.in](mailto:indranilroy@iisc.ac.in)
 
 ## Features
 
@@ -17,9 +19,11 @@ You can reach out to me at [indranilroy@iisc.ac.in](indranilroy@iisc.ac.in).
 
 ```plaintext
 .
-├── index.md             # Home page written in Markdown
-├── _config.yml          # Site coniguration for Jekyll
-├── CNAME                # Custom domain (indras_webpage)
-├── assets/              # Static assets like images, CSS, JS
-├── posts/               # Project notes
-├── README.md            # This file
+├── index.md       # Home page (Markdown)
+├── posts.md       # Listing of all posts
+├── posts/         # Individual project notes
+├── _config.yml    # Jekyll site configuration
+├── _layouts/      # Page layouts
+├── _includes/     # Header/footer partials
+└── README.md      # This file
+```
