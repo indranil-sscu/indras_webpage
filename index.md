@@ -3,29 +3,22 @@ layout: default
 title: Home
 ---
 
-## who's indra?
+## About
 
-Oh, just your average lab gremlin trying to quantum-chemistry his way through an Integrated PhD at the Indian Institute of Science, Bangalore. I'm currently marinating in caffeine and confusion at the Solid State and Structural Chemistry Unit (SSCU). 
+I'm Indranil Roy, a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU) at the Indian Institute of Science, Bengaluru, working with Prof. Vivek Tiwari in the [Multidimensional Spectroscopy and Imaging Group](https://sites.google.com/view/musig/). My research uses ultrafast two-dimensional electronic spectroscopy and vibronic models to study energy flow in molecular aggregates and light–matter coupled systems.
 
-Graduated in Chemistry from Narendrapur Ramakrishna Mission Residential College — yes, the one with monks. Now I hang out in Dr. Vivek Tiwari's Multidimensional Spectroscopy and Imaging Group (joined May 2023), pretending to understand lasers, light-matter coupling, and why my code won't compile.
-
-Still reading? Wow. You can reach me at [indranilroy@iisc.ac.in](mailto:indranilroy@iisc.ac.in), if you're into that sort of thing.
+My academic homepage, with research and publications, is at **[sites.google.com/iisc.ac.in/indranilroy](https://sites.google.com/iisc.ac.in/indranilroy)**. You can reach me at [indranilroy@iisc.ac.in](mailto:indranilroy@iisc.ac.in).
 
 ---
 
-## indra's webpage: what is its purpose?
+## About these notes
 
-A shrine to half-baked scripts, command-line wizardry, and other scientific computing oddities that I swear worked *on my machine*. If you're looking for polished software, try NASA. If you're looking for quick fixes and chaos — welcome.
-
----
-
-## recent adventures
-
-- [Batch Plotting in Python](./posts/batch-plotting) — Because one plot at a time is for the weak.
+Short, practical write-ups of scripts and command-line workflows I use for data processing and scientific computing: things that took me a while to figure out, written down so others don't have to. They're working notes rather than polished software, so test before relying on them.
 
 ---
 
-## more?
+## Recent posts
 
-> Dive into [Posts](./posts/) if you're brave, bored, or both.
+- [Batch Plotting in Python](./posts/batch-plotting) — overlay many data files in one publication-style plot from the command line.
 
+See all [posts](./posts/).

@@ -102,7 +102,7 @@ for i in range(len(ListOfDataSets)):
     path = ListOfDataSets[i]
     try:
         df = pd.read_csv(path, usecols=cols_to_use[i],
-                         sep=r"\s+|\t+|\s+\t+|\t+\s+|,\s+|\s+,",
+                         sep=r"\s*,\s*|\s+",  # commas and/or any whitespace
                          header=None, engine='python')
     except Exception as e:
         print(f"Failed to read file '{path}': {e}")
@@ -118,9 +118,7 @@ for i in range(len(ListOfDataSets)):
     else:
         ax.plot(x_data, y_data, color=color, label=LegendLabels[i], marker='o')
 
-    ax.set_xlim(min(ax.get_xlim()[0], x_data.min()) - 0.1, max(ax.get_xlim()[1], x_data.max()) + 0.1)
-    ax.set_ylim(min(ax.get_ylim()[0], y_data.min()) - 1, max(ax.get_ylim()[1], y_data.max()) + 1)
-
+ax.margins(0.05)  # Matplotlib autoscales to all data sets; add 5% padding
 ax.set_xlabel(xAxisLabel, fontsize=14)
 ax.set_ylabel(yAxisLabel, fontsize=14)
 ax.legend()
@@ -129,15 +127,15 @@ plt.tight_layout()
 plt.show()
 ```
 
-To run the script, ensure that Seaborn, Pandas, and Matplotlib are installed in your Python environment. Open your terminal and use the following shell command to execute the script. It’s recommended to use the absolute path to the script and change the working directory (cd) to the location of your data files before running the code. There's no need to worry about delimiters—this script is designed to handle most commonly used separators automatically.
+To run the script, ensure that Seaborn, Pandas, and Matplotlib are installed in your Python environment. Open your terminal and use the following shell command to execute the script. It’s recommended to use the absolute path to the script and change the working directory (cd) to the location of your data files before running the code. There's no need to worry about delimiters: commas, tabs and spaces (or any mix of them) are all handled automatically.
 ```bash
-cd ~\path
-python3 script_name.py . file_name1 file_name2 ...
+cd ~/path/to/data
+python3 /path/to/script_name.py . file_name1 file_name2 ...
 ```
 If your data files are named sequentially or follow a consistent naming pattern, you can simplify the command using a wildcard. For example, the following will process all .txt files in the directory:
 ```bash
-cd ~\path
-python3 script_name.py . *.txt
+cd ~/path/to/data
+python3 /path/to/script_name.py . *.txt
 ```
 Simply follow the on-screen prompts—and voilà! Your plot will be generated in no time.
 
