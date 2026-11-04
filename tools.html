@@ -44,7 +44,6 @@ permalink: /tools/
   <li><a href="#autocorr">Autocorrelation</a></li>
   <li><a href="#fft">Sampling &amp; FFT axis</a></li>
   <li><a href="#jacobian">Spectral Jacobian</a></li>
-  <li><a href="#acsim">Autocorrelation simulator</a></li>
   <li><a href="digitizer/">Plot digitizer →</a></li>
   <li><a href="dsfd/">Feynman diagram generator →</a></li>
   <li><a href="../reference/">Constants &amp; cheat sheet →</a></li>
@@ -294,31 +293,6 @@ permalink: /tools/
   <button id="jc-dl" type="button" style="font:inherit;font-size:.88em;padding:.3em .7em;border:1px solid #2a7ae2;border-radius:4px;background:#2a7ae2;color:#fff;cursor:pointer" disabled>Download converted CSV</button>
   <div class="err" id="jc-err"></div>
   <p class="note">A spectrum is a density per unit of its axis, so changing axes needs the Jacobian |dλ/dν̃| = λ²/10⁷: I(ν̃) = I(λ)·λ²/10⁷ (λ in nm, ν̃ in cm⁻¹), and conversely I(λ) = I(ν̃)·ν̃²/10⁷. This keeps the integrated intensity unchanged; simply relabelling the x-axis distorts line shapes and band ratios. Header and comment lines are ignored; the data never leave your browser.</p>
-</section>
-
-<!-- 13 ----------------------------------------------------------- -->
-<section class="tool" id="acsim">
-  <h2>Field autocorrelation &amp; chirped-pulse simulator</h2>
-  <div class="grid">
-    <div class="field"><label>Spectrum</label><select id="as-src"><option value="gauss">Gaussian spectrum</option><option value="file">Experimental spectrum (file, nm)</option></select></div>
-    <div class="field" id="as-filefield" style="display:none"><label>Spectrum file (nm, intensity)</label><input id="as-file" type="file" accept=".txt,.csv,.dat,.tsv,text/*"></div>
-    <div class="field as-g"><label>Centre wavelength</label><div class="row"><input id="as-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
-    <div class="field as-g"><label>Spectral FWHM</label><div class="row"><input id="as-d" type="number" value="30" step="any"><span class="unit">nm</span></div></div>
-    <div class="field"><label>Group-delay dispersion</label><div class="row"><input id="as-gdd" type="number" value="500" step="any"><span class="unit">fs²</span></div></div>
-  </div>
-  <h3 class="sub">Results</h3>
-  <div class="grid">
-    <div class="field"><label>Transform-limited FWHM</label><div class="row"><input id="as-tl" class="out" readonly><span class="unit">fs</span></div></div>
-    <div class="field"><label>Chirped pulse FWHM</label><div class="row"><input id="as-st" class="out" readonly><span class="unit">fs</span></div></div>
-    <div class="field"><label>Field-AC envelope FWHM</label><div class="row"><input id="as-ac" class="out" readonly><span class="unit">fs</span></div></div>
-  </div>
-  <canvas id="as-ifg" width="760" height="220" style="width:100%;max-width:760px;margin-top:.8em;border:1px solid #eee;border-radius:4px"></canvas>
-  <div style="display:flex;gap:2%;flex-wrap:wrap">
-    <canvas id="as-pulse" width="372" height="220" style="flex:1 1 280px;min-width:0;max-width:100%;margin-top:.6em;border:1px solid #eee;border-radius:4px;box-sizing:border-box"></canvas>
-    <canvas id="as-spec" width="372" height="220" style="flex:1 1 280px;min-width:0;max-width:100%;margin-top:.6em;border:1px solid #eee;border-radius:4px;box-sizing:border-box"></canvas>
-  </div>
-  <div class="err" id="as-err"></div>
-  <p class="note">The first-order (field) autocorrelation measured by a Michelson/linear interferometer is G₁(τ) = ∫S(ν)e<sup>−i2πντ</sup>dν (Wiener–Khinchin), so it depends only on the spectrum and <b>not</b> on the spectral phase: chirp lengthens the pulse (middle plot) but leaves the interferogram unchanged. Fourier-transforming the interferogram recovers the spectrum (right plot, dashed). For a Gaussian pulse the |G₁| envelope is twice the intensity FWHM. Measuring the pulse duration needs a nonlinear (intensity) autocorrelation, FROG or SPIDER. The Gaussian spectrum is Gaussian in frequency with the FWHM spanned by λ₀ ± Δλ/2; φ(ω) = ½·GDD·(ω − ω₀)².</p>
 </section>
 
 {% endraw %}<script src="{{ '/assets/js/sci-tools.js' | relative_url }}"></script>
@@ -678,46 +652,6 @@ permalink: /tools/
     a.download = $("jc-dir").value === "nm2cm" ? "spectrum_cm-1.csv" : "spectrum_nm.csv"; a.click(); URL.revokeObjectURL(a.href);
   });
 
-  /* ---- field autocorrelation simulator ---------------------------- */
-  let acFilePts = null, acTimer = null;
-  function acsim() {
-    const gauss = $("as-src").value === "gauss";
-    $("as-filefield").style.display = gauss ? "none" : "";
-    document.querySelectorAll(".as-g").forEach((el) => (el.style.display = gauss ? "" : "none"));
-    const gdd = num("as-gdd") || 0;
-    let spec;
-    try {
-      if (gauss) {
-        const l = num("as-l"), d = num("as-d");
-        if (!(l > 0 && d > 0 && d < l)) throw new Error("Enter a centre wavelength and a FWHM smaller than it.");
-        spec = P.gaussianSpectrum(l, d, 256);
-      } else {
-        if (!acFilePts) throw new Error("Choose a spectrum file (wavelength in nm, intensity).");
-        spec = P.spectrumFromWavelength(acFilePts, 256);
-      }
-    } catch (e) { clear(["as-tl", "as-st", "as-ac"]); return setErr("as-err", e.message); }
-    setErr("as-err");
-    const r = P.simulate(spec, gdd);
-    outs(["as-tl", "as-st", "as-ac"], [r.tlFwhm_fs, r.stretchedFwhm_fs, r.acEnvelopeFwhm_fs]);
-    plot($("as-ifg"), [
-      { x: r.tau, y: r.interferogram, color: "#c0392b", width: 1 },
-      { x: r.tau, y: r.envelope, color: "#555", dash: [4, 3], label: "|G₁(τ)|" },
-    ], "Delay τ (fs)", { title: "Field autocorrelation (interferogram) Re G₁(τ)", yrange: [-1.05, 1.1] });
-    plot($("as-pulse"), [
-      { x: r.pulse.t, y: r.pulse.field, color: "#1f77b4", width: 1 },
-      { x: r.pulse.t, y: r.pulse.envelope, color: "#555", dash: [4, 3] },
-    ], "Time t (fs)", { title: `Pulse field, GDD = ${fmt(gdd)} fs²`, yrange: [-1.05, 1.1] });
-    plot($("as-spec"), [
-      { x: r.spectrum.lambda_nm, y: r.spectrum.original, color: "#2ca02c", label: "spectrum" },
-      { x: r.spectrum.lambda_nm, y: r.spectrum.recovered, color: "#333", dash: [5, 4], label: "from G₁" },
-    ], "Wavelength (nm)", { title: "Spectrum and its recovery", yrange: [0, 1.15] });
-  }
-  const acDebounced = () => { clearTimeout(acTimer); acTimer = setTimeout(acsim, 150); };
-  ["as-l", "as-d", "as-gdd"].forEach((i) => $(i).addEventListener("input", acDebounced));
-  $("as-src").addEventListener("change", acsim);
-  $("as-file").addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return;
-    f.text().then((t) => { acFilePts = P.parseTwoColumn(t); acsim(); }); });
-  acsim();
 })();
 </script>
 {% endraw %}

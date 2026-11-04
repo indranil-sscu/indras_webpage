@@ -60,21 +60,3 @@ test("Jacobian conversion conserves area and round-trips", () => {
   back.forEach((p, i) => near(p[1], pts[i][1], 1e-12));
   assert.strictEqual(Math.max(...P.jacobian(pts, "nm2cm", true).map((p) => p[1])), 1);
 });
-
-test("autocorrelation simulation matches analytic Gaussian results", () => {
-  for (const [l, d, g] of [[800, 30, 0], [800, 30, 500], [1030, 5, -3000]]) {
-    const r = P.simulate(P.gaussianSpectrum(l, d, 256), g);
-    const tl = T.transformLimitedDuration(l, d, "gaussian");
-    near(r.tlFwhm_fs, tl, 1e-3 * tl);
-    near(r.stretchedFwhm_fs, T.gddBroadening(tl, g), 1e-3 * tl);
-    near(r.acEnvelopeFwhm_fs, 2 * tl, 2e-3 * tl); // |G1| of a Gaussian pulse is 2× the intensity FWHM
-    r.spectrum.recovered.forEach((v, i) => near(v, r.spectrum.original[i], 1e-3)); // Wiener–Khinchin
-  }
-});
-
-test("simulation from an experimental (wavelength) spectrum", () => {
-  const pts = [];
-  for (let l = 760; l <= 840; l += 0.25) pts.push([l, Math.exp(-4 * Math.LN2 * Math.pow((l - 800) / 20, 2))]);
-  const r = P.simulate(P.spectrumFromWavelength(pts, 256), 0);
-  near(r.tlFwhm_fs, T.transformLimitedDuration(800, 20, "gaussian"), 0.6); // ~Gaussian, within 1.3 %
-});
