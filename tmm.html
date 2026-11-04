@@ -1,0 +1,551 @@
+---
+layout: page
+title: Transfer-Matrix Solver for Multilayers & Polaritons
+permalink: /tools/tmm/
+---
+{% raw %}
+<style>
+  .tm-intro { color: #555; }
+  .tm-sec { border: 1px solid #e3e3e3; border-radius: 8px; padding: 1em 1.2em; margin: 0 0 1.6em; background: #fff; }
+  .tm-sec h2 { margin: 0 0 .3em; font-size: 1.25em; }
+  .tm-why { background: #f4f8ff; border-left: 3px solid #2a7ae2; padding: .5em .8em; font-size: .88em; color: #333; margin: .3em 0 .9em; }
+  .tm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .55em .9em; align-items: end; }
+  .tm-f label { display: block; font-size: .78em; color: #555; margin-bottom: .15em; }
+  .tm-f input, .tm-f select { width: 100%; box-sizing: border-box; padding: .32em .45em; font: inherit; font-size: .9em; border: 1px solid #ccc; border-radius: 4px; }
+  .tm-f input.out { background: #f8fafc; }
+  .tm-btn { font: inherit; font-size: .86em; padding: .35em .75em; border: 1px solid #bbb; border-radius: 4px; background: #f7f7f7; cursor: pointer; margin: .3em .3em 0 0; }
+  .tm-btn.primary { background: #2a7ae2; border-color: #2a7ae2; color: #fff; }
+  .tm-layers { width: 100%; border-collapse: collapse; font-size: .85em; margin-top: .6em; }
+  .tm-layers th { text-align: left; font-weight: 600; color: #555; border-bottom: 1px solid #ddd; padding: .3em; }
+  .tm-layers td { border-bottom: 1px solid #f0f0f0; padding: .25em .3em; vertical-align: middle; }
+  .tm-layers input, .tm-layers select { font: inherit; font-size: .92em; padding: .2em .3em; border: 1px solid #ccc; border-radius: 3px; box-sizing: border-box; }
+  .tm-layers .params input { width: 4.6em; margin-right: .2em; }
+  .tm-layers .params input.wide { width: 13em; }
+  .tm-mini { font-size: .8em; padding: .1em .4em; border: 1px solid #ccc; background: #fafafa; border-radius: 3px; cursor: pointer; }
+  .tm-stackbar { display: flex; height: 26px; border: 1px solid #ddd; border-radius: 4px; overflow: hidden; margin-top: .7em; font-size: .7em; }
+  .tm-stackbar div { display: flex; align-items: center; justify-content: center; color: #fff; white-space: nowrap; overflow: hidden; }
+  canvas.tm-plot { width: 100%; max-width: 780px; border: 1px solid #eee; border-radius: 4px; margin-top: .7em; display: block; }
+  .tm-err { color: #b00020; font-size: .85em; min-height: 1.1em; margin-top: .3em; }
+  .tm-res { font-size: .9em; margin-top: .6em; line-height: 1.6; }
+  .tm-res b { color: #111; }
+  .tm-note { color: #666; font-size: .83em; }
+  .tm-toc { display: flex; flex-wrap: wrap; gap: .4em 1.1em; padding: 0; list-style: none; font-size: .92em; margin: .4em 0 1.4em; }
+</style>
+
+<p class="tm-intro">
+  A transfer-matrix (TMM) solver for planar multilayers: dielectric stacks, Bragg mirrors, metal-clad and DBR microcavities, and absorbing layers described by Lorentz oscillators.
+  It computes reflectance, transmittance and absorptance, angle- and thickness-resolved dispersion maps that show <b>polariton anticrossing</b>, the internal field distribution, and a coupled-oscillator fit that gives the <b>Rabi splitting</b>, Hopfield coefficients and the strong-coupling criterion.
+  Everything runs in your browser. <a href="../">← All tools</a>
+</p>
+<ul class="tm-toc">
+  <li><a href="#tm-structure">1 · Structure</a></li><li><a href="#tm-spectrum">2 · Spectrum</a></li>
+  <li><a href="#tm-angle">3 · Angle map &amp; polariton fit</a></li><li><a href="#tm-thick">4 · Detuning map</a></li><li><a href="#tm-field">5 · Field profile</a></li>
+</ul>
+
+<!-- 1 STRUCTURE ---------------------------------------------------- -->
+<section class="tm-sec" id="tm-structure">
+  <h2>1 · Structure</h2>
+  <div class="tm-why"><b>What this does.</b> Defines the stack, from the incident medium at the top to the substrate at the bottom, light coming from the top.
+    Each layer has a thickness and an optical model: a constant <i>n</i> + <i>ik</i>, a glass (Sellmeier), a Drude metal (mirrors), or a <b>Lorentz-oscillator medium</b> for the excitonic or vibrational transition you want to couple to the cavity, with ε(ν) = ε<sub>∞</sub> + Σ f ν₀² / (ν₀² − ν² − iγν).
+    Start from a preset and edit. <b>f</b> sets the oscillator strength (roughly, the Rabi splitting grows as √f·ν₀/n<sub>b</sub>), <b>γ</b> is the FWHM linewidth.</div>
+  <div class="tm-grid">
+    <div class="tm-f"><label>Preset</label><select id="tm-preset">
+      <option value="agdye">Ag / J-aggregate dye / Ag microcavity (visible)</option>
+      <option value="dbr">DBR microcavity with exciton layer</option>
+      <option value="vsc">Vibrational strong coupling: Au / C=O liquid / Au (IR)</option>
+      <option value="empty">Empty Ag Fabry–Pérot cavity</option>
+      <option value="film">Single film on glass (Fresnel / thin-film fringes)</option>
+    </select></div>
+    <div class="tm-f"><label>Spectral unit</label><select id="tm-unit"><option value="eV">eV</option><option value="cm1">cm⁻¹</option></select></div>
+    <div class="tm-f"><label>Incident medium <i>n</i></label><input id="tm-n0" type="number" step="any" value="1"></div>
+    <div class="tm-f"><label>Substrate</label><select id="tm-sub"></select></div>
+  </div>
+  <table class="tm-layers"><thead><tr><th>#</th><th>Layer</th><th>Model</th><th>Parameters</th><th>Thickness (nm)</th><th></th></tr></thead><tbody id="tm-rows"></tbody></table>
+  <button class="tm-btn" id="tm-addlayer">+ Layer</button>
+  <button class="tm-btn" id="tm-adddbr">+ DBR pairs…</button>
+  <div class="tm-stackbar" id="tm-bar"></div>
+  <div class="tm-note" style="margin-top:.5em">Light enters from the top (layer 1). Lorentz parameters (ν₀, γ) are in the chosen spectral unit; enter several oscillators separated by “;”. Drude parameters (E<sub>p</sub>, γ) are in eV. The Ag/Au Drude models are simple approximations and ignore interband absorption below ~400 nm (Ag) and ~520 nm (Au).</div>
+  <div class="tm-err" id="tm-serr"></div>
+</section>
+
+<!-- 2 SPECTRUM ----------------------------------------------------- -->
+<section class="tm-sec" id="tm-spectrum">
+  <h2>2 · Spectrum: R, T, A</h2>
+  <div class="tm-why"><b>What this tells you.</b> Reflectance <i>R</i>, transmittance <i>T</i> and absorptance <i>A</i> = 1 − R − T at a fixed angle. In a cavity the bare photon mode is a transmission peak (reflection dip); with an absorber in strong coupling it splits into the <b>lower and upper polaritons</b>. At zero detuning their separation is the vacuum Rabi splitting ħΩ<sub>R</sub>. The width of a peak gives the loss rate (Q = E/ΔE). <i>A</i> shows where energy is absorbed, i.e. how much matter character each feature has.</div>
+  <div class="tm-grid">
+    <div class="tm-f"><label>From</label><input id="sp-min" type="number" step="any"></div>
+    <div class="tm-f"><label>To</label><input id="sp-max" type="number" step="any"></div>
+    <div class="tm-f"><label>Angle (deg)</label><input id="sp-th" type="number" step="any" value="0"></div>
+    <div class="tm-f"><label>Polarisation</label><select id="sp-pol"><option value="s">s (TE)</option><option value="p">p (TM)</option><option value="u">unpolarised</option></select></div>
+    <div class="tm-f"><label>Points</label><input id="sp-n" type="number" value="1500"></div>
+  </div>
+  <button class="tm-btn" id="sp-csv">Download CSV</button>
+  <canvas class="tm-plot" id="sp-plot" width="780" height="300"></canvas>
+  <div class="tm-res" id="sp-res"></div>
+</section>
+
+<!-- 3 ANGLE MAP ---------------------------------------------------- -->
+<section class="tm-sec" id="tm-angle">
+  <h2>3 · Angle-resolved dispersion &amp; polariton analysis</h2>
+  <div class="tm-why"><b>What this tells you.</b> The cavity photon disperses with angle, E<sub>c</sub>(θ) = E₀/√(1 − (n₀ sinθ/n<sub>eff</sub>)²), while the molecular transition does not. Where they would cross, strong coupling produces an <b>anticrossing</b>: two branches separated by ħΩ<sub>R</sub> = 2g that never meet.
+    <b>Extract &amp; fit</b> finds the branch positions in the map and fits the two-coupled-oscillator model, which gives the bare cavity energy E₀, effective index n<sub>eff</sub>, coupling g and Rabi splitting.
+    It also reports the detuning δ = E₀ − E<sub>x</sub>, the lower polariton's <b>Hopfield coefficients</b> (photon and matter fractions against angle), and checks the strong-coupling criterion 2g &gt; (γ<sub>c</sub> + γ<sub>x</sub>)/2 using the empty-cavity and molecular linewidths.</div>
+  <div class="tm-grid">
+    <div class="tm-f"><label>Quantity</label><select id="am-q"><option value="R">R</option><option value="T">T</option><option value="A">A</option></select></div>
+    <div class="tm-f"><label>Polarisation</label><select id="am-pol"><option value="s">s (TE)</option><option value="p">p (TM)</option><option value="u">unpolarised</option></select></div>
+    <div class="tm-f"><label>Max angle (deg)</label><input id="am-th" type="number" value="60"></div>
+    <div class="tm-f"><label>Energy from</label><input id="am-min" type="number" step="any"></div>
+    <div class="tm-f"><label>Energy to</label><input id="am-max" type="number" step="any"></div>
+    <div class="tm-f"><label>Resolution</label><select id="am-res"><option value="1">fast</option><option value="2" selected>normal</option><option value="3">fine</option></select></div>
+  </div>
+  <button class="tm-btn primary" id="am-run">Compute map</button>
+  <button class="tm-btn" id="am-fit">Extract &amp; fit polaritons</button>
+  <div class="tm-grid" style="margin-top:.5em">
+    <div class="tm-f"><label>Matter resonance E<sub>x</sub> for the fit</label><select id="am-ex"></select></div>
+    <div class="tm-f"><label>Feature prominence threshold</label><input id="am-prom" type="number" step="any" value="0.02"></div>
+  </div>
+  <canvas class="tm-plot" id="am-plot" width="780" height="420"></canvas>
+  <div class="tm-res" id="am-out"></div>
+  <canvas class="tm-plot" id="am-hop" width="780" height="220" style="display:none"></canvas>
+</section>
+
+<!-- 4 THICKNESS MAP ------------------------------------------------ -->
+<section class="tm-sec" id="tm-thick">
+  <h2>4 · Detuning (thickness) map</h2>
+  <div class="tm-why"><b>What this tells you.</b> Sweeping the thickness of the cavity layer tunes the photon energy through the molecular resonance at fixed angle, as in a wedge-shaped sample. The same anticrossing appears versus thickness. This is the experimentally common way to scan detuning at normal incidence, and it shows which thickness puts the cavity on resonance (δ = 0).</div>
+  <div class="tm-grid">
+    <div class="tm-f"><label>Layer to sweep</label><select id="tk-layer"></select></div>
+    <div class="tm-f"><label>Thickness from (nm)</label><input id="tk-min" type="number" step="any"></div>
+    <div class="tm-f"><label>to (nm)</label><input id="tk-max" type="number" step="any"></div>
+    <div class="tm-f"><label>Angle (deg)</label><input id="tk-th" type="number" value="0"></div>
+    <div class="tm-f"><label>Quantity</label><select id="tk-q"><option value="R">R</option><option value="T">T</option><option value="A">A</option></select></div>
+  </div>
+  <button class="tm-btn primary" id="tk-run">Compute map</button>
+  <canvas class="tm-plot" id="tk-plot" width="780" height="380"></canvas>
+</section>
+
+<!-- 5 FIELD PROFILE ------------------------------------------------ -->
+<section class="tm-sec" id="tm-field">
+  <h2>5 · Electric-field profile</h2>
+  <div class="tm-why"><b>What this tells you.</b> |E|² inside the stack (normalised to the incident field) at one energy and angle. On a cavity resonance it shows the standing wave and the field enhancement. Molecules couple in proportion to the field at their position, so the active layer belongs at an <b>antinode</b>. A layer at a node barely couples, which is why the Rabi splitting depends on where the absorber sits and how thick it is. Shading marks the layers.</div>
+  <div class="tm-grid">
+    <div class="tm-f"><label>Energy</label><input id="fp-E" type="number" step="any"></div>
+    <div class="tm-f"><label>Angle (deg)</label><input id="fp-th" type="number" value="0"></div>
+    <div class="tm-f"><label>Polarisation</label><select id="fp-pol"><option value="s">s (TE)</option><option value="p">p (TM, tangential E)</option></select></div>
+  </div>
+  <canvas class="tm-plot" id="fp-plot" width="780" height="280"></canvas>
+  <div class="tm-res" id="fp-res"></div>
+</section>
+
+<p class="tm-note">
+  <b>Method.</b> Characteristic-matrix (Abelès) formalism for isotropic, homogeneous layers with complex refractive indices, valid at any angle and for both polarisations (H. A. Macleod, <i>Thin-Film Optical Filters</i>; the approach of the Strasbourg T-matrix code described on the <a href="https://nano.isis.unistra.fr/resources/">Laboratoire des nanostructures resources page</a>).
+  Validated against Fresnel equations, Brewster's angle, the quarter-wave Bragg-mirror formula, the Airy function, energy conservation (R + T + A = 1), and absorption computed independently from the internal field. Interfaces are flat, layers are coherent; roughness, anisotropy and incoherent thick substrates are not modelled. A lossless substrate is treated as semi-infinite.
+</p>
+
+{% endraw %}<script src="{{ '/assets/js/optics-tools.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/tmm-core.js' | relative_url }}"></script>{% raw %}
+<script>
+(function () {
+  "use strict";
+  const T = window.TMM, O = window.OpticsTools;
+  const $ = (id) => document.getElementById(id);
+  const EV_TO_CM1 = 8065.543937;
+  const unit = () => $("tm-unit").value;
+  const toEV = (v) => (unit() === "eV" ? v : v / EV_TO_CM1);
+  const fromEV = (e) => (unit() === "eV" ? e : e * EV_TO_CM1);
+  const uLabel = () => (unit() === "eV" ? "eV" : "cm⁻¹");
+  const fmt = (v, p) => (isFinite(v) ? String(+v.toPrecision(p || 5)) : "–");
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
+  const GLASSES = ["fused_silica", "bk7", "caf2", "sapphire_o", "znse", "sf10", "yag"];
+  const COLORS = { constant: "#8fa3b8", lorentz: "#d9480f", drude: "#b8a46a", glass: "#7fb3d5" };
+
+  /* ---------------- state ----------------
+   * layer: {label, type: constant|lorentz|drude|glass, n,k | epsInf, osc:"ν0,γ,f; …" (in eV) | eInf,Ep,g | key, d}
+   */
+  let S = null;
+  const PRESETS = {
+    agdye: () => ({ unit: "eV", n0: 1, sub: "bk7", range: [1.7, 2.6], layers: [
+      { label: "Ag mirror", type: "drude", eInf: 3.7, Ep: 9.1, g: 0.018, d: 30 },
+      { label: "PMMA + J-aggregate", type: "lorentz", epsInf: 2.2, osc: "2.10, 0.05, 0.08", d: 155 },
+      { label: "Ag mirror", type: "drude", eInf: 3.7, Ep: 9.1, g: 0.018, d: 100 } ] }),
+    dbr: () => {
+      const Ex = 2.1, lam0 = T.HC_EV_NM / Ex, H = { type: "constant", n: 2.3, k: 0 }, L = { type: "constant", n: 1.46, k: 0 };
+      const pairs = [];
+      for (let i = 0; i < 6; i++) pairs.push({ ...L, label: "SiO₂", d: +(lam0 / (4 * 1.46)).toFixed(2) }, { ...H, label: "TiO₂", d: +(lam0 / (4 * 2.3)).toFixed(2) });
+      const back = pairs.slice().reverse();
+      return { unit: "eV", n0: 1, sub: "fused_silica", range: [1.85, 2.4], layers: [...pairs, { label: "exciton layer", type: "lorentz", epsInf: 2.25, osc: "2.10, 0.01, 0.02", d: +(T.HC_EV_NM / 2.05 / 3).toFixed(2) }, ...back] };
+    },
+    vsc: () => ({ unit: "cm1", n0: 1.40, sub: "caf2", range: [1400, 2100], layers: [
+      { label: "Au", type: "drude", eInf: 9.5, Ep: 9.0, g: 0.07, d: 10 },
+      { label: "liquid with C=O band", type: "lorentz", epsInf: 2.0, osc: "1730, 15, 0.025", d: 6060 },
+      { label: "Au", type: "drude", eInf: 9.5, Ep: 9.0, g: 0.07, d: 10 } ], incidentNote: "CaF₂ window" }),
+    empty: () => ({ unit: "eV", n0: 1, sub: "bk7", range: [1.6, 2.8], layers: [
+      { label: "Ag mirror", type: "drude", eInf: 3.7, Ep: 9.1, g: 0.018, d: 30 },
+      { label: "PMMA", type: "constant", n: 1.49, k: 0, d: 155 },
+      { label: "Ag mirror", type: "drude", eInf: 3.7, Ep: 9.1, g: 0.018, d: 100 } ] }),
+    film: () => ({ unit: "eV", n0: 1, sub: "bk7", range: [1.5, 3.5], layers: [{ label: "TiO₂ film", type: "constant", n: 2.3, k: 0, d: 500 }] }),
+  };
+
+  // Lorentz oscillators are stored in eV internally ("ν0, γ, f; …")
+  const parseOsc = (s) => s.split(";").map((t) => t.split(",").map((x) => parseFloat(x))).filter((a) => a.length === 3 && a.every(isFinite));
+  const oscToDisplay = (s) => parseOsc(s).map(([n, g, f]) => [fmt(fromEV(n), 6), fmt(fromEV(g), 4), f].join(", ")).join("; ");
+  const oscFromDisplay = (s) => parseOsc(s).map(([n, g, f]) => [toEV(n), toEV(g), f].join(", ")).join("; ");
+
+  function loadPreset(key) {
+    const p = PRESETS[key]();
+    $("tm-unit").value = p.unit; $("tm-n0").value = p.n0; $("tm-sub").value = p.sub;
+    if (p.unit === "cm1") p.layers.forEach((L) => { if (L.type === "lorentz") L.osc = parseOsc(L.osc).map(([n, g, f]) => [n / EV_TO_CM1, g / EV_TO_CM1, f].join(", ")).join("; "); });
+    S = { layers: p.layers };
+    $("fp-E").value = "";
+    $("sp-min").value = p.range[0]; $("sp-max").value = p.range[1];
+    $("am-min").value = p.range[0]; $("am-max").value = p.range[1];
+    renderRows(); refreshAll();
+  }
+
+  /* ---------------- materials ---------------- */
+  function buildMaterial(L) {
+    switch (L.type) {
+      case "constant": return T.material.constant(+L.n, +L.k || 0);
+      case "glass": return T.material.fromFunction(O.MATERIALS[L.key].n);
+      case "drude": return T.material.drude(+L.eInf, +L.Ep, +L.g);
+      case "lorentz": {
+        const osc = parseOsc(L.osc).map(([e, g, f]) => ({ nu0: e * EV_TO_CM1, gamma: g * EV_TO_CM1, f }));
+        return T.material.lorentz(+L.epsInf, osc);
+      }
+    }
+  }
+  function buildStack(overrides) {
+    const sub = $("tm-sub").value;
+    const substrate = sub === "air" ? T.material.constant(1) : sub === "n1.43" ? T.material.constant(1.43) : T.material.fromFunction(O.MATERIALS[sub].n);
+    return {
+      incident: T.material.constant(parseFloat($("tm-n0").value) || 1),
+      layers: S.layers.map((L, i) => ({ material: buildMaterial(overrides && overrides[i] ? overrides[i] : L), d_nm: +L.d })),
+      substrate,
+    };
+  }
+  /** Matter resonances (eV) from all Lorentz layers. */
+  const resonances = () => S.layers.flatMap((L) => (L.type === "lorentz" ? parseOsc(L.osc).map(([e, g]) => ({ E: e, gamma: g, label: L.label })) : []));
+
+  /* ---------------- layer editor ---------------- */
+  function paramsHTML(L, i) {
+    const inp = (k, v, title, cls) => `<input data-i="${i}" data-k="${k}" value="${esc(v)}" title="${title}" ${cls ? `class="${cls}"` : 'type="number" step="any"'}>`;
+    switch (L.type) {
+      case "constant": return `n ${inp("n", L.n, "refractive index")} k ${inp("k", L.k, "extinction coefficient")}`;
+      case "glass": return `<select data-i="${i}" data-k="key">${GLASSES.map((g) => `<option value="${g}"${g === L.key ? " selected" : ""}>${O.MATERIALS[g].name}</option>`).join("")}</select>`;
+      case "drude": return `ε∞ ${inp("eInf", L.eInf, "background permittivity")} E<sub>p</sub> ${inp("Ep", L.Ep, "plasma energy (eV)")} γ ${inp("g", L.g, "damping (eV)")}
+        <select data-i="${i}" data-k="metal" title="preset"><option value="">preset…</option><option value="ag">Ag</option><option value="au">Au</option></select>`;
+      case "lorentz": return `ε∞ ${inp("epsInf", L.epsInf, "background permittivity")} ν₀, γ, f: ${inp("oscDisp", oscToDisplay(L.osc), "centre, FWHM (in the spectral unit), strength; separate oscillators with ;", "wide")}`;
+    }
+  }
+  function renderRows() {
+    $("tm-rows").innerHTML = S.layers.map((L, i) => `<tr>
+      <td>${i + 1}</td>
+      <td><input data-i="${i}" data-k="label" value="${esc(L.label || "")}" style="width:9em"></td>
+      <td><select data-i="${i}" data-k="type">${["constant", "glass", "drude", "lorentz"].map((t) => `<option value="${t}"${t === L.type ? " selected" : ""}>${{ constant: "n + ik", glass: "glass", drude: "Drude metal", lorentz: "Lorentz oscillators" }[t]}</option>`).join("")}</select></td>
+      <td class="params">${paramsHTML(L, i)}</td>
+      <td><input data-i="${i}" data-k="d" type="number" step="any" value="${L.d}" style="width:6em"></td>
+      <td style="white-space:nowrap"><button class="tm-mini" data-up="${i}" title="move up">↑</button><button class="tm-mini" data-down="${i}" title="move down">↓</button><button class="tm-mini" data-del="${i}" title="remove">✕</button></td></tr>`).join("");
+    const opts = S.layers.map((L, i) => `<option value="${i}">${i + 1}: ${esc(L.label || L.type)}</option>`).join("");
+    const keep = $("tk-layer").value;
+    $("tk-layer").innerHTML = opts;
+    const lor = S.layers.findIndex((L) => L.type === "lorentz" || /cavity|PMMA|layer|liquid/i.test(L.label || ""));
+    $("tk-layer").value = keep !== "" && +keep < S.layers.length ? keep : String(lor >= 0 ? lor : 0);
+    const r = resonances();
+    $("am-ex").innerHTML = r.length ? r.map((o, k) => `<option value="${o.E}">${fmt(fromEV(o.E), 6)} ${uLabel()} (${esc(o.label)})</option>`).join("") : `<option value="">add a Lorentz layer</option>`;
+    renderBar();
+  }
+  function renderBar() {
+    const tot = S.layers.reduce((s, L) => s + Math.max(+L.d, 0), 0) || 1;
+    $("tm-bar").innerHTML = S.layers.map((L) => `<div style="flex:${Math.max(+L.d / tot, 0.02)};background:${COLORS[L.type]}" title="${esc(L.label)} — ${L.d} nm">${esc(L.label || "")}</div>`).join("");
+  }
+  $("tm-rows").addEventListener("change", onEdit);
+  $("tm-rows").addEventListener("input", (e) => { if (e.target.tagName === "INPUT") onEdit(e); });
+  function onEdit(e) {
+    const t = e.target, i = +t.dataset.i, k = t.dataset.k;
+    if (!k) return;
+    const L = S.layers[i];
+    if (k === "type") {
+      const def = { constant: { n: 1.5, k: 0 }, glass: { key: "fused_silica" }, drude: { eInf: 3.7, Ep: 9.1, g: 0.018 }, lorentz: { epsInf: 2.25, osc: (resonances()[0] ? `${resonances()[0].E}, ${resonances()[0].gamma}, 0.02` : "2.1, 0.05, 0.02") } }[t.value];
+      S.layers[i] = { label: L.label, d: L.d, type: t.value, ...def }; renderRows();
+    } else if (k === "metal") {
+      Object.assign(L, t.value === "ag" ? { eInf: 3.7, Ep: 9.1, g: 0.018 } : { eInf: 9.5, Ep: 9.0, g: 0.07 }); renderRows();
+    } else if (k === "oscDisp") {
+      L.osc = oscFromDisplay(t.value);
+      if (e.type === "change") renderRows();
+    } else {
+      L[k] = k === "label" || k === "key" ? t.value : t.value;
+      if (k === "label" || k === "d") { renderBar(); if (e.type === "change") renderRows(); }
+    }
+    scheduleRefresh();
+  }
+  $("tm-rows").addEventListener("click", (e) => {
+    const b = e.target; let i;
+    if ((i = b.dataset.del) !== undefined) S.layers.splice(+i, 1);
+    else if ((i = b.dataset.up) !== undefined && +i > 0) [S.layers[+i - 1], S.layers[+i]] = [S.layers[+i], S.layers[+i - 1]];
+    else if ((i = b.dataset.down) !== undefined && +i < S.layers.length - 1) [S.layers[+i + 1], S.layers[+i]] = [S.layers[+i], S.layers[+i + 1]];
+    else return;
+    renderRows(); scheduleRefresh();
+  });
+  $("tm-addlayer").addEventListener("click", () => { S.layers.push({ label: "layer", type: "constant", n: 1.5, k: 0, d: 100 }); renderRows(); scheduleRefresh(); });
+  $("tm-adddbr").addEventListener("click", () => {
+    const ans = prompt(`DBR: n_high, n_low, design energy (${uLabel()}), pairs`, `2.3, 1.46, ${fmt(fromEV(resonances()[0] ? resonances()[0].E : 2.1), 6)}, 5`);
+    if (!ans) return;
+    const [nH, nL, Ed, P] = ans.split(",").map((x) => parseFloat(x));
+    if (![nH, nL, Ed, P].every((x) => x > 0)) return;
+    const lam = T.HC_EV_NM / toEV(Ed);
+    for (let i = 0; i < Math.round(P); i++) S.layers.push({ label: "H", type: "constant", n: nH, k: 0, d: +(lam / (4 * nH)).toFixed(2) }, { label: "L", type: "constant", n: nL, k: 0, d: +(lam / (4 * nL)).toFixed(2) });
+    renderRows(); scheduleRefresh();
+  });
+  $("tm-sub").innerHTML = `<option value="air">air (n = 1)</option><option value="n1.43">liquid / polymer (n = 1.43)</option>` + GLASSES.map((g) => `<option value="${g}">${O.MATERIALS[g].name}</option>`).join("");
+  $("tm-preset").addEventListener("change", () => loadPreset($("tm-preset").value));
+  ["tm-n0", "tm-sub"].forEach((id) => $(id).addEventListener("change", scheduleRefresh));
+  $("tm-unit").addEventListener("change", () => {
+    // convert the displayed ranges to the new unit
+    const prev = unit() === "eV" ? "cm1" : "eV";
+    const conv = (v) => (prev === "eV" ? v * EV_TO_CM1 : v / EV_TO_CM1);
+    ["sp-min", "sp-max", "am-min", "am-max", "fp-E"].forEach((id) => { const v = parseFloat($(id).value); if (isFinite(v)) $(id).value = +conv(v).toPrecision(6); });
+    renderRows(); refreshAll();
+  });
+
+  /* ---------------- plotting helpers ---------------- */
+  function axes(ctx, W, H, pad, x0, x1, y0, y1, xl, yl, ticksY) {
+    ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "#ccc"; ctx.lineWidth = 1; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+    ctx.fillStyle = "#444"; ctx.font = "11px sans-serif"; ctx.textAlign = "center";
+    for (let k = 0; k <= 5; k++) { const x = x0 + ((x1 - x0) * k) / 5; ctx.fillText(+x.toPrecision(4), pad.l + ((W - pad.l - pad.r) * k) / 5, H - pad.b + 14); }
+    ctx.fillText(xl, (W + pad.l - pad.r) / 2, H - 3);
+    ctx.textAlign = "right";
+    (ticksY || [0, 0.25, 0.5, 0.75, 1].map((f) => y0 + f * (y1 - y0))).forEach((y) => ctx.fillText(+y.toPrecision(4), pad.l - 4, H - pad.b - ((y - y0) / (y1 - y0)) * (H - pad.t - pad.b) + 4));
+    ctx.save(); ctx.translate(12, (H + pad.t - pad.b) / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText(yl, 0, 0); ctx.restore();
+  }
+  const VIRIDIS = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const cmap = (t) => { t = Math.min(1, Math.max(0, t)) * 4; const i = Math.min(3, Math.floor(t)), f = t - i; return VIRIDIS[i].map((c, k) => Math.round(c + f * (VIRIDIS[i + 1][k] - c))); };
+  function heatmap(canvas, map, xl, overlays) {
+    const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height, pad = { l: 56, r: 70, t: 12, b: 34 };
+    const xs = map.x, Es = map.E.map(fromEV);
+    const x0 = xs[0], x1 = xs[xs.length - 1], y0 = Math.min(...Es), y1 = Math.max(...Es);
+    axes(ctx, W, H, pad, x0, x1, y0, y1, xl, `Energy (${uLabel()})`);
+    const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
+    const img = ctx.createImageData(pw, ph);
+    const zmax = Math.max(...map.Z.flat()), zmin = Math.min(...map.Z.flat());
+    for (let px = 0; px < pw; px++) {
+      const xi = Math.min(xs.length - 1, Math.round((px / (pw - 1)) * (xs.length - 1)));
+      for (let py = 0; py < ph; py++) {
+        const yi = Math.min(Es.length - 1, Math.round(((ph - 1 - py) / (ph - 1)) * (Es.length - 1)));
+        const [r, g, b] = cmap((map.Z[xi][yi] - zmin) / (zmax - zmin || 1));
+        const o = (py * pw + px) * 4; img.data[o] = r; img.data[o + 1] = g; img.data[o + 2] = b; img.data[o + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, pad.l, pad.t);
+    // colour bar
+    for (let k = 0; k < ph; k++) { const [r, g, b] = cmap(1 - k / ph); ctx.fillStyle = `rgb(${r},${g},${b})`; ctx.fillRect(W - pad.r + 12, pad.t + k, 12, 1); }
+    ctx.fillStyle = "#444"; ctx.textAlign = "left"; ctx.fillText(fmt(zmax, 3), W - pad.r + 28, pad.t + 9); ctx.fillText(fmt(zmin, 3), W - pad.r + 28, H - pad.b);
+    const X = (x) => pad.l + ((x - x0) / (x1 - x0)) * pw, Y = (e) => pad.t + ph - ((fromEV(e) - y0) / (y1 - y0)) * ph;
+    ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, pw, ph); ctx.clip();
+    (overlays || []).forEach((o) => {
+      if (o.points) { ctx.fillStyle = o.color; o.points.forEach((p) => { ctx.beginPath(); ctx.arc(X(p.x), Y(p.E), 2.4, 0, 2 * Math.PI); ctx.fill(); }); return; }
+      ctx.strokeStyle = o.color; ctx.lineWidth = o.width || 1.6; ctx.setLineDash(o.dash || []); ctx.beginPath();
+      o.x.forEach((x, i) => (i ? ctx.lineTo(X(x), Y(o.E[i])) : ctx.moveTo(X(x), Y(o.E[i])))); ctx.stroke(); ctx.setLineDash([]);
+    });
+    ctx.restore();
+    const lab = (overlays || []).filter((o) => o.label);
+    lab.forEach((o, i) => { ctx.fillStyle = "rgba(255,255,255,.85)"; ctx.fillRect(pad.l + 6, pad.t + 6 + i * 15, 150, 14); ctx.strokeStyle = o.color; ctx.fillStyle = o.color; ctx.setLineDash(o.dash || []); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(pad.l + 10, pad.t + 13 + i * 15); ctx.lineTo(pad.l + 26, pad.t + 13 + i * 15); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = "#222"; ctx.textAlign = "left"; ctx.fillText(o.label, pad.l + 30, pad.t + 17 + i * 15); });
+  }
+
+  /* ---------------- 2 · spectrum ---------------- */
+  let lastSpec = null;
+  function spectrum() {
+    const a = toEV(parseFloat($("sp-min").value)), b = toEV(parseFloat($("sp-max").value)), n = Math.min(6000, Math.max(50, parseInt($("sp-n").value, 10) || 1500));
+    if (!(a > 0 && b > a)) return;
+    const st = buildStack(), th = parseFloat($("sp-th").value) || 0, pol = $("sp-pol").value;
+    const E = [], R = [], Tt = [], A = [];
+    for (let i = 0; i < n; i++) { const e = a + ((b - a) * i) / (n - 1); const r = T.solveAny(st, T.HC_EV_NM / e, th, pol); E.push(e); R.push(r.R); Tt.push(r.T); A.push(r.A); }
+    lastSpec = { E, R, T: Tt, A };
+    const cv = $("sp-plot"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height, pad = { l: 48, r: 14, t: 12, b: 34 };
+    const x0 = fromEV(a), x1 = fromEV(b);
+    axes(ctx, W, H, pad, x0, x1, 0, 1, `Energy (${uLabel()})`, "R, T, A");
+    const X = (e) => pad.l + ((fromEV(e) - x0) / (x1 - x0)) * (W - pad.l - pad.r), Y = (v) => H - pad.b - v * (H - pad.t - pad.b);
+    [[R, "#1f77b4", "R"], [Tt, "#d62728", "T"], [A, "#2ca02c", "A"]].forEach(([arr, c, lab], k) => {
+      ctx.strokeStyle = c; ctx.lineWidth = 1.6; ctx.beginPath(); arr.forEach((v, i) => (i ? ctx.lineTo(X(E[i]), Y(v)) : ctx.moveTo(X(E[i]), Y(v)))); ctx.stroke();
+      ctx.fillStyle = c; ctx.textAlign = "left"; ctx.fillText(lab, W - pad.r - 40 + k * 12, pad.t + 12);
+    });
+    resonances().forEach((o) => { if (o.E > a && o.E < b) { ctx.strokeStyle = "#999"; ctx.setLineDash([3, 3]); ctx.beginPath(); ctx.moveTo(X(o.E), pad.t); ctx.lineTo(X(o.E), H - pad.b); ctx.stroke(); ctx.setLineDash([]); } });
+    // features
+    const pk = T.findPeaks(Tt, "max", 0.05 * Math.max(...Tt)).map((i) => E[i]);
+    const dips = T.findPeaks(R, "min", 0.05 * (Math.max(...R) - Math.min(...R))).map((i) => E[i]);
+    lastSpec.features = dips.length ? dips : pk;
+    const show = (arr) => arr.slice(0, 6).map((e) => `${fmt(fromEV(e), 6)} ${uLabel()} (${fmt(T.HC_EV_NM / e, 5)} nm)`).join(", ") || "none";
+    let txt = `<b>T peaks:</b> ${show(pk)}<br><b>R dips:</b> ${show(dips)}`;
+    const r = resonances();
+    if (r.length && pk.length >= 2) {
+      const Ex = r[0].E, lo = pk.filter((e) => e < Ex), hi = pk.filter((e) => e > Ex);
+      if (lo.length && hi.length) { const s = Math.min(...hi) - Math.max(...lo); txt += `<br><b>Splitting around E<sub>x</sub> = ${fmt(fromEV(Ex), 6)} ${uLabel()}:</b> ${fmt(fromEV(s), 4)} ${uLabel()} (equals ħΩ<sub>R</sub> only at zero detuning; use the angle map to check)`; }
+    }
+    $("sp-res").innerHTML = txt;
+  }
+  $("sp-csv").addEventListener("click", () => {
+    if (!lastSpec) return;
+    const rows = lastSpec.E.map((e, i) => [fromEV(e).toPrecision(8), (T.HC_EV_NM / e).toPrecision(8), lastSpec.R[i].toPrecision(6), lastSpec.T[i].toPrecision(6), lastSpec.A[i].toPrecision(6)].join(","));
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([`energy_${unit()},wavelength_nm,R,T,A\n` + rows.join("\n") + "\n"], { type: "text/csv" }));
+    a.download = "tmm-spectrum.csv"; a.click(); URL.revokeObjectURL(a.href);
+  });
+  ["sp-min", "sp-max", "sp-th", "sp-n"].forEach((id) => $(id).addEventListener("input", scheduleRefresh));
+  $("sp-pol").addEventListener("change", scheduleRefresh);
+
+  /* ---------------- 3 · angle map & polaritons ---------------- */
+  let lastMap = null, lastFit = null;
+  function angleGrid() {
+    const res = +$("am-res").value, thMax = Math.min(89, parseFloat($("am-th").value) || 60);
+    const nTh = [31, 61, 91][res - 1], nE = [200, 350, 600][res - 1];
+    const a = toEV(parseFloat($("am-min").value)), b = toEV(parseFloat($("am-max").value));
+    const th = Array.from({ length: nTh }, (_, i) => (thMax * i) / (nTh - 1));
+    const E = Array.from({ length: nE }, (_, i) => a + ((b - a) * i) / (nE - 1));
+    return { th, E, ok: a > 0 && b > a };
+  }
+  function runAngle() {
+    const g = angleGrid(); if (!g.ok) return;
+    $("am-res").disabled = true; $("am-run").textContent = "Computing…";
+    setTimeout(() => {
+      lastMap = T.angleMap(buildStack(), $("am-pol").value, $("am-q").value, g.th, g.E);
+      lastFit = null; drawAngle();
+      $("am-run").textContent = "Compute map"; $("am-res").disabled = false;
+      $("am-out").innerHTML = ""; $("am-hop").style.display = "none";
+    }, 20);
+  }
+  function drawAngle() {
+    if (!lastMap) return;
+    const ov = [];
+    resonances().forEach((o, k) => ov.push({ x: [lastMap.x[0], lastMap.x[lastMap.x.length - 1]], E: [o.E, o.E], color: "#fff", dash: [5, 4], width: 1.2, label: k === 0 ? "matter resonance" : null }));
+    if (lastFit) {
+      const xs = lastMap.x, f = lastFit;
+      const Ec = xs.map((x) => T.cavityEnergy(f.E0, f.neff, x, f.n0));
+      const co = Ec.map((e) => T.coupledOscillator(e, f.Ex, f.g));
+      ov.push({ x: xs, E: Ec, color: "#ff9f1c", dash: [6, 4], label: "bare cavity (fit)" });
+      ov.push({ x: xs, E: co.map((c) => c.Elp), color: "#ff3b3b", width: 2, label: "polaritons (fit)" });
+      ov.push({ x: xs, E: co.map((c) => c.Eup), color: "#ff3b3b", width: 2 });
+      ov.push({ points: f.points, color: "#00e5ff" });
+    }
+    heatmap($("am-plot"), lastMap, "Angle of incidence θ (deg)", ov);
+  }
+  function linewidthEmptyCavity(fit) {
+    // empty cavity: Lorentz layers replaced by their background ε∞; FWHM of the mode near E0 at normal incidence
+    const over = S.layers.map((L) => (L.type === "lorentz" ? { type: "constant", n: Math.sqrt(+L.epsInf), k: 0 } : null));
+    const st = buildStack(over);
+    const E = [], Tt = [];
+    const span = Math.max(0.3 * fit.E0, 10 * fit.g);
+    for (let i = 0; i < 4000; i++) { const e = fit.E0 - span / 2 + (span * i) / 3999; if (e <= 0) continue; E.push(e); Tt.push(T.solve(st, T.HC_EV_NM / e, 0, "s").T); }
+    const pk = T.findPeaks(Tt, "max", 1e-4); if (!pk.length) return NaN;
+    let best = pk[0]; pk.forEach((i) => { if (Math.abs(E[i] - fit.E0) < Math.abs(E[best] - fit.E0)) best = i; });
+    const half = Tt[best] / 2; let i1 = best, i2 = best;
+    while (i1 > 0 && Tt[i1] > half) i1--; while (i2 < Tt.length - 1 && Tt[i2] > half) i2++;
+    return E[i2] - E[i1];
+  }
+  function fitAngle() {
+    if (!lastMap) runAngle();
+    setTimeout(() => {
+      const r = resonances(); if (!r.length) { $("am-out").innerHTML = "Add a Lorentz layer (matter resonance) first."; return; }
+      const Ex = parseFloat($("am-ex").value) || r[0].E;
+      const osc = r.find((o) => Math.abs(o.E - Ex) < 1e-9) || r[0];
+      // follow LP and UP by continuity from the smallest angle (other cavity orders are ignored);
+      // features within 1.5γ of Ex are the uncoupled absorption line and are dropped
+      const pts = T.trackPolaritons(lastMap, $("am-q").value, parseFloat($("am-prom").value) || 0.02, Ex, 1.5 * osc.gamma);
+      if (pts.length < 6) { $("am-out").innerHTML = "Too few features found. Lower the prominence threshold, widen the energy range, or use T/R instead of A."; return; }
+      // initial guess: cavity energy from the lowest-angle features
+      const lp = pts.find((p) => p.branch === "LP"), up = pts.find((p) => p.branch === "UP");
+      const p0 = [lp, up].filter(Boolean).map((p) => p.E);
+      const E0g = p0.length >= 2 ? p0[0] + p0[1] - Ex : p0[0] || Ex;
+      const n0 = parseFloat($("tm-n0").value) || 1;
+      const fit = T.fitPolaritons(pts, Ex, { E0: E0g, neff: 1.6 * n0, g: Math.max(0.005 * Ex, Math.abs((p0[0] || Ex) - (p0[1] || Ex)) / 2) }, n0);
+      lastFit = { ...fit, Ex, points: pts, n0 };
+      drawAngle();
+      const gc = linewidthEmptyCavity(fit), gx = osc.gamma;
+      const crit = 2 * fit.g > (gc + gx) / 2;
+      const u = uLabel(), F = (e, p) => fmt(fromEV(e), p || 5);
+      $("am-out").innerHTML =
+        `<b>Rabi splitting ħΩ<sub>R</sub> = 2g = ${F(2 * fit.g)} ${u}</b> &nbsp; (g = ${F(fit.g)} ${u}; ${fmt((2 * fit.g) / Ex * 100, 3)} % of E<sub>x</sub>)<br>` +
+        `Bare cavity at normal incidence E₀ = ${F(fit.E0, 6)} ${u}, n<sub>eff</sub> = ${fmt(fit.neff, 4)}; matter resonance E<sub>x</sub> = ${F(Ex, 6)} ${u}<br>` +
+        `Detuning δ = E₀ − E<sub>x</sub> = ${F(fit.E0 - Ex, 4)} ${u}${fit.E0 < Ex ? ` &nbsp;→ resonance (anticrossing centre) at θ ≈ ${fmt(Math.asin(Math.min(1, (fit.neff / n0) * Math.sqrt(Math.max(0, 1 - (fit.E0 / Ex) ** 2)))) * 180 / Math.PI, 3)}°` : " (cavity starts above the resonance: no crossing with angle; reduce the cavity thickness or check the detuning map)"}<br>` +
+        `Linewidths: empty cavity γ<sub>c</sub> ≈ ${F(gc, 3)} ${u}, molecules γ<sub>x</sub> = ${F(gx, 3)} ${u} → ` +
+        `<b>${crit ? "strong coupling" : "not in strong coupling"}</b> (2g ${crit ? ">" : "≤"} (γ<sub>c</sub> + γ<sub>x</sub>)/2 = ${F((gc + gx) / 2, 3)} ${u})<br>` +
+        `<span class="tm-note">Fit of ${pts.length} extracted points (cyan), rms ${F(fit.rms, 2)} ${u}. Red: polariton branches; orange dashed: bare cavity; white dashed: bare matter resonance.</span>`;
+      drawHopfield(fit, Ex);
+    }, 30);
+  }
+  function drawHopfield(fit, Ex) {
+    const cv = $("am-hop"); cv.style.display = "block";
+    const ctx = cv.getContext("2d"), W = cv.width, H = cv.height, pad = { l: 48, r: 14, t: 12, b: 34 };
+    const xs = lastMap.x;
+    axes(ctx, W, H, pad, xs[0], xs[xs.length - 1], 0, 1, "Angle θ (deg) — lower-polariton Hopfield coefficients", "fraction");
+    const co = xs.map((x) => T.coupledOscillator(T.cavityEnergy(fit.E0, fit.neff, x, lastFit.n0), Ex, fit.g));
+    const X = (x) => pad.l + ((x - xs[0]) / (xs[xs.length - 1] - xs[0])) * (W - pad.l - pad.r), Y = (v) => H - pad.b - v * (H - pad.t - pad.b);
+    [["LP_photon", "#1f77b4", "photon |C|²"], ["LP_matter", "#d9480f", "matter |X|²"]].forEach(([k, c, lab], j) => {
+      ctx.strokeStyle = c; ctx.lineWidth = 2; ctx.beginPath(); co.forEach((o, i) => (i ? ctx.lineTo(X(xs[i]), Y(o[k])) : ctx.moveTo(X(xs[i]), Y(o[k])))); ctx.stroke();
+      ctx.fillStyle = c; ctx.textAlign = "left"; ctx.fillText(lab, W - pad.r - 170 + j * 85, pad.t + 12);
+    });
+  }
+  $("am-run").addEventListener("click", runAngle);
+  $("am-fit").addEventListener("click", fitAngle);
+
+  /* ---------------- 4 · thickness map ---------------- */
+  function runThick() {
+    const li = +$("tk-layer").value, a = parseFloat($("tk-min").value), b = parseFloat($("tk-max").value);
+    if (!(a >= 0 && b > a)) return;
+    const g = angleGrid(); if (!g.ok) return;
+    const ds = Array.from({ length: 81 }, (_, i) => a + ((b - a) * i) / 80);
+    $("tk-run").textContent = "Computing…";
+    setTimeout(() => {
+      const map = T.thicknessMap(buildStack(), li, ds, parseFloat($("tk-th").value) || 0, "s", $("tk-q").value, g.E);
+      const ov = resonances().map((o, k) => ({ x: [a, b], E: [o.E, o.E], color: "#fff", dash: [5, 4], width: 1.2, label: k === 0 ? "matter resonance" : null }));
+      heatmap($("tk-plot"), map, `Thickness of layer ${li + 1} (nm)`, ov);
+      $("tk-run").textContent = "Compute map";
+    }, 20);
+  }
+  $("tk-run").addEventListener("click", runThick);
+  $("tk-layer").addEventListener("change", () => { const d = +S.layers[+$("tk-layer").value].d; $("tk-min").value = +(0.6 * d).toFixed(1); $("tk-max").value = +(1.4 * d).toFixed(1); });
+
+  /* ---------------- 5 · field profile ---------------- */
+  function field() {
+    const e = toEV(parseFloat($("fp-E").value)); if (!(e > 0)) return;
+    const st = buildStack(), lam = T.HC_EV_NM / e, th = parseFloat($("fp-th").value) || 0, pol = $("fp-pol").value;
+    const total = S.layers.reduce((s, L) => s + +L.d, 0);
+    const fp = T.fieldProfile(st, lam, th, pol, Math.max(0.2, total / 1500), 0.15 * total);
+    const cv = $("fp-plot"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height, pad = { l: 52, r: 14, t: 12, b: 34 };
+    const ymax = Math.max(...fp.I2) * 1.08, zmax = fp.z[fp.z.length - 1];
+    axes(ctx, W, H, pad, 0, zmax, 0, ymax, "Depth z from the top surface (nm)", "|E|² / |E₀|²");
+    const X = (z) => pad.l + (z / zmax) * (W - pad.l - pad.r), Y = (v) => H - pad.b - (v / ymax) * (H - pad.t - pad.b);
+    let z0 = 0;
+    S.layers.forEach((L, i) => { ctx.fillStyle = COLORS[L.type] + "33"; ctx.fillRect(X(z0), pad.t, X(z0 + +L.d) - X(z0), H - pad.t - pad.b);
+      ctx.fillStyle = "#666"; ctx.textAlign = "center"; if (X(z0 + +L.d) - X(z0) > 28) ctx.fillText(String(i + 1), (X(z0) + X(z0 + +L.d)) / 2, pad.t + 12); z0 += +L.d; });
+    ctx.strokeStyle = "#c0392b"; ctx.lineWidth = 1.8; ctx.beginPath(); fp.z.forEach((z, i) => (i ? ctx.lineTo(X(z), Y(fp.I2[i])) : ctx.moveTo(X(z), Y(fp.I2[i])))); ctx.stroke();
+    let im = 0; fp.I2.forEach((v, i) => { if (v > fp.I2[im]) im = i; });
+    const r = T.solveAny(st, lam, th, pol);
+    $("fp-res").innerHTML = `Maximum |E|²/|E₀|² = <b>${fmt(fp.I2[im], 4)}</b> at z = ${fmt(fp.z[im], 4)} nm (layer ${fp.layerIndex[im] + 1 > S.layers.length ? "substrate" : fp.layerIndex[im] + 1}). At this energy: R = ${fmt(r.R, 4)}, T = ${fmt(r.T, 4)}, A = ${fmt(r.A, 4)}.`;
+  }
+  ["fp-E", "fp-th"].forEach((id) => $(id).addEventListener("input", scheduleRefresh));
+  $("fp-pol").addEventListener("change", scheduleRefresh);
+
+  /* ---------------- refresh ---------------- */
+  let timer = null;
+  function scheduleRefresh() { clearTimeout(timer); timer = setTimeout(refreshAll, 120); }
+  function refreshAll() {
+    try {
+      $("tm-serr").textContent = "";
+      if (!S.layers.length) throw new Error("Add at least one layer.");
+      spectrum();
+      if (!isFinite(parseFloat($("fp-E").value))) {
+        // default: the lowest-energy optical feature (e.g. the lower polariton)
+        const f = lastSpec && lastSpec.features && lastSpec.features[0];
+        $("fp-E").value = +fromEV(f || (toEV(+$("sp-min").value) + toEV(+$("sp-max").value)) / 2).toPrecision(6);
+      }
+      field();
+    } catch (e) { $("tm-serr").textContent = e.message; }
+  }
+
+  loadPreset("agdye");
+  const d0 = S.layers[+$("tk-layer").value]; $("tk-min").value = +(0.6 * d0.d).toFixed(1); $("tk-max").value = +(1.4 * d0.d).toFixed(1);
+  runAngle();
+})();
+</script>
+{% endraw %}
