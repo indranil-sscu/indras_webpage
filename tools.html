@@ -43,6 +43,8 @@ permalink: /tools/
   <li><a href="#beam">Gaussian beams</a></li>
   <li><a href="#autocorr">Autocorrelation</a></li>
   <li><a href="#fft">Sampling &amp; FFT axis</a></li>
+  <li><a href="#jacobian">Spectral Jacobian</a></li>
+  <li><a href="#acsim">Autocorrelation simulator</a></li>
   <li><a href="digitizer/">Plot digitizer →</a></li>
   <li><a href="dsfd/">Feynman diagram generator →</a></li>
   <li><a href="../reference/">Constants &amp; cheat sheet →</a></li>
@@ -73,7 +75,20 @@ permalink: /tools/
     <div class="field"><label>sech² (ΔνΔt = 0.315)</label><div class="row"><input id="bw-ts" type="number" step="any"><span class="unit">fs</span></div></div>
   </div>
   <div class="err" id="bw-err"></div>
-  <p class="note">Bandwidths are exact for the band λ₀ ± Δλ/2 (no small-bandwidth approximation). Enter a pulse duration to get the minimum bandwidth it requires.</p>
+  <h3 class="sub">From two spectral edges (any unit)</h3>
+  <div class="grid">
+    <div class="field"><label>Unit of the edges</label><select id="be-u"><option value="nm">nm</option><option value="cm1">cm⁻¹</option><option value="PHz">fs⁻¹</option><option value="THz">THz</option><option value="radfs">rad/fs</option><option value="eV">eV</option></select></div>
+    <div class="field"><label>Start</label><div class="row"><input id="be-a" type="number" value="795" step="any"><span class="unit" id="be-ua">nm</span></div></div>
+    <div class="field"><label>End</label><div class="row"><input id="be-b" type="number" value="805" step="any"><span class="unit" id="be-ub">nm</span></div></div>
+    <div class="field"><label>Δλ</label><div class="row"><input id="be-dl" class="out" readonly><span class="unit">nm</span></div></div>
+    <div class="field"><label>Δν̃</label><div class="row"><input id="be-dk" class="out" readonly><span class="unit">cm⁻¹</span></div></div>
+    <div class="field"><label>Δν</label><div class="row"><input id="be-dnu" class="out" readonly><span class="unit">fs⁻¹</span></div></div>
+    <div class="field"><label>Δω</label><div class="row"><input id="be-dw" class="out" readonly><span class="unit">rad/fs</span></div></div>
+    <div class="field"><label>Centre (frequency midpoint)</label><div class="row"><input id="be-c" class="out" readonly><span class="unit">nm</span></div></div>
+    <div class="field"><label>TL Gaussian / sech²</label><div class="row"><input id="be-tl" class="out" readonly><span class="unit">fs</span></div></div>
+  </div>
+  <div class="err" id="be-err"></div>
+  <p class="note">Bandwidths are exact for the band λ₀ ± Δλ/2 (no small-bandwidth approximation). Enter a pulse duration to get the minimum bandwidth it requires. Time–bandwidth products use the exact values 2 ln2/π = 0.44127 (Gaussian) and 0.31483 (sech²).</p>
 </section>
 
 <!-- 3 ------------------------------------------------------------ -->
@@ -144,6 +159,14 @@ permalink: /tools/
     <div class="field"><label>Group delay of thickness</label><div class="row"><input id="md-gd" class="out" readonly><span class="unit">fs</span></div></div>
     <div class="field"><label>Pulse after (TL input)</label><div class="row"><input id="md-tin" type="number" value="20" step="any" title="input FWHM, fs"><span class="unit">fs in</span></div></div>
     <div class="field"><label>Output duration</label><div class="row"><input id="md-tout" class="out" readonly><span class="unit">fs</span></div></div>
+  </div>
+  <h3 class="sub">Optical setup: stack of components</h3>
+  <div id="st-rows"></div>
+  <button class="dz-btn" id="st-add" type="button" style="font:inherit;font-size:.88em;padding:.3em .7em;border:1px solid #bbb;border-radius:4px;background:#f7f7f7;cursor:pointer">+ Add component</button>
+  <div class="grid" style="margin-top:.6em">
+    <div class="field"><label>Total GDD</label><div class="row"><input id="st-gdd" class="out" readonly><span class="unit">fs²</span></div></div>
+    <div class="field"><label>Total TOD</label><div class="row"><input id="st-tod" class="out" readonly><span class="unit">fs³</span></div></div>
+    <div class="field"><label>Broadened pulse (TL input above)</label><div class="row"><input id="st-out" class="out" readonly><span class="unit">fs</span></div></div>
   </div>
   <canvas id="md-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:1em;border:1px solid #eee;border-radius:4px"></canvas>
   <div class="err" id="md-err"></div>
@@ -258,8 +281,49 @@ permalink: /tools/
   <p class="note">Δf = 1/(NΔt), f<sub>Nyquist</sub> = 1/(2Δt). The axis after <code>fftshift</code> runs from −⌊N/2⌋Δf to (⌈N/2⌉−1)Δf, so it is asymmetric for even N. Signals beyond the Nyquist limit (relative to the rotating frame) fold back into the window. 1 THz = 33.356 cm⁻¹.</p>
 </section>
 
+<!-- 12 ----------------------------------------------------------- -->
+<section class="tool" id="jacobian">
+  <h2>Spectral Jacobian: wavelength ⇄ wavenumber</h2>
+  <div class="grid">
+    <div class="field"><label>Conversion</label><select id="jc-dir"><option value="nm2cm">I(λ) in nm → I(ν̃) in cm⁻¹</option><option value="cm2nm">I(ν̃) in cm⁻¹ → I(λ) in nm</option></select></div>
+    <div class="field"><label>Spectrum file (2 columns: x, intensity)</label><input id="jc-file" type="file" accept=".txt,.csv,.dat,.tsv,text/*"></div>
+    <div class="field"><label><input type="checkbox" id="jc-norm" checked> normalise peak to 1</label></div>
+  </div>
+  <div class="field" style="margin-top:.6em"><label>…or paste data</label><textarea id="jc-text" rows="4" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:.85em" placeholder="700, 0.01&#10;701, 0.02&#10;…"></textarea></div>
+  <canvas id="jc-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:.6em;border:1px solid #eee;border-radius:4px"></canvas>
+  <button id="jc-dl" type="button" style="font:inherit;font-size:.88em;padding:.3em .7em;border:1px solid #2a7ae2;border-radius:4px;background:#2a7ae2;color:#fff;cursor:pointer" disabled>Download converted CSV</button>
+  <div class="err" id="jc-err"></div>
+  <p class="note">A spectrum is a density per unit of its axis, so changing axes needs the Jacobian |dλ/dν̃| = λ²/10⁷: I(ν̃) = I(λ)·λ²/10⁷ (λ in nm, ν̃ in cm⁻¹), and conversely I(λ) = I(ν̃)·ν̃²/10⁷. This keeps the integrated intensity unchanged; simply relabelling the x-axis distorts line shapes and band ratios. Header and comment lines are ignored; the data never leave your browser.</p>
+</section>
+
+<!-- 13 ----------------------------------------------------------- -->
+<section class="tool" id="acsim">
+  <h2>Field autocorrelation &amp; chirped-pulse simulator</h2>
+  <div class="grid">
+    <div class="field"><label>Spectrum</label><select id="as-src"><option value="gauss">Gaussian spectrum</option><option value="file">Experimental spectrum (file, nm)</option></select></div>
+    <div class="field" id="as-filefield" style="display:none"><label>Spectrum file (nm, intensity)</label><input id="as-file" type="file" accept=".txt,.csv,.dat,.tsv,text/*"></div>
+    <div class="field as-g"><label>Centre wavelength</label><div class="row"><input id="as-l" type="number" value="800" step="any"><span class="unit">nm</span></div></div>
+    <div class="field as-g"><label>Spectral FWHM</label><div class="row"><input id="as-d" type="number" value="30" step="any"><span class="unit">nm</span></div></div>
+    <div class="field"><label>Group-delay dispersion</label><div class="row"><input id="as-gdd" type="number" value="500" step="any"><span class="unit">fs²</span></div></div>
+  </div>
+  <h3 class="sub">Results</h3>
+  <div class="grid">
+    <div class="field"><label>Transform-limited FWHM</label><div class="row"><input id="as-tl" class="out" readonly><span class="unit">fs</span></div></div>
+    <div class="field"><label>Chirped pulse FWHM</label><div class="row"><input id="as-st" class="out" readonly><span class="unit">fs</span></div></div>
+    <div class="field"><label>Field-AC envelope FWHM</label><div class="row"><input id="as-ac" class="out" readonly><span class="unit">fs</span></div></div>
+  </div>
+  <canvas id="as-ifg" width="760" height="220" style="width:100%;max-width:760px;margin-top:.8em;border:1px solid #eee;border-radius:4px"></canvas>
+  <div style="display:flex;gap:2%;flex-wrap:wrap">
+    <canvas id="as-pulse" width="372" height="220" style="flex:1 1 280px;min-width:0;max-width:100%;margin-top:.6em;border:1px solid #eee;border-radius:4px;box-sizing:border-box"></canvas>
+    <canvas id="as-spec" width="372" height="220" style="flex:1 1 280px;min-width:0;max-width:100%;margin-top:.6em;border:1px solid #eee;border-radius:4px;box-sizing:border-box"></canvas>
+  </div>
+  <div class="err" id="as-err"></div>
+  <p class="note">The first-order (field) autocorrelation measured by a Michelson/linear interferometer is G₁(τ) = ∫S(ν)e<sup>−i2πντ</sup>dν (Wiener–Khinchin), so it depends only on the spectrum and <b>not</b> on the spectral phase: chirp lengthens the pulse (middle plot) but leaves the interferogram unchanged. Fourier-transforming the interferogram recovers the spectrum (right plot, dashed). For a Gaussian pulse the |G₁| envelope is twice the intensity FWHM. Measuring the pulse duration needs a nonlinear (intensity) autocorrelation, FROG or SPIDER. The Gaussian spectrum is Gaussian in frequency with the FWHM spanned by λ₀ ± Δλ/2; φ(ω) = ½·GDD·(ω − ω₀)².</p>
+</section>
+
 {% endraw %}<script src="{{ '/assets/js/sci-tools.js' | relative_url }}"></script>
-<script src="{{ '/assets/js/optics-tools.js' | relative_url }}"></script>{% raw %}
+<script src="{{ '/assets/js/optics-tools.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/spectra-tools.js' | relative_url }}"></script>{% raw %}
 <script>
 (function () {
   "use strict";
@@ -275,7 +339,7 @@ permalink: /tools/
 
   /* ---- 1. energy converter ---------------------------------------- */
   const grid = $("energy-grid");
-  const order = ["nm", "um", "cm1", "THz", "radfs", "fs", "eV", "meV", "Eh", "Ry", "kJmol", "kcalmol", "K", "J"];
+  const order = ["nm", "um", "cm1", "THz", "PHz", "radfs", "fs", "eV", "meV", "Eh", "Ry", "kJmol", "kcalmol", "K", "J"];
   for (const k of order) {
     const u = T.ENERGY_UNITS[k];
     grid.insertAdjacentHTML("beforeend",
@@ -508,6 +572,152 @@ permalink: /tools/
   }
   ["ff-dt", "ff-N", "ff-f0", "ff-sig"].forEach((i) => $(i).addEventListener("input", fft));
   fft();
+
+  /* ================= additions: plotting helper ================= */
+  const P = window.SpectraTools;
+  /** Line plot. series: [{x:[], y:[], color, dash, label, width}] */
+  function plot(canvas, series, xlabel, opts) {
+    opts = opts || {};
+    const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+    const pad = { l: 48, r: 14, t: 22, b: 34 };
+    const xs = series.flatMap((s) => s.x), ys = series.flatMap((s) => s.y);
+    let x0 = Math.min(...xs), x1 = Math.max(...xs);
+    if (opts.xrange) [x0, x1] = opts.xrange;
+    let y0 = opts.yrange ? opts.yrange[0] : Math.min(0, ...ys), y1 = opts.yrange ? opts.yrange[1] : Math.max(...ys);
+    if (y1 === y0) y1 = y0 + 1;
+    const X = (x) => pad.l + ((x - x0) / (x1 - x0)) * (W - pad.l - pad.r);
+    const Y = (y) => H - pad.b - ((y - y0) / (y1 - y0)) * (H - pad.t - pad.b);
+    ctx.clearRect(0, 0, W, H); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = "#ddd"; ctx.lineWidth = 1; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+    ctx.font = "11px sans-serif"; ctx.fillStyle = "#444"; ctx.textAlign = "center";
+    for (let k = 0; k <= 4; k++) { const x = x0 + ((x1 - x0) * k) / 4; ctx.fillText(+x.toPrecision(4), X(x), H - pad.b + 14); }
+    ctx.fillText(xlabel, (W + pad.l - pad.r) / 2, H - 4);
+    if (opts.title) { ctx.textAlign = "left"; ctx.fillText(opts.title, pad.l + 4, 14); }
+    if (y0 < 0 && y1 > 0) { ctx.strokeStyle = "#eee"; ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(W - pad.r, Y(0)); ctx.stroke(); }
+    series.forEach((s) => {
+      ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 1.5; ctx.setLineDash(s.dash || []);
+      ctx.beginPath(); let started = false;
+      s.x.forEach((x, i) => { if (x < x0 || x > x1) return; const px = X(x), py = Y(s.y[i]); started ? ctx.lineTo(px, py) : ctx.moveTo(px, py); started = true; });
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+    const labelled = series.filter((s) => s.label);
+    labelled.forEach((s, i) => {
+      const yy = pad.t + 12 + i * 14; ctx.strokeStyle = s.color; ctx.setLineDash(s.dash || []); ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(W - pad.r - 110, yy - 4); ctx.lineTo(W - pad.r - 92, yy - 4); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = "#333"; ctx.textAlign = "left"; ctx.fillText(s.label, W - pad.r - 88, yy);
+    });
+  }
+
+  /* ---- bandwidth from edges ---------------------------------------- */
+  function edges() {
+    const u = $("be-u").value, a = num("be-a"), b = num("be-b"), ids = ["be-dl", "be-dk", "be-dnu", "be-dw", "be-c"];
+    const unitText = $("be-u").selectedOptions[0].text; $("be-ua").textContent = $("be-ub").textContent = unitText;
+    try {
+      const r = T.bandwidthFromEdges(a, b, u); setErr("be-err");
+      outs(ids, [r.dl_nm, r.dk_cm1, r.dnu_PHz, r.domega_radfs, r.centre_nm]);
+      $("be-tl").value = fmt(r.tl_gaussian_fs) + " / " + fmt(r.tl_sech2_fs);
+    } catch (e) { clear(ids); $("be-tl").value = ""; setErr("be-err", e.message); }
+  }
+  ["be-a", "be-b"].forEach((i) => $(i).addEventListener("input", edges));
+  $("be-u").addEventListener("change", edges);
+  edges();
+
+  /* ---- dispersion stack ------------------------------------------ */
+  const stackRows = [{ material: "fused_silica", thickness_mm: 1 }];
+  function renderStack() {
+    $("st-rows").innerHTML = stackRows.map((r, i) => `
+      <div class="grid" style="margin-bottom:.4em">
+        <div class="field"><label>Component ${i + 1}</label><select data-st="${i}" class="st-mat">${MAT_KEYS.map((k) => `<option value="${k}"${k === r.material ? " selected" : ""}>${O.MATERIALS[k].name}</option>`).join("")}</select></div>
+        <div class="field"><label>Thickness</label><div class="row"><input data-st="${i}" class="st-L" type="number" step="any" value="${r.thickness_mm}"><span class="unit">mm</span></div></div>
+        <div class="field"><label>GDD / TOD</label><div class="row"><input class="out st-each" data-st="${i}" readonly><span class="unit">fs² / fs³</span></div></div>
+        <div class="field" style="align-self:end">${stackRows.length > 1 ? `<button type="button" data-rm="${i}" style="font:inherit;font-size:.85em;padding:.3em .6em;border:1px solid #bbb;border-radius:4px;background:#f7f7f7;cursor:pointer">Remove</button>` : ""}</div>
+      </div>`).join("");
+    $("st-rows").querySelectorAll(".st-mat").forEach((el) => el.addEventListener("change", () => { stackRows[+el.dataset.st].material = el.value; stack(); }));
+    $("st-rows").querySelectorAll(".st-L").forEach((el) => el.addEventListener("input", () => { stackRows[+el.dataset.st].thickness_mm = parseFloat(el.value) || 0; stack(); }));
+    $("st-rows").querySelectorAll("[data-rm]").forEach((el) => el.addEventListener("click", () => { stackRows.splice(+el.dataset.rm, 1); renderStack(); }));
+    stack();
+  }
+  function stack() {
+    const l = num("md-l"), tin = num("md-tin");
+    if (!(l > 0)) { clear(["st-gdd", "st-tod", "st-out"]); return; }
+    const r = O.stackDispersion(stackRows, l);
+    r.parts.forEach((p, i) => { const el = $("st-rows").querySelector(`.st-each[data-st="${i}"]`); if (el) el.value = fmt(p.gdd_fs2) + " / " + fmt(p.tod_fs3); });
+    outs(["st-gdd", "st-tod", "st-out"], [r.gdd_fs2, r.tod_fs3, tin > 0 ? T.gddBroadening(tin, r.gdd_fs2) : ""]);
+  }
+  $("st-add").addEventListener("click", () => { stackRows.push({ material: "bk7", thickness_mm: 1 }); renderStack(); });
+  ["md-l", "md-tin"].forEach((i) => $(i).addEventListener("input", stack));
+  renderStack();
+
+  /* ---- spectral Jacobian ------------------------------------------ */
+  let jcOut = null;
+  function jacobianRun() {
+    const pts = P.parseTwoColumn($("jc-text").value);
+    const ctx = $("jc-plot").getContext("2d");
+    if (pts.length < 2) { jcOut = null; $("jc-dl").disabled = true; ctx.clearRect(0, 0, 760, 260);
+      return setErr("jc-err", $("jc-text").value.trim() ? "Could not find two numeric columns." : ""); }
+    if (pts.some(([x]) => !(x > 0))) return setErr("jc-err", "The x-column must be positive (nm or cm⁻¹).");
+    setErr("jc-err");
+    const dir = $("jc-dir").value, norm = $("jc-norm").checked;
+    jcOut = P.jacobian(pts, dir, norm);
+    const naive = pts.map(([x, y]) => [1e7 / x, y]).sort((a, b) => a[0] - b[0]);
+    const nmax = norm ? Math.max(...naive.map((p) => Math.abs(p[1]))) : 1;
+    plot($("jc-plot"), [
+      { x: jcOut.map((p) => p[0]), y: jcOut.map((p) => p[1]), color: "#d62728", label: "with Jacobian" },
+      { x: naive.map((p) => p[0]), y: naive.map((p) => p[1] / nmax), color: "#999", dash: [5, 4], label: "axis relabelled only" },
+    ], dir === "nm2cm" ? "Wavenumber (cm⁻¹)" : "Wavelength (nm)", { title: (norm ? "Normalised " : "") + "converted spectrum" });
+    $("jc-dl").disabled = false;
+  }
+  $("jc-file").addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return; f.text().then((t) => { $("jc-text").value = t; jacobianRun(); }); });
+  ["jc-text"].forEach((i) => $(i).addEventListener("input", jacobianRun));
+  ["jc-dir", "jc-norm"].forEach((i) => $(i).addEventListener("change", jacobianRun));
+  $("jc-dl").addEventListener("click", () => {
+    if (!jcOut) return;
+    const head = $("jc-dir").value === "nm2cm" ? "wavenumber_cm-1,intensity\n" : "wavelength_nm,intensity\n";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([head + jcOut.map((p) => p[0].toPrecision(10) + "," + p[1].toPrecision(8)).join("\n") + "\n"], { type: "text/csv" }));
+    a.download = $("jc-dir").value === "nm2cm" ? "spectrum_cm-1.csv" : "spectrum_nm.csv"; a.click(); URL.revokeObjectURL(a.href);
+  });
+
+  /* ---- field autocorrelation simulator ---------------------------- */
+  let acFilePts = null, acTimer = null;
+  function acsim() {
+    const gauss = $("as-src").value === "gauss";
+    $("as-filefield").style.display = gauss ? "none" : "";
+    document.querySelectorAll(".as-g").forEach((el) => (el.style.display = gauss ? "" : "none"));
+    const gdd = num("as-gdd") || 0;
+    let spec;
+    try {
+      if (gauss) {
+        const l = num("as-l"), d = num("as-d");
+        if (!(l > 0 && d > 0 && d < l)) throw new Error("Enter a centre wavelength and a FWHM smaller than it.");
+        spec = P.gaussianSpectrum(l, d, 256);
+      } else {
+        if (!acFilePts) throw new Error("Choose a spectrum file (wavelength in nm, intensity).");
+        spec = P.spectrumFromWavelength(acFilePts, 256);
+      }
+    } catch (e) { clear(["as-tl", "as-st", "as-ac"]); return setErr("as-err", e.message); }
+    setErr("as-err");
+    const r = P.simulate(spec, gdd);
+    outs(["as-tl", "as-st", "as-ac"], [r.tlFwhm_fs, r.stretchedFwhm_fs, r.acEnvelopeFwhm_fs]);
+    plot($("as-ifg"), [
+      { x: r.tau, y: r.interferogram, color: "#c0392b", width: 1 },
+      { x: r.tau, y: r.envelope, color: "#555", dash: [4, 3], label: "|G₁(τ)|" },
+    ], "Delay τ (fs)", { title: "Field autocorrelation (interferogram) Re G₁(τ)", yrange: [-1.05, 1.1] });
+    plot($("as-pulse"), [
+      { x: r.pulse.t, y: r.pulse.field, color: "#1f77b4", width: 1 },
+      { x: r.pulse.t, y: r.pulse.envelope, color: "#555", dash: [4, 3] },
+    ], "Time t (fs)", { title: `Pulse field, GDD = ${fmt(gdd)} fs²`, yrange: [-1.05, 1.1] });
+    plot($("as-spec"), [
+      { x: r.spectrum.lambda_nm, y: r.spectrum.original, color: "#2ca02c", label: "spectrum" },
+      { x: r.spectrum.lambda_nm, y: r.spectrum.recovered, color: "#333", dash: [5, 4], label: "from G₁" },
+    ], "Wavelength (nm)", { title: "Spectrum and its recovery", yrange: [0, 1.15] });
+  }
+  const acDebounced = () => { clearTimeout(acTimer); acTimer = setTimeout(acsim, 150); };
+  ["as-l", "as-d", "as-gdd"].forEach((i) => $(i).addEventListener("input", acDebounced));
+  $("as-src").addEventListener("change", acsim);
+  $("as-file").addEventListener("change", (e) => { const f = e.target.files[0]; if (!f) return;
+    f.text().then((t) => { acFilePts = P.parseTwoColumn(t); acsim(); }); });
+  acsim();
 })();
 </script>
 {% endraw %}
