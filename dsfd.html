@@ -1,0 +1,226 @@
+---
+layout: page
+title: Double-Sided Feynman Diagram Generator
+permalink: /tools/dsfd/
+---
+{% raw %}
+<style>
+  .fd-intro { color: #555; }
+  .fd-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1em; margin: 1.2em 0; }
+  .fd-card { border: 1px solid #e3e3e3; border-radius: 8px; padding: .9em 1em; background: #fff; font-size: .92em; }
+  .fd-card h3 { margin: 0 0 .5em; font-size: 1.02em; }
+  .fd-card label { display: block; font-size: .85em; color: #555; margin: .35em 0 .15em; }
+  .fd-card select, .fd-card input[type=text], .fd-card input[type=number] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid #ccc; border-radius: 4px; }
+  .fd-signs { display: flex; gap: .35em; flex-wrap: wrap; }
+  .fd-signs select { width: auto; }
+  .fd-checks label { display: inline-block; margin-right: .8em; }
+  .fd-summary { margin: .4em 0 1em; padding: .55em .8em; background: #f4f8ff; border-left: 3px solid #2a7ae2; font-size: .93em; }
+  .fd-summary.warn { background: #fff7e6; border-color: #e69500; }
+  .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 1em; }
+  .fd-diagram { border: 1px solid #e3e3e3; border-radius: 8px; padding: .6em .7em .8em; background: #fff; }
+  .fd-diagram h4 { margin: 0; font-size: .95em; display: flex; justify-content: space-between; }
+  .fd-tag { font-size: .78em; padding: .05em .45em; border-radius: 10px; color: #fff; }
+  .fd-term { font-size: .82em; color: #333; margin-top: .3em; line-height: 1.5; }
+  .fd-path { font-family: ui-monospace, Menlo, monospace; font-size: .78em; color: #555; margin-top: .2em; }
+  .fd-btn { font: inherit; font-size: .85em; padding: .3em .7em; border: 1px solid #bbb; border-radius: 4px; background: #f7f7f7; cursor: pointer; margin-top: .4em; }
+  .fd-btn.primary { background: #2a7ae2; border-color: #2a7ae2; color: #fff; }
+  .fd-note { color: #666; font-size: .85em; }
+</style>
+
+<p class="fd-intro">
+  Enumerate every Liouville pathway contributing to an <i>n</i>-th-order nonlinear signal in a chosen phase-matching direction, and draw its double-sided Feynman diagram.
+  Each diagram shows its sign (−1)<sup><i>n</i></sup>, classification (GSB / SE / ESA / DQC), and the corresponding term of the response function.
+  <a href="../">← All tools</a>
+</p>
+
+<div class="fd-controls">
+  <div class="fd-card">
+    <h3>1 · Signal</h3>
+    <label>Preset</label>
+    <select id="fd-preset">
+      <option value="rephasing" selected>Rephasing (photon echo): −k₁ + k₂ + k₃</option>
+      <option value="nonrephasing">Non-rephasing: k₁ − k₂ + k₃</option>
+      <option value="dqc">Double quantum: k₁ + k₂ − k₃</option>
+      <option value="linear">Linear absorption: k₁</option>
+      <option value="custom">Custom…</option>
+    </select>
+    <label>Order <i>n</i> (number of field interactions before emission)</label>
+    <input type="number" id="fd-order" min="1" max="5" value="3">
+    <label>Wave-vector signs (time-ordered)</label>
+    <div class="fd-signs" id="fd-signs"></div>
+    <div class="fd-note" id="fd-dir" style="margin-top:.4em"></div>
+  </div>
+  <div class="fd-card">
+    <h3>2 · Level scheme</h3>
+    <label>Singly excited states (comma-separated)</label>
+    <input type="text" id="fd-singles" value="e">
+    <label>Doubly excited states (empty for none)</label>
+    <input type="text" id="fd-doubles" value="f">
+    <div class="fd-note" style="margin-top:.4em">Examples: two-level system <code>e</code> / empty; three-level ladder <code>e</code> / <code>f</code>; excitonic dimer <code>a, b</code> / <code>f</code>.</div>
+  </div>
+  <div class="fd-card">
+    <h3>3 · Show</h3>
+    <div class="fd-checks" id="fd-filter">
+      <label><input type="checkbox" value="GSB" checked> GSB</label>
+      <label><input type="checkbox" value="SE" checked> SE</label>
+      <label><input type="checkbox" value="ESA" checked> ESA</label>
+      <label><input type="checkbox" value="DQC" checked> DQC</label>
+      <label><input type="checkbox" value="other" checked> other orders</label>
+    </div>
+    <label><input type="checkbox" id="fd-tlabels" checked> label time intervals</label>
+    <button class="fd-btn primary" id="fd-dlall">Download all as SVG</button>
+  </div>
+</div>
+
+<div class="fd-summary" id="fd-summary"></div>
+<div class="fd-grid" id="fd-grid"></div>
+
+<p class="fd-note" style="margin-top:1.4em">
+  <b>Conventions</b> (Mukamel; Hamm &amp; Zanni). Time runs upward; the left line is the ket, the right line the bra; the system starts in |g⟩⟨g|.
+  An arrow pointing right carries +k, pointing left −k; an arrow pointing toward the diagram excites, away from it de-excites.
+  The final dashed arrow is the emitted signal field, which acts on the ket and leaves a population.
+  Each diagram has sign (−1)<sup><i>n</i></sup>, <i>n</i> = number of bra interactions, and contributes
+  ∏μ · G(t<sub>n</sub>)…G(t<sub>1</sub>) with G<sub>ab</sub>(t) = exp(−iω<sub>ab</sub>t − Γ<sub>ab</sub>t) in the impulsive limit.
+  Rotating-wave approximation: only resonant (up/down by one manifold) interactions are kept.
+</p>
+
+{% endraw %}<script src="{{ '/assets/js/dsfd-core.js' | relative_url }}"></script>{% raw %}
+<script>
+(function () {
+  "use strict";
+  const F = window.DSFD;
+  const $ = (id) => document.getElementById(id);
+  const SUB = "₀₁₂₃₄₅₆₇₈₉";
+  const COLORS = { GSB: "#1f77b4", SE: "#2ca02c", ESA: "#d62728", DQC: "#9467bd", Linear: "#555", "—": "#555" };
+
+  /* ---------- controls ---------- */
+  function renderSigns(signs) {
+    $("fd-signs").innerHTML = signs.map((s, i) =>
+      `<select data-i="${i}"><option value="1"${s > 0 ? " selected" : ""}>+k${SUB[i + 1]}</option><option value="-1"${s < 0 ? " selected" : ""}>−k${SUB[i + 1]}</option></select>`).join("");
+    $("fd-signs").querySelectorAll("select").forEach((el) => el.addEventListener("change", () => { $("fd-preset").value = "custom"; update(); }));
+  }
+  const currentSigns = () => [...$("fd-signs").querySelectorAll("select")].map((s) => parseInt(s.value, 10));
+  $("fd-preset").addEventListener("change", () => {
+    const p = F.PRESETS[$("fd-preset").value];
+    if (p) { $("fd-order").value = p.signs.length; renderSigns(p.signs); }
+    update();
+  });
+  $("fd-order").addEventListener("input", () => {
+    const n = Math.max(1, Math.min(5, parseInt($("fd-order").value, 10) || 1));
+    const old = currentSigns();
+    renderSigns(Array.from({ length: n }, (_, i) => old[i] || (i % 2 ? -1 : 1)));
+    $("fd-preset").value = "custom"; update();
+  });
+  ["fd-singles", "fd-doubles"].forEach((id) => $(id).addEventListener("input", update));
+  $("fd-filter").addEventListener("change", update);
+  $("fd-tlabels").addEventListener("change", update);
+
+  const parseStates = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
+
+  /* ---------- drawing ---------- */
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  function drawSVG(d, n, tlabels) {
+    const gap = 54, W = 240, kx = 95, bx = 145, top = 30, bottom = top + gap * (n + 1) + 10, H = bottom + 26;
+    const yAt = (j) => bottom - gap * j; // interaction j at y; j = n+1 is the emission
+    const parts = [];
+    const arrow = (x1, y1, x2, y2, dashed, col) =>
+      `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.6"${dashed ? ' stroke-dasharray="5,3"' : ""} marker-end="url(#ah-${col.slice(1)})"/>`;
+    parts.push(`<defs>${["#222", "#c0392b"].map((c) => `<marker id="ah-${c.slice(1)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`).join("")}</defs>`);
+    parts.push(`<rect width="${W}" height="${H}" fill="#fff"/>`);
+    parts.push(`<line x1="${kx}" y1="${bottom}" x2="${kx}" y2="${yAt(n + 1) - 10}" stroke="#222" stroke-width="1.8"/>`);
+    parts.push(`<line x1="${bx}" y1="${bottom}" x2="${bx}" y2="${yAt(n + 1) - 10}" stroke="#222" stroke-width="1.8"/>`);
+    // density-matrix labels
+    const lbl = (y, [a, b]) => `<text x="${(kx + bx) / 2}" y="${y}" text-anchor="middle" font-size="13" font-family="serif">|${esc(a)}⟩⟨${esc(b)}|</text>`;
+    parts.push(lbl(bottom - 8, d.rho[0]));
+    for (let j = 1; j <= n; j++) {
+      parts.push(lbl((yAt(j) + yAt(j + 1)) / 2 + 5, d.rho[j]));
+      if (tlabels) parts.push(`<text x="${bx + 52}" y="${(yAt(j) + yAt(j + 1)) / 2 + 4}" font-size="11" fill="#888" font-style="italic">t${SUB[j]}</text>`);
+    }
+    parts.push(lbl(yAt(n + 1) - 14, [d.emission.to, d.emission.to]));
+    // interactions
+    const L = 48, dy = 14;
+    d.interactions.concat([d.emission]).forEach((s, idx) => {
+      const y = yAt(idx + 1), isEmit = s.kind === "emit", col = isEmit ? "#c0392b" : "#222";
+      let x1, y1, x2, y2, tx;
+      if (s.side === "ket") {
+        if (s.kind === "up") { x1 = kx - L; y1 = y + dy; x2 = kx - 2; y2 = y; tx = x1 - 4; }      // →, toward ket
+        else { x1 = kx - 2; y1 = y; x2 = kx - L; y2 = y - dy; tx = x2 - 4; }                      // ←, away from ket
+      } else {
+        if (s.kind === "up") { x1 = bx + L; y1 = y + dy; x2 = bx + 2; y2 = y; tx = x1 + 4; }      // ←, toward bra
+        else { x1 = bx + 2; y1 = y; x2 = bx + L; y2 = y - dy; tx = x2 + 4; }                      // →, away from bra
+      }
+      parts.push(arrow(x1, y1, x2, y2, isEmit, col));
+      const name = isEmit ? "k" + "ₛ" : (s.sign > 0 ? "" : "−") + "k" + SUB[s.k];
+      parts.push(`<text x="${tx}" y="${(y1 + y2) / 2 + 4}" font-size="12" font-style="italic" fill="${col}" text-anchor="${s.side === "ket" ? "end" : "start"}">${name}</text>`);
+    });
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
+  }
+
+  function termHTML(d, scheme) {
+    const mu = F.dipoles(d, scheme).map((ab) => `μ<sub>${esc(ab)}</sub>`).join("");
+    const G = d.rho.slice(1).map(([a, b], i) => `G<sub>${esc(a)}${esc(b)}</sub>(t<sub>${i + 1}</sub>)`).reverse().join(" ");
+    return `${d.sign > 0 ? "+" : "−"} ${mu} · ${G}`;
+  }
+
+  /* ---------- main ---------- */
+  let last = [];
+  function update() {
+    const signs = currentSigns(), n = signs.length;
+    $("fd-dir").textContent = "k_s = " + F.direction(signs);
+    const singles = parseStates($("fd-singles").value), doubles = parseStates($("fd-doubles").value);
+    const sum = $("fd-summary");
+    const all = singles.concat(doubles);
+    if (!singles.length) { sum.textContent = "Add at least one singly excited state."; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; return; }
+    if (new Set(all).size !== all.length || all.includes("g")) { sum.textContent = "State names must be unique and different from g."; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; return; }
+    if (singles.length > 4 || doubles.length > 3) { sum.textContent = "Please use at most 4 singly and 3 doubly excited states."; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; return; }
+    const scheme = F.levelScheme(singles, doubles);
+    const ds = F.enumerate(signs, scheme);
+    const show = new Set([...$("fd-filter").querySelectorAll("input:checked")].map((c) => c.value));
+    const visible = ds.filter((d) => (["GSB", "SE", "ESA", "DQC"].includes(d.type) ? show.has(d.type) : show.has("other")));
+    const counts = {};
+    ds.forEach((d) => { if (d.type !== "—") counts[d.type] = (counts[d.type] || 0) + 1; });
+    const allDQC = ds.length && ds.every((d) => d.type === "DQC");
+    sum.classList.toggle("warn", ds.length === 0);
+    sum.innerHTML = ds.length
+      ? `<b>${ds.length}</b> pathway${ds.length > 1 ? "s" : ""} for k<sub>s</sub> = ${F.direction(signs)}` +
+        (Object.keys(counts).length ? " — " + Object.entries(counts).map(([t, c]) => `${c} ${t}`).join(", ") : "") +
+        (n === 3 && ds.length && !allDQC ? (ds[0].rephasing ? " · rephasing" : " · non-rephasing") : "") +
+        (visible.length < ds.length ? ` (showing ${visible.length})` : "")
+      : `No pathways: k<sub>s</sub> = ${F.direction(signs)} cannot be generated by this level scheme within the rotating-wave approximation.`;
+    const tl = $("fd-tlabels").checked;
+    last = visible.map((d, i) => ({ d, svg: drawSVG(d, n, tl), i }));
+    $("fd-grid").innerHTML = last.map(({ d, svg, i }) => `
+      <div class="fd-diagram">
+        <h4><span>#${i + 1} &nbsp;<span class="fd-tag" style="background:${COLORS[d.type] || "#555"}">${esc(d.type)}</span></span><span>sign ${d.sign > 0 ? "+" : "−"}</span></h4>
+        <div>${svg}</div>
+        <div class="fd-path">${esc(d.label)}</div>
+        <div class="fd-term">${termHTML(d, scheme)}</div>
+        <button class="fd-btn" data-dl="${i}">Download SVG</button>
+      </div>`).join("");
+    $("fd-grid").querySelectorAll("[data-dl]").forEach((b) => b.addEventListener("click", () => {
+      const k = +b.dataset.dl; download(`dsfd-${k + 1}-${last[k].d.type}.svg`, last[k].svg);
+    }));
+  }
+
+  function download(name, text) {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
+    a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  }
+  $("fd-dlall").addEventListener("click", () => {
+    if (!last.length) return;
+    const cols = Math.min(4, last.length), w = 240, pad = 10;
+    const sizes = last.map(({ svg }) => +svg.match(/height="(\d+)"/)[1]);
+    const h = Math.max(...sizes) + 26, rows = Math.ceil(last.length / cols);
+    const body = last.map(({ d, svg }, k) => {
+      const x = (k % cols) * (w + pad), y = Math.floor(k / cols) * (h + pad);
+      return `<g transform="translate(${x},${y})"><text x="6" y="14" font-size="12" font-family="sans-serif">#${k + 1} ${d.type} (${d.sign > 0 ? "+" : "−"})</text><g transform="translate(0,18)">${svg.replace(/^<svg[^>]*>|<\/svg>$/g, "")}</g></g>`;
+    }).join("");
+    download("dsfd-all.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="${cols * (w + pad)}" height="${rows * (h + pad)}">${body}</svg>`);
+  });
+
+  renderSigns(F.PRESETS.rephasing.signs);
+  update();
+})();
+</script>
+{% endraw %}

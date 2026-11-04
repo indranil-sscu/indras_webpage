@@ -14,7 +14,7 @@ I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), In
 
 - Blog-style code notes and project logs
 - Tips and scripts for scientific computing
-- [Spectroscopy & optics calculators](https://indranil-sscu.github.io/indras_webpage/tools/) (`tools.html`, logic in `assets/js/sci-tools.js` and `assets/js/optics-tools.js`; plot digitizer in `digitizer.html` + `assets/js/digitizer-core.js`; reference sheet in `reference.md`; run the tests with `node --test tests/*.test.js`)
+- [Spectroscopy & optics calculators](https://indranil-sscu.github.io/indras_webpage/tools/) (`tools.html`, logic in `assets/js/sci-tools.js` and `assets/js/optics-tools.js`; plot digitizer in `digitizer.html` + `assets/js/digitizer-core.js`; Feynman diagram generator in `dsfd.html` + `assets/js/dsfd-core.js`; reference sheet in `reference.md`; run the tests with `node --test tests/*.test.js`)
 
 ## Structure
 
