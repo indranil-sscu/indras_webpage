@@ -19,7 +19,7 @@ Short, practical write-ups of scripts and command-line workflows I use for data 
 
 ## Tools
 
-- [Spectroscopy & optics calculators](./tools/): unit conversion (nm, cm⁻¹, eV, THz, Hartree, kJ/mol, …), bandwidth and transform-limited pulses, delay stages, pulse energy and intensity, GDD broadening, material dispersion (n, GVD, TOD) and multi-component setups, prism and grating compressors, SHG/SFG phase matching, Gaussian beams and focusing, autocorrelation deconvolution, sampling/FFT axis design, spectral Jacobian (nm ⇄ cm⁻¹) conversion of measured spectra, and a field-autocorrelation / chirped-pulse simulator.
+- [Spectroscopy & optics calculators](./tools/): unit conversion (nm, cm⁻¹, eV, THz, Hartree, kJ/mol, …), bandwidth and transform-limited pulses, delay stages, pulse energy and intensity, GDD broadening, material dispersion (n, GVD, TOD) and multi-component setups, prism and grating compressors, SHG/SFG phase matching, Gaussian beams and focusing, autocorrelation deconvolution, sampling/FFT axis design, and spectral Jacobian (nm ⇄ cm⁻¹) conversion of measured spectra.
 - [Plot digitizer](./tools/digitizer/): extract numbers from an image of a published plot (linear or log axes, multiple series, CSV export). The image stays in your browser.
 - [Double-sided Feynman diagram generator](./tools/dsfd/): enumerate and draw all Liouville pathways for linear, third- and higher-order signals (rephasing, non-rephasing, double-quantum) in two-level, three-level and excitonic systems, with signs, GSB/SE/ESA labels and response-function terms; SVG export.
 - [Constants & lab cheat sheet](./reference/): CODATA constants, laser and calibration lines, and the optics rules of thumb that are easy to forget.
