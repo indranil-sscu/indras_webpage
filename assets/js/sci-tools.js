@@ -31,6 +31,7 @@
     um: { label: "Wavelength", unit: "µm", toJ: (v) => (C.h * C.c) / (v * 1e-6), fromJ: (J) => (C.h * C.c) / J / 1e-6 },
     cm1: { label: "Wavenumber", unit: "cm⁻¹", toJ: (v) => C.h * C.c * v * 100, fromJ: (J) => J / (C.h * C.c * 100) },
     THz: { label: "Frequency", unit: "THz", toJ: (v) => C.h * v * 1e12, fromJ: (J) => J / C.h / 1e12 },
+    PHz: { label: "Frequency", unit: "fs⁻¹ (PHz)", toJ: (v) => C.h * v * 1e15, fromJ: (J) => J / C.h / 1e15 },
     radfs: { label: "Angular frequency", unit: "rad/fs", toJ: (v) => C.hbar * v * 1e15, fromJ: (J) => J / C.hbar / 1e15 },
     fs: { label: "Period", unit: "fs", toJ: (v) => C.h / (v * 1e-15), fromJ: (J) => C.h / J / 1e-15 },
     eV: { label: "Energy", unit: "eV", toJ: (v) => v * C.e, fromJ: (J) => J / C.e },
@@ -69,6 +70,30 @@
       dE_meV: (C.h * dnu_Hz) / C.e * 1e3,
     };
   }
+
+  /** Bandwidth between two spectral edges given in any spectral unit
+   *  ("nm", "cm1", "THz", "PHz", "radfs", "eV"). Returns all widths, the
+   *  centre (in frequency) and the transform-limited Gaussian / sech² durations
+   *  for a spectrum whose FWHM spans the two edges. */
+  function bandwidthFromEdges(a, b, unit) {
+    const u = ENERGY_UNITS[unit];
+    if (!u) throw new Error("Unknown unit: " + unit);
+    if (!(a > 0 && b > 0) || a === b) throw new Error("Edges must be positive and different");
+    const nu1 = u.toJ(a) / C.h, nu2 = u.toJ(b) / C.h; // Hz
+    const dnu = Math.abs(nu1 - nu2);
+    return {
+      dl_nm: Math.abs(C.c / nu1 - C.c / nu2) * 1e9,
+      dk_cm1: dnu / C.c / 100,
+      dnu_THz: dnu / 1e12,
+      dnu_PHz: dnu / 1e15,
+      domega_radfs: (2 * Math.PI * dnu) / 1e15,
+      dE_meV: ((C.h * dnu) / C.e) * 1e3,
+      centre_nm: (C.c / ((nu1 + nu2) / 2)) * 1e9,
+      tl_gaussian_fs: (TBP_CONST.gaussian / dnu) * 1e15,
+      tl_sech2_fs: (TBP_CONST.sech2 / dnu) * 1e15,
+    };
+  }
+  const TBP_CONST = { gaussian: (2 * Math.LN2) / Math.PI, sech2: 0.314833 };
 
   /** Exact inverse of bandwidthFromNm: frequency width (THz) at λ0 -> Δλ (nm).
    *  Solves Δν = c·Δλ / (λ0² − Δλ²/4) for Δλ. */
@@ -158,6 +183,7 @@
     ENERGY_UNITS,
     convertEnergy,
     bandwidthFromNm,
+    bandwidthFromEdges,
     bandwidthToNm,
     TBP,
     transformLimitedDuration,

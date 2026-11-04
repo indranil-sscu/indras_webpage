@@ -68,6 +68,30 @@
       range: [0.22, 1.06],
       n: (l) => Math.sqrt(2.3730 + 0.0128 / (l * l - 0.0156) - 0.0044 * l * l),
     },
+    sapphire_e: {
+      name: "Sapphire (extraordinary ray)",
+      ref: "I. H. Malitson & M. J. Dodge, J. Opt. Soc. Am. 62, 1405 (1972)",
+      range: [0.2, 5.0],
+      n: sellmeier3([1.5039759, 0.55069141, 6.5927379], [sq(0.0740288), sq(0.1216529), sq(20.072248)]),
+    },
+    yag: {
+      name: "YAG (undoped)",
+      ref: "D. E. Zelmon, D. L. Small & R. Page, Appl. Opt. 37, 4933 (1998)",
+      range: [0.4, 5.0],
+      n: sellmeier3([2.282, 3.27644], [0.01185, 282.734]),
+    },
+    calcite_o: {
+      name: "Calcite (ordinary ray)",
+      ref: "G. Ghosh, Opt. Commun. 163, 95 (1999)",
+      range: [0.2, 2.2],
+      n: (l) => Math.sqrt(1.73358749 + (0.96464345 * l * l) / (l * l - 1.94325203e-2) + (1.82831454 * l * l) / (l * l - 120)),
+    },
+    znse: {
+      name: "ZnSe (CVD)",
+      ref: "W. L. Wolfe & G. J. Zissis, The Infrared Handbook (1978) / Tatian fit",
+      range: [0.54, 18.2],
+      n: sellmeier3([4.45813734, 0.467216334, 2.8956629], [sq(0.200859853), sq(0.391371166), sq(47.1362108)]),
+    },
   };
 
   /* ------------------------------------------------------------------ *
@@ -76,13 +100,14 @@
    *    GVD = λ³/(2πc²) d²n/dλ²
    *    TOD = −λ⁴/(4π²c³) (3 d²n/dλ² + λ d³n/dλ³)
    * ------------------------------------------------------------------ */
-  function derivatives(nfun, l_um) {
-    // central differences; step sizes chosen to balance truncation and round-off
-    const h1 = 1e-4, h2 = 1e-3, h3 = 4e-3;
-    const d1 = (nfun(l_um + h1) - nfun(l_um - h1)) / (2 * h1);
-    const d2 = (nfun(l_um + h2) - 2 * nfun(l_um) + nfun(l_um - h2)) / (h2 * h2);
-    const d3 = (nfun(l_um + 2 * h3) - 2 * nfun(l_um + h3) + 2 * nfun(l_um - h3) - nfun(l_um - 2 * h3)) / (2 * h3 * h3 * h3);
-    return { d1, d2, d3 }; // per µm, µm⁻², µm⁻³
+  function derivatives(nfun, l) {
+    // Central differences with one Richardson-extrapolation step (error O(h⁴));
+    // step sizes balance truncation against floating-point round-off.
+    const D1 = (h) => (nfun(l + h) - nfun(l - h)) / (2 * h);
+    const D2 = (h) => (nfun(l + h) - 2 * nfun(l) + nfun(l - h)) / (h * h);
+    const D3 = (h) => (nfun(l + 2 * h) - 2 * nfun(l + h) + 2 * nfun(l - h) - nfun(l - 2 * h)) / (2 * h * h * h);
+    const rich = (D, h) => (4 * D(h / 2) - D(h)) / 3;
+    return { d1: rich(D1, 2e-3), d2: rich(D2, 4e-3), d3: rich(D3, 1.6e-2) }; // per µm, µm⁻², µm⁻³
   }
 
   /** Optical properties of `materialKey` at `lambda_nm`. */
@@ -104,6 +129,18 @@
       tod_fs3_mm: tod * 1e45 / 1e3, // fs³/mm
       inRange: l >= m.range[0] && l <= m.range[1],
     };
+  }
+
+  /** Total GDD and TOD of a stack of components [{material, thickness_mm}] at lambda_nm. */
+  function stackDispersion(components, lambda_nm) {
+    let gdd = 0, tod = 0;
+    const parts = components.map((cmp) => {
+      const d = dispersion(cmp.material, lambda_nm);
+      const g = d.gvd_fs2_mm * cmp.thickness_mm, t = d.tod_fs3_mm * cmp.thickness_mm;
+      gdd += g; tod += t;
+      return { ...cmp, gdd_fs2: g, tod_fs3: t, inRange: d.inRange };
+    });
+    return { gdd_fs2: gdd, tod_fs3: tod, parts };
   }
 
   /* ------------------------------------------------------------------ *
@@ -269,6 +306,7 @@
   return {
     MATERIALS,
     dispersion,
+    stackDispersion,
     gratingCompressor,
     prismCompressor,
     separationForGdd,
