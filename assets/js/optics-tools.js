@@ -92,6 +92,24 @@
       range: [0.54, 18.2],
       n: sellmeier3([4.45813734, 0.467216334, 2.8956629], [sq(0.200859853), sq(0.391371166), sq(47.1362108)]),
     },
+    tio2: {
+      name: "TiO₂ (rutile, ordinary ray)",
+      ref: "J. R. DeVore, J. Opt. Soc. Am. 41, 416 (1951). Sputtered or evaporated films are usually lower (n ≈ 2.2–2.5 at 550 nm)",
+      range: [0.43, 1.53],
+      n: (l) => Math.sqrt(5.913 + 0.2441 / (l * l - 0.0803)),
+    },
+    ta2o5: {
+      name: "Ta₂O₅ (sputtered film, approx.)",
+      ref: "Approximate Cauchy model n = 2.064 + 0.0237/λ² (λ in µm), n ≈ 2.14 at 550 nm, typical of ion-beam-sputtered films; use measured data for design",
+      range: [0.4, 1.6],
+      n: (l) => 2.064 + 0.0237 / (l * l),
+    },
+    pmma: {
+      name: "PMMA",
+      ref: "N. Sultanova, S. Kasarova & I. Nikolov, Acta Phys. Pol. A 116, 585 (2009)",
+      range: [0.437, 1.052],
+      n: (l) => Math.sqrt(1 + (1.1819 * l * l) / (l * l - 0.011313)),
+    },
   };
 
   /* ------------------------------------------------------------------ *

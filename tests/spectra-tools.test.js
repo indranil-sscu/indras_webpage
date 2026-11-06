@@ -60,3 +60,9 @@ test("Jacobian conversion conserves area and round-trips", () => {
   back.forEach((p, i) => near(p[1], pts[i][1], 1e-12));
   assert.strictEqual(Math.max(...P.jacobian(pts, "nm2cm", true).map((p) => p[1])), 1);
 });
+
+test("thin-film materials for the TMM solver", () => {
+  near(O.dispersion("pmma", 587.6).n, 1.4905, 5e-4);
+  near(O.dispersion("tio2", 589.3).n, 2.6124, 2e-3);
+  near(O.dispersion("ta2o5", 550).n, 2.142, 2e-3);
+});

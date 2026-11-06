@@ -12,22 +12,28 @@ I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), In
 
 ## Features
 
+- Light and dark themes (toggle in the header; follows the system setting until you choose), defined as CSS custom properties in `assets/css/site.css`, with the theme applied before first paint by an inline script in `_includes/head.html`; canvas helpers in `assets/js/theme.js`
 - Blog-style code notes and project logs
 - Tips and scripts for scientific computing
-- [Spectroscopy & optics calculators](https://indranil-sscu.github.io/indras_webpage/tools/) (`tools.html`, logic in `assets/js/sci-tools.js` and `assets/js/optics-tools.js`; plot digitizer in `digitizer.html` + `assets/js/digitizer-core.js`; Feynman diagram generator in `dsfd.html` + `assets/js/dsfd-core.js`; multilayer TMM / polariton solver in `tmm.html` + `assets/js/tmm-core.js`; reference sheet in `reference.md`; run the tests with `node --test tests/*.test.js`)
+- [Spectroscopy & optics calculators](https://indranil-sscu.github.io/indras_webpage/tools/) (`tools.html`, logic in `assets/js/sci-tools.js` and `assets/js/optics-tools.js`; plot digitizer in `digitizer.html` + `assets/js/digitizer-core.js`; Feynman diagram generator in `dsfd.html` + `assets/js/dsfd-core.js`; multilayer TMM / polariton solver in `tmm.html` + `assets/js/tmm-engine.js`; reference sheet in `reference.md`; run the tests with `node --test tests/*.test.js`)
 
 ## Structure
 
 ```plaintext
 .
 ├── index.md       # Home page (Markdown)
-├── tools.html     # Calculators page
-├── assets/js/     # Calculator logic (sci-tools.js)
-├── tests/         # Node unit tests for the calculators
+├── tools.html     # Calculators page (each with a theory card: equations, symbols, references)
+├── tmm.html       # Multilayer TMM / polariton solver (/tools/tmm/)
+├── dsfd.html      # Double-sided Feynman diagram generator (/tools/dsfd/)
+├── digitizer.html # Plot digitizer (/tools/digitizer/)
+├── reference.md   # Constants & lab cheat sheet
+├── assets/css/    # Design tokens and light/dark themes (site.css)
+├── assets/js/     # Tool logic, no dependencies (sci-, optics-, spectra-tools, tmm-engine, dsfd-core, digitizer-core, theme)
+├── tests/         # Node unit tests (node --test tests/*.test.js)
 ├── posts.md       # Listing of all posts
 ├── posts/         # Individual project notes
 ├── _config.yml    # Jekyll site configuration
 ├── _layouts/      # Page layouts
-├── _includes/     # Header/footer partials
+├── _includes/     # head (theme script), header (theme toggle) and footer partials
 └── README.md      # This file
 ```
