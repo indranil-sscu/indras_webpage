@@ -80,8 +80,6 @@ permalink: /tools/dsfd/
     <h3>3 · Style</h3>
     <label>Field arrows</label>
     <div class="fd-seg"><label><input type="radio" name="fd-arrow" value="straight" checked>straight 15°</label><label><input type="radio" name="fd-arrow" value="wavy">wavy</label></div>
-    <label>Delay labels</label>
-    <div class="fd-seg"><label><input type="radio" name="fd-tl" value="t" checked>t₁, t₂, t₃</label><label><input type="radio" name="fd-tl" value="tau">τ, T, t</label><label><input type="radio" name="fd-tl" value="none">none</label></div>
     <label>Colour</label>
     <div class="fd-seg"><label><input type="radio" name="fd-col" value="color" checked>colour</label><label><input type="radio" name="fd-col" value="mono">print (black &amp; white)</label></div>
     <label>Show</label>
@@ -169,17 +167,13 @@ permalink: /tools/dsfd/
   ["fd-singles", "fd-doubles"].forEach((id) => $(id).addEventListener("input", update));
   ["fd-twoq"].forEach((id) => $(id).addEventListener("change", update));
   $("fd-filter").addEventListener("change", update);
-  document.querySelectorAll('input[name="fd-arrow"], input[name="fd-tl"], input[name="fd-col"]').forEach((el) => el.addEventListener("change", update));
+  document.querySelectorAll('input[name="fd-arrow"], input[name="fd-col"]').forEach((el) => el.addEventListener("change", update));
   ST.onChange(update);
 
   const parseStates = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
+  // names of the delays, used in the response-function term and phase factor
   function intervalNames(n) {
-    const mode = radio("fd-tl");
-    if (mode === "none") return null;
-    if (current.intervals && current.intervals.length === n) return mode === "tau" ? current.intervals.map((s, i) => (i === 0 ? "τ = 0" : s)) : current.intervals;
-    if (mode === "tau" && n === 3) return ["τ", "T", "t"];
-    if (mode === "tau" && n === 2) return ["τ", "t"];
-    if (mode === "tau" && n === 1) return ["t"];
+    if (current.intervals && current.intervals.length === n) return current.intervals;
     return Array.from({ length: n }, (_, i) => "t_" + (i + 1));
   }
 
@@ -188,7 +182,7 @@ permalink: /tools/dsfd/
     const mu = F.dipoles(d, scheme).map((ab) => `μ<sub>${esc(ab)}</sub>`).join("");
     const lab = (i) => (names ? names[i].replace(/_(\d)/, "<sub>$1</sub>") : `t<sub>${i + 1}</sub>`);
     const G = d.rho.slice(1).map(([a, b], i) => `G<sub>${esc(a)}${esc(b)}</sub>(${lab(i)})`).reverse().join(" ");
-    const pf = F.phaseFactors(d, scheme).parts.map((p, i) => (p.sign === 0 ? "" : `${p.sign < 0 ? "−" : "+"}iω<sub>${esc(p.upper)}${esc(p.lower)}</sub>${lab(i)}`)).filter(Boolean);
+    const pf = F.phaseFactors(d, scheme).parts.map((p, i) => (p.sign === 0 || (names && /= 0/.test(names[i])) ? "" : `${p.sign < 0 ? "−" : "+"}iω<sub>${esc(p.upper)}${esc(p.lower)}</sub>${lab(i)}`)).filter(Boolean);
     return `<span class="k">term</span> ${d.sign > 0 ? "+" : "−"} ${mu} · ${G}<br><span class="k">phase</span> ${pf.length ? `exp(${pf.join(" ")})` : "no oscillation"}`;
   }
   function kSum(d, fieldLabels) {
@@ -230,8 +224,8 @@ permalink: /tools/dsfd/
     const screenPal = mono ? F.palette("mono") : F.palette("color", ST.get() === "dark");
     last = visible.map((d, i) => {
       const header = `#${i + 1} ${d.type} (${d.sign > 0 ? "+" : "−"})`;
-      const lay = F.layout(d, { intervals: names || undefined, timeAxis: !!names, fieldLabels: fl || undefined });
-      const layH = F.layout(d, { intervals: names || undefined, timeAxis: !!names, fieldLabels: fl || undefined, header });
+      const lay = F.layout(d, { fieldLabels: fl || undefined });
+      const layH = F.layout(d, { fieldLabels: fl || undefined, header });
       return { d, i, lay, layH, svg: F.toSVG(lay, { pal: screenPal, type: d.type, wavy }) };
     });
     $("fd-grid").innerHTML = last.map(({ d, svg, i }) => `

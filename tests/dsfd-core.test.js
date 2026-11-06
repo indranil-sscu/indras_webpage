@@ -100,7 +100,7 @@ test("phase factors: rephasing SE oscillates as e^{+iω_eg t1 − iω_eg t3}", (
 
 test("layout: rails, n + 1 arrows at 15°, inward arrows for absorption", () => {
   const esa = F.enumerate(R, threeLevel).find((d) => d.type === "ESA");
-  const L = F.layout(esa, { intervals: ["t_1", "t_2", "t_3"] });
+  const L = F.layout(esa, { intervals: ["t_1", "t_2", "t_3"], timeAxis: true });
   assert.strictEqual(L.rails.length, 2);
   assert.strictEqual(L.arrows.length, 4);
   L.arrows.forEach((a) => near(Math.abs(a.y2 - a.y1) / Math.abs(a.x2 - a.x1), Math.tan(Math.PI / 12), 0.03));
@@ -120,12 +120,24 @@ test("layout: rails, n + 1 arrows at 15°, inward arrows for absorption", () => 
   assert.strictEqual(L.brackets[0].text, "t₁");
 });
 
+test("default layout: no time axis; initial and final populations sit between the rails", () => {
+  const d = F.enumerate(R, threeLevel)[0];
+  const L = F.layout(d, { header: "x" });
+  assert.strictEqual(L.axis, null);
+  assert.strictEqual(L.brackets.length, 0);
+  const top = Math.min(L.rails[0].y2, L.rails[0].y1), bot = Math.max(L.rails[0].y2, L.rails[0].y1);
+  L.rho.forEach((r) => assert.ok(r.y - 10 > top && r.y < bot, `label at ${r.y} outside rails ${top}–${bot}`));
+  const sig = L.arrows[L.arrows.length - 1];
+  assert.ok(L.rho[L.rho.length - 1].y < Math.min(sig.y1, sig.y2)); // final population above the signal
+  assert.ok(top > 22); // clear of the header line
+});
+
 test("SVG and TikZ export are well formed", () => {
   const ds = F.enumerate(R, threeLevel);
   const items = ds.map((d) => ({ lay: F.layout(d, { header: d.type }), type: d.type, sign: d.sign }));
   const svg = F.toSVG(items[0].lay, { pal: F.palette("color"), type: items[0].type });
   assert.ok(svg.startsWith("<svg") && svg.endsWith("</svg>"));
-  assert.strictEqual((svg.match(/<line /g) || []).length, 2 + 4 + 1 + 4); // rails + arrows + time axis + interaction ticks
+  assert.strictEqual((svg.match(/<line /g) || []).length, 2 + 4); // rails + arrows (no time axis by default)
   const wavy = F.toSVG(items[0].lay, { pal: F.palette("mono"), type: items[0].type, wavy: true });
   assert.strictEqual((wavy.match(/<path d="M[^"]*( L[^"]*){5,}"/g) || []).length, 3); // three wavy field arrows (signal stays dashed)
   assert.ok(!/#2B6CB0|#2C7A7B|#C53030/i.test(wavy)); // print mode is black and white
