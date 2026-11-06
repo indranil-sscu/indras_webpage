@@ -107,6 +107,17 @@ test("layout: rails, n + 1 arrows at 15°, inward arrows for absorption", () => 
   esa.interactions.forEach((s, i) => assert.strictEqual(L.arrows[i].inward, s.kind === "up"));
   assert.ok(L.arrows[3].signal && !L.arrows[3].inward);
   assert.strictEqual(L.brackets.length, 3);
+  // each delay bracket spans exactly the two interaction times that bound it (where the arrows
+  // touch the rails), and its label is level with the density-matrix label of that interval
+  const railY = (a) => (a.inward ? a.y2 : a.y1);
+  L.brackets.forEach((b, j) => {
+    near(L.ticks[j], railY(L.arrows[j]), 1e-9);
+    near(b.y1, L.ticks[j] - 1.5, 1e-9);
+    near(b.y2, L.ticks[j + 1] + 1.5, 1e-9);
+    near(b.ym, (L.ticks[j] + L.ticks[j + 1]) / 2, 1e-9);
+    near(L.rho[j + 1].y - 4, b.ym, 1e-9);
+  });
+  assert.strictEqual(L.brackets[0].text, "t₁");
 });
 
 test("SVG and TikZ export are well formed", () => {
@@ -114,7 +125,7 @@ test("SVG and TikZ export are well formed", () => {
   const items = ds.map((d) => ({ lay: F.layout(d, { header: d.type }), type: d.type, sign: d.sign }));
   const svg = F.toSVG(items[0].lay, { pal: F.palette("color"), type: items[0].type });
   assert.ok(svg.startsWith("<svg") && svg.endsWith("</svg>"));
-  assert.strictEqual((svg.match(/<line /g) || []).length, 2 + 4 + 1); // rails + arrows + time axis
+  assert.strictEqual((svg.match(/<line /g) || []).length, 2 + 4 + 1 + 4); // rails + arrows + time axis + interaction ticks
   const wavy = F.toSVG(items[0].lay, { pal: F.palette("mono"), type: items[0].type, wavy: true });
   assert.strictEqual((wavy.match(/<path d="M[^"]*( L[^"]*){5,}"/g) || []).length, 3); // three wavy field arrows (signal stays dashed)
   assert.ok(!/#2B6CB0|#2C7A7B|#C53030/i.test(wavy)); // print mode is black and white
