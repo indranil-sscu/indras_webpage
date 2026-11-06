@@ -5,24 +5,23 @@ permalink: /tools/
 ---
 {% raw %}
 <style>
-  .tools-intro { color: #555; margin-bottom: 1.5em; }
-  .tools-toc { display: flex; flex-wrap: wrap; gap: .5em 1.2em; margin: 0 0 2em; padding: 0; list-style: none; font-size: .95em; }
-  .tool { border: 1px solid #e3e3e3; border-radius: 8px; padding: 1.2em 1.4em; margin: 0 0 1.8em; background: #fff; }
+  .tools-intro { color: var(--text-secondary); margin-bottom: 1.5em; }
+  .tool { border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.2em 1.4em; margin: 0 0 1.8em; background: var(--bg-surface); }
   .tool h2 { margin-top: 0; font-size: 1.3em; }
-  .tool p.note { color: #666; font-size: .85em; margin: .8em 0 0; }
+  .tool p.note { color: var(--text-muted); font-size: .85em; margin: .8em 0 0; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .7em 1.2em; }
-  .field label { display: block; font-size: .8em; color: #555; margin-bottom: .2em; }
+  .field label { display: block; font-size: .8em; color: var(--text-secondary); margin-bottom: .2em; }
   .field .row { display: flex; align-items: stretch; }
   .field input, .field select { width: 100%; box-sizing: border-box; padding: .45em .55em; font: inherit; font-size: .95em;
-    border: 1px solid #ccc; border-radius: 4px 0 0 4px; background: #fff; }
+    border: 1px solid var(--border-strong); border-radius: 4px 0 0 4px; background: var(--bg-surface); }
   .field select { border-radius: 4px; }
-  .field .unit { padding: .45em .55em; background: #f4f4f4; border: 1px solid #ccc; border-left: 0; border-radius: 0 4px 4px 0;
-    font-size: .85em; color: #444; white-space: nowrap; min-width: 4.2em; text-align: center; }
-  .field input:focus { outline: 2px solid #2a7ae2; outline-offset: -1px; }
-  .field input.out { background: #f8fafc; }
-  .field input.src { background: #eef5ff; }
-  .err { color: #b00020; font-size: .85em; min-height: 1.2em; margin-top: .4em; }
-  .sub { font-size: 1em; margin: 1.2em 0 .6em; color: #333; }
+  .field .unit { padding: .45em .55em; background: var(--bg-subtle); border: 1px solid var(--border-strong); border-left: 0; border-radius: 0 4px 4px 0;
+    font-size: .85em; color: var(--text-secondary); white-space: nowrap; min-width: 4.2em; text-align: center; }
+  .field input:focus { outline: 2px solid var(--accent-primary); outline-offset: -1px; }
+  .field input.out { background: var(--bg-subtle); }
+  .field input.src { background: var(--bg-accent-soft); }
+  .err { color: var(--danger); font-size: .85em; min-height: 1.2em; margin-top: .4em; }
+  .sub { font-size: 1em; margin: 1.2em 0 .6em; color: var(--text-primary); }
 </style>
 
 <p class="tools-intro">
@@ -31,6 +30,9 @@ permalink: /tools/
   <a href="https://github.com/indranil-sscu/indras_webpage">GitHub</a>.
 </p>
 
+
+<div class="layout-wide layout-two-col">
+<aside class="layout-aside"><div><h4>Calculators</h4>
 <ul class="tools-toc">
   <li><a href="#energy">Energy &amp; wavelength</a></li>
   <li><a href="#bandwidth">Bandwidth &amp; transform limit</a></li>
@@ -49,6 +51,8 @@ permalink: /tools/
   <li><a href="tmm/">Multilayer TMM / polariton solver →</a></li>
   <li><a href="../reference/">Constants &amp; cheat sheet →</a></li>
 </ul>
+</div></aside>
+<div class="layout-main">
 
 <!-- 1 ------------------------------------------------------------ -->
 <section class="tool" id="energy">
@@ -57,6 +61,14 @@ permalink: /tools/
   <div class="err" id="energy-err"></div>
   <p class="note">Photon / per-particle quantities: E = hν = hc/λ = hc·ν̃; molar values multiply by N<sub>A</sub>; temperature is E/k<sub>B</sub>.
     1 Hartree = 27.211386 eV = 219474.63 cm⁻¹ = 627.5095 kcal/mol.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>E</i> = <i>hν</i> = <i>hc</i>/<i>λ</i> = <i>hc</i> <i>ν̃</i>, &nbsp; <i>ω</i> = 2π<i>ν</i>, &nbsp; <i>T</i> = <i>E</i>/<i>k</i><sub>B</sub>, &nbsp; <i>E</i><sub>molar</sub> = <i>N</i><sub>A</sub><i>E</i></div>
+    <dl><dt>h</dt><dd>Planck constant, 6.626 070 15 × 10⁻³⁴ J s (exact)</dd><dt>c</dt><dd>speed of light in vacuum, 299 792 458 m s⁻¹ (exact)</dd><dt>λ</dt><dd>vacuum wavelength</dd><dt>ν, ν̃</dt><dd>frequency (Hz) and wavenumber ν̃ = 1/λ (cm⁻¹)</dd><dt>ω</dt><dd>angular frequency (rad fs⁻¹)</dd><dt>k<sub>B</sub>, N<sub>A</sub></dt><dd>Boltzmann and Avogadro constants (exact)</dd><dt>E<sub>h</sub></dt><dd>Hartree energy, 4.359 744 722 2071 × 10⁻¹⁸ J (CODATA 2018)</dd></dl>
+    <p>All quantities are positive. Wavelengths are vacuum values; wavelengths measured in air are shorter by the factor <i>n</i><sub>air</sub> ≈ 1.000 27.</p>
+    <ol class="refs"><li>E. Tiesinga, P. J. Mohr, D. B. Newell &amp; B. N. Taylor, “CODATA recommended values of the fundamental physical constants: 2018,” <i>Rev. Mod. Phys.</i> <b>93</b>, 025010 (2021). <a href="https://doi.org/10.1103/RevModPhys.93.025010">doi:10.1103/RevModPhys.93.025010</a></li><li>Bureau International des Poids et Mesures, <i>The International System of Units (SI Brochure)</i>, 9th ed. (BIPM, 2019).</li></ol>
+  </details>
 </section>
 
 <!-- 2 ------------------------------------------------------------ -->
@@ -89,6 +101,16 @@ permalink: /tools/
   </div>
   <div class="err" id="be-err"></div>
   <p class="note">Bandwidths are exact for the band λ₀ ± Δλ/2 (no small-bandwidth approximation). Enter a pulse duration to get the minimum bandwidth it requires. Time–bandwidth products use the exact values 2 ln2/π = 0.44127 (Gaussian) and 0.31483 (sech²).</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq">Δ<i>ν</i> = <i>c</i> (1/<i>λ</i>₁ − 1/<i>λ</i>₂), &nbsp; <i>λ</i>₁,₂ = <i>λ</i>₀ ∓ Δ<i>λ</i>/2 &nbsp; (≈ <i>c</i>Δ<i>λ</i>/<i>λ</i>₀² for Δ<i>λ</i> ≪ <i>λ</i>₀)</div>
+    <div class="eq">Δ<i>ν̃</i> = Δ<i>ν</i>/<i>c</i>, &nbsp; Δ<i>E</i> = <i>h</i>Δ<i>ν</i>, &nbsp; Δ<i>ω</i> = 2πΔ<i>ν</i></div>
+    <div class="eq">Δ<i>ν</i> · Δ<i>t</i> ≥ <i>K</i>, &nbsp; <i>K</i><sub>Gauss</sub> = 2 ln 2/π ≈ 0.4413, &nbsp; <i>K</i><sub>sech²</sub> = 4 ln²(1 + √2)/π² ≈ 0.3148</div>
+    <dl><dt>Δλ, Δν</dt><dd>spectral FWHM in wavelength and frequency</dd><dt>Δt</dt><dd>temporal intensity FWHM</dd><dt>K</dt><dd>time–bandwidth product; equality holds only for an unchirped (transform-limited) pulse</dd></dl>
+    <p>The edges calculator uses the exact band edges, so the result stays correct for broadband (few-cycle) spectra where the Δλ/λ₀² approximation fails.</p>
+    <ol class="refs"><li>J.-C. Diels &amp; W. Rudolph, <i>Ultrashort Laser Pulse Phenomena</i>, 2nd ed. (Academic Press, Burlington, 2006).</li><li>A. M. Weiner, <i>Ultrafast Optics</i> (Wiley, Hoboken, 2009).</li></ol>
+  </details>
 </section>
 
 <!-- 3 ------------------------------------------------------------ -->
@@ -103,6 +125,14 @@ permalink: /tools/
   </div>
   <div class="err" id="dl-err"></div>
   <p class="note">t = passes · n<sub>g</sub> · L / c. In air n<sub>g</sub> ≈ 1.0003; use 1 for vacuum.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>τ</i> = <i>p</i> · <i>n</i><sub>g</sub> · Δ<i>L</i> / <i>c</i></div>
+    <dl><dt>τ</dt><dd>change of optical delay</dd><dt>p</dt><dd>number of passes over the displacement (2 for a retroreflector on the stage)</dd><dt>ΔL</dt><dd>stage displacement</dd><dt>n<sub>g</sub></dt><dd>group index of the medium (air ≈ 1.0003 at 800 nm; 1 for vacuum)</dd></dl>
+    <p>Positive displacement lengthens the path and delays the pulse.</p>
+    <ol class="refs"><li>P. E. Ciddor, “Refractive index of air: new equations for the visible and near infrared,” <i>Appl. Opt.</i> <b>35</b>, 1566 (1996). <a href="https://doi.org/10.1364/AO.35.001566">doi:10.1364/AO.35.001566</a></li><li>J.-C. Diels &amp; W. Rudolph, <i>Ultrashort Laser Pulse Phenomena</i>, 2nd ed. (Academic Press, Burlington, 2006).</li></ol>
+  </details>
 </section>
 
 <!-- 4 ------------------------------------------------------------ -->
@@ -126,6 +156,15 @@ permalink: /tools/
   </div>
   <div class="err" id="pu-err"></div>
   <p class="note">Gaussian beam of 1/e² radius w = D/2: peak fluence 2E/(πw²), peak intensity 2P₀/(πw²). Peak power P₀ = 0.939 E/τ (Gaussian) or 0.881 E/τ (sech²).</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>E</i><sub>p</sub> = <i>P̄</i> / <i>f</i><sub>rep</sub>, &nbsp; <i>P</i>₀ = <i>κ</i> <i>E</i><sub>p</sub> / Δ<i>t</i>, &nbsp; <i>κ</i><sub>Gauss</sub> = 2√(ln 2/π) ≈ 0.9394, &nbsp; <i>κ</i><sub>sech²</sub> = ln(1 + √2) ≈ 0.8814</div>
+    <div class="eq"><i>F</i>₀ = 2<i>E</i><sub>p</sub> / (π<i>w</i>²), &nbsp; <i>I</i>₀ = 2<i>P</i>₀ / (π<i>w</i>²), &nbsp; <i>N</i><sub>ph</sub> = <i>E</i><sub>p</sub> <i>λ</i> / (<i>hc</i>)</div>
+    <dl><dt>P̄</dt><dd>average power</dd><dt>f<sub>rep</sub></dt><dd>repetition rate</dd><dt>Δt</dt><dd>intensity FWHM duration</dd><dt>w</dt><dd>1/e² intensity radius of the Gaussian beam (D/2)</dd><dt>F₀, I₀</dt><dd>on-axis peak fluence and peak intensity</dd><dt>N<sub>ph</sub></dt><dd>photons per pulse</dd></dl>
+    <p>The factor 2/(πw²) is the on-axis value of a TEM₀₀ profile; a flat-top beam of the same diameter has half the peak fluence.</p>
+    <ol class="refs"><li>A. E. Siegman, <i>Lasers</i> (University Science Books, Mill Valley, 1986).</li><li>J.-C. Diels &amp; W. Rudolph, <i>Ultrashort Laser Pulse Phenomena</i>, 2nd ed. (Academic Press, Burlington, 2006).</li></ol>
+  </details>
 </section>
 
 <!-- 5 ------------------------------------------------------------ -->
@@ -139,6 +178,14 @@ permalink: /tools/
   </div>
   <div class="err" id="gd-err"></div>
   <p class="note">Unchirped Gaussian: τ<sub>out</sub> = τ<sub>in</sub>·√(1 + (4 ln2 · GDD / τ<sub>in</sub>²)²). For fused silica at 800 nm, GDD ≈ 36 fs² per mm.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>τ</i><sub>out</sub> = <i>τ</i><sub>in</sub> √(1 + (4 ln 2 · <i>φ</i>₂ / <i>τ</i><sub>in</sub>²)²), &nbsp; <i>φ</i>₂ = d²<i>φ</i>/d<i>ω</i>² = GDD</div>
+    <dl><dt>τ<sub>in</sub></dt><dd>intensity FWHM of the transform-limited Gaussian input</dd><dt>φ₂</dt><dd>group-delay dispersion (fs²); positive for normal dispersion (glass), negative for compressors</dd></dl>
+    <p>Exact for a Gaussian pulse with purely quadratic spectral phase. Higher-order phase (TOD) adds asymmetric broadening that this formula ignores.</p>
+    <ol class="refs"><li>J.-C. Diels &amp; W. Rudolph, <i>Ultrashort Laser Pulse Phenomena</i>, 2nd ed. (Academic Press, Burlington, 2006).</li></ol>
+  </details>
 </section>
 
 <!-- 6 ------------------------------------------------------------ -->
@@ -162,15 +209,25 @@ permalink: /tools/
   </div>
   <h3 class="sub">Optical setup: stack of components</h3>
   <div id="st-rows"></div>
-  <button class="dz-btn" id="st-add" type="button" style="font:inherit;font-size:.88em;padding:.3em .7em;border:1px solid #bbb;border-radius:4px;background:#f7f7f7;cursor:pointer">+ Add component</button>
+  <button class="btn" id="st-add" type="button">+ Add component</button>
   <div class="grid" style="margin-top:.6em">
     <div class="field"><label>Total GDD</label><div class="row"><input id="st-gdd" class="out" readonly><span class="unit">fs²</span></div></div>
     <div class="field"><label>Total TOD</label><div class="row"><input id="st-tod" class="out" readonly><span class="unit">fs³</span></div></div>
     <div class="field"><label>Broadened pulse (TL input above)</label><div class="row"><input id="st-out" class="out" readonly><span class="unit">fs</span></div></div>
   </div>
-  <canvas id="md-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:1em;border:1px solid #eee;border-radius:4px"></canvas>
+  <canvas class="plot" id="md-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:1em;display:block"></canvas>
   <div class="err" id="md-err"></div>
   <p class="note" id="md-ref"></p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>n</i>²(<i>λ</i>) = 1 + Σ<sub><i>i</i></sub> <i>B</i><sub><i>i</i></sub> <i>λ</i>² / (<i>λ</i>² − <i>C</i><sub><i>i</i></sub>)</div>
+    <div class="eq"><i>n</i><sub>g</sub> = <i>n</i> − <i>λ</i> d<i>n</i>/d<i>λ</i>, &nbsp; GVD = (<i>λ</i>³ / 2π<i>c</i>²) d²<i>n</i>/d<i>λ</i>², &nbsp; TOD = −(<i>λ</i>⁴ / 4π²<i>c</i>³)(3 d²<i>n</i>/d<i>λ</i>² + <i>λ</i> d³<i>n</i>/d<i>λ</i>³)</div>
+    <div class="eq">GDD = GVD · <i>L</i>, &nbsp; group delay = <i>n</i><sub>g</sub> <i>L</i> / <i>c</i></div>
+    <dl><dt>B<sub>i</sub>, C<sub>i</sub></dt><dd>Sellmeier coefficients (λ in µm)</dd><dt>n<sub>g</sub></dt><dd>group index</dd><dt>L</dt><dd>thickness</dd><dt>GVD, TOD</dt><dd>group-velocity dispersion (fs² mm⁻¹) and third-order dispersion (fs³ mm⁻¹)</dd></dl>
+    <p>Derivatives of n(λ) are taken numerically with Richardson extrapolation and agree with symbolic derivatives to better than 10⁻⁴ (see the unit tests). The source of each Sellmeier equation is shown under the plot.</p>
+    <ol class="refs"><li>I. H. Malitson, “Interspecimen comparison of the refractive index of fused silica,” <i>J. Opt. Soc. Am.</i> <b>55</b>, 1205 (1965). <a href="https://doi.org/10.1364/JOSA.55.001205">doi:10.1364/JOSA.55.001205</a></li><li>J.-C. Diels &amp; W. Rudolph, <i>Ultrashort Laser Pulse Phenomena</i>, 2nd ed. (Academic Press, Burlington, 2006).</li></ol>
+  </details>
 </section>
 
 <!-- 7 ------------------------------------------------------------ -->
@@ -204,6 +261,15 @@ permalink: /tools/
   </div>
   <div class="err" id="pc-err"></div>
   <p class="note">Grating pair: GDD = −λ³G / (πc²d² cos³θ<sub>d</sub>), first order, G = perpendicular separation (E. B. Treacy, IEEE J. Quantum Electron. 5, 454 (1969)). Prism pair: leading-order geometric term −4Lλ³(dn/dλ)²/(πc²) plus material GVD × glass path (R. L. Fork <i>et al.</i>, Opt. Lett. 9, 150 (1984)); the glass path is adjusted by prism insertion. The prism result is an estimate for alignment and design.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq">Grating pair: &nbsp; sin <i>θ</i><sub>d</sub> = <i>λ</i>/<i>d</i> − sin <i>θ</i><sub>i</sub>, &nbsp; GDD = −<i>λ</i>³ <i>G</i> / (π <i>c</i>² <i>d</i>² cos³<i>θ</i><sub>d</sub>), &nbsp; TOD = −(3<i>λ</i>/2π<i>c</i>) · GDD · (1 + sin <i>θ</i><sub>i</sub> sin <i>θ</i><sub>d</sub>) / cos²<i>θ</i><sub>d</sub></div>
+    <div class="eq">Brewster prism pair: &nbsp; GDD ≈ −(4<i>L</i><i>λ</i>³ / π<i>c</i>²)(d<i>n</i>/d<i>λ</i>)² + GVD · <i>L</i><sub>g</sub>, &nbsp; <i>θ</i><sub>B</sub> = arctan <i>n</i></div>
+    <dl><dt>d</dt><dd>groove spacing (1/groove density)</dd><dt>θ<sub>i</sub>, θ<sub>d</sub></dt><dd>angles of incidence and first-order diffraction</dd><dt>G</dt><dd>perpendicular grating separation</dd><dt>L</dt><dd>apex-to-apex prism separation</dd><dt>L<sub>g</sub></dt><dd>total glass path through both prisms, all passes</dd></dl>
+    <p>Values are for a double pass (folded with a roof mirror). Negative GDD compresses positively chirped pulses. The prism expression keeps the leading geometric term only, so use it for design and alignment estimates.</p>
+    <ol class="refs"><li>E. B. Treacy, “Optical pulse compression with diffraction gratings,” <i>IEEE J. Quantum Electron.</i> <b>5</b>, 454 (1969). <a href="https://doi.org/10.1109/JQE.1969.1076303">doi:10.1109/JQE.1969.1076303</a></li><li>R. L. Fork, O. E. Martinez &amp; J. P. Gordon, “Negative dispersion using pairs of prisms,” <i>Opt. Lett.</i> <b>9</b>, 150 (1984). <a href="https://doi.org/10.1364/OL.9.000150">doi:10.1364/OL.9.000150</a></li></ol>
+  </details>
 </section>
 
 <!-- 8 ------------------------------------------------------------ -->
@@ -220,6 +286,15 @@ permalink: /tools/
   </div>
   <div class="err" id="pm-err"></div>
   <p class="note">Collinear, birefringent phase matching: n₃(θ)/λ₃ = n₁/λ₁ + n₂/λ₂ with n<sub>e</sub>(θ)⁻² = cos²θ/n<sub>o</sub>² + sin²θ/n<sub>e</sub>². Sellmeier equations: BBO — Eimerl <i>et al.</i> (1987); KDP — Zernike (1964). Angles from other Sellmeier sets can differ by a few tenths of a degree.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq">1/<i>λ</i>₃ = 1/<i>λ</i>₁ + 1/<i>λ</i>₂, &nbsp; Δ<i>k</i> = 0 ⇔ <i>n</i>₃(<i>θ</i>)/<i>λ</i>₃ = <i>n</i>₁/<i>λ</i>₁ + <i>n</i>₂/<i>λ</i>₂</div>
+    <div class="eq">1/<i>n</i><sub>e</sub>(<i>θ</i>)² = cos²<i>θ</i>/<i>n</i><sub>o</sub>² + sin²<i>θ</i>/<i>n</i><sub>e</sub>², &nbsp; tan <i>ρ</i> = ½ <i>n</i><sub>e</sub>(<i>θ</i>)² (1/<i>n</i><sub>e</sub>² − 1/<i>n</i><sub>o</sub>²) sin 2<i>θ</i></div>
+    <dl><dt>θ</dt><dd>angle between the wave vector and the optic axis</dd><dt>n<sub>o</sub>, n<sub>e</sub></dt><dd>ordinary and extraordinary principal indices</dd><dt>Type I</dt><dd>o + o → e (n₁, n₂ ordinary)</dd><dt>Type II</dt><dd>e + o → e (n₁ = n<sub>e</sub>(θ, λ₁))</dd><dt>ρ</dt><dd>walk-off between the e-wave Poynting vector and its wave vector</dd></dl>
+    <p>Collinear birefringent phase matching in a negative uniaxial crystal (n<sub>e</sub> &lt; n<sub>o</sub>).</p>
+    <ol class="refs"><li>R. W. Boyd, <i>Nonlinear Optics</i>, 3rd ed. (Academic Press, Burlington, 2008), §2.3.</li><li>D. Eimerl, L. Davis, S. Velsko, E. K. Graham &amp; A. Zalkin, “Optical, mechanical, and thermal properties of barium borate,” <i>J. Appl. Phys.</i> <b>62</b>, 1968 (1987). <a href="https://doi.org/10.1063/1.339536">doi:10.1063/1.339536</a></li><li>F. Zernike, “Refractive indices of ammonium dihydrogen phosphate and potassium dihydrogen phosphate between 2000 Å and 1.5 µ,” <i>J. Opt. Soc. Am.</i> <b>54</b>, 1215 (1964). <a href="https://doi.org/10.1364/JOSA.54.001215">doi:10.1364/JOSA.54.001215</a></li></ol>
+  </details>
 </section>
 
 <!-- 9 ------------------------------------------------------------ -->
@@ -246,6 +321,15 @@ permalink: /tools/
   </div>
   <div class="err" id="gb-err"></div>
   <p class="note">z<sub>R</sub> = πw₀²/(M²λ), w(z) = w₀√(1 + (z/z<sub>R</sub>)²), focused waist w₀ = M²λf/(πw<sub>in</sub>) (uses the wavelength and M² above). FWHM = 1.177 w.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>z</i><sub>R</sub> = π<i>w</i>₀² / (<i>M</i>²<i>λ</i>), &nbsp; <i>w</i>(<i>z</i>) = <i>w</i>₀ √(1 + (<i>z</i>/<i>z</i><sub>R</sub>)²), &nbsp; <i>R</i>(<i>z</i>) = <i>z</i> (1 + (<i>z</i><sub>R</sub>/<i>z</i>)²), &nbsp; <i>θ</i> = <i>M</i>²<i>λ</i> / (π<i>w</i>₀)</div>
+    <div class="eq"><i>w</i><sub>f</sub> = <i>M</i>²<i>λ f</i> / (π<i>w</i><sub>in</sub>), &nbsp; FWHM = √(2 ln 2) · <i>w</i> ≈ 1.177 <i>w</i></div>
+    <dl><dt>w₀</dt><dd>1/e² intensity radius at the waist</dd><dt>z<sub>R</sub></dt><dd>Rayleigh range</dd><dt>R(z)</dt><dd>wavefront radius of curvature</dd><dt>θ</dt><dd>far-field half-angle divergence</dd><dt>M²</dt><dd>beam-quality factor (1 for an ideal TEM₀₀ beam)</dd><dt>f, w<sub>in</sub></dt><dd>focal length and 1/e² radius of the collimated input beam</dd></dl>
+    <p>Paraxial Gaussian-beam optics; the focusing formula assumes the input beam is collimated at the lens and z<sub>R</sub>(input) ≫ f.</p>
+    <ol class="refs"><li>H. Kogelnik &amp; T. Li, “Laser beams and resonators,” <i>Appl. Opt.</i> <b>5</b>, 1550 (1966). <a href="https://doi.org/10.1364/AO.5.001550">doi:10.1364/AO.5.001550</a></li><li>A. E. Siegman, <i>Lasers</i> (University Science Books, Mill Valley, 1986).</li><li>ISO 11146-1:2021, <i>Lasers and laser-related equipment — Test methods for laser beam widths, divergence angles and beam propagation ratios</i>.</li></ol>
+  </details>
 </section>
 
 <!-- 10 ----------------------------------------------------------- -->
@@ -257,6 +341,14 @@ permalink: /tools/
     <div class="field"><label>Pulse FWHM</label><div class="row"><input id="ac-p" class="out" readonly><span class="unit">fs</span></div></div>
   </div>
   <p class="note">Intensity (background-free) autocorrelation. The deconvolution factor depends on the assumed shape. FROG or SPIDER measure the pulse directly without that assumption.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>A</i>(<i>τ</i>) = ∫ <i>I</i>(<i>t</i>) <i>I</i>(<i>t</i> − <i>τ</i>) d<i>t</i>, &nbsp; Δ<i>τ</i><sub>AC</sub> = <i>κ</i> Δ<i>t</i>, &nbsp; <i>κ</i><sub>Gauss</sub> = √2, &nbsp; <i>κ</i><sub>sech²</sub> ≈ 1.543, &nbsp; <i>κ</i><sub>Lorentz</sub> = 2</div>
+    <dl><dt>A(τ)</dt><dd>background-free intensity autocorrelation</dd><dt>Δτ<sub>AC</sub>, Δt</dt><dd>FWHM of the autocorrelation and of the pulse intensity</dd><dt>κ</dt><dd>shape-dependent deconvolution factor</dd></dl>
+    <p>The autocorrelation is always symmetric and does not determine the pulse shape, so the result depends on the assumed shape.</p>
+    <ol class="refs"><li>J.-C. Diels &amp; W. Rudolph, <i>Ultrashort Laser Pulse Phenomena</i>, 2nd ed. (Academic Press, Burlington, 2006).</li><li>R. Trebino, <i>Frequency-Resolved Optical Gating: The Measurement of Ultrashort Laser Pulses</i> (Kluwer, Boston, 2000).</li></ol>
+  </details>
 </section>
 
 <!-- 11 ----------------------------------------------------------- -->
@@ -279,6 +371,16 @@ permalink: /tools/
     <div class="field"><label>Aliased?</label><div class="row"><input id="ff-al" class="out" readonly><span class="unit">–</span></div></div>
   </div>
   <p class="note">Δf = 1/(NΔt), f<sub>Nyquist</sub> = 1/(2Δt). The axis after <code>fftshift</code> runs from −⌊N/2⌋Δf to (⌈N/2⌉−1)Δf, so it is asymmetric for even N. Signals beyond the Nyquist limit (relative to the rotating frame) fold back into the window. 1 THz = 33.356 cm⁻¹.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq">Δ<i>f</i> = 1/(<i>N</i>Δ<i>t</i>), &nbsp; <i>f</i><sub>Ny</sub> = 1/(2Δ<i>t</i>), &nbsp; <i>ν̃</i> = <i>f</i>/<i>c</i></div>
+    <div class="eq"><i>f</i><sub><i>k</i></sub> = <i>f</i>₀ + <i>k</i> Δ<i>f</i>, &nbsp; <i>k</i> = −⌊<i>N</i>/2⌋, …, ⌈<i>N</i>/2⌉ − 1 &nbsp; (after fftshift)</div>
+    <div class="eq"><i>f</i><sub>apparent</sub> = <i>f</i> − <i>f</i>₀ − <i>m</i>/Δ<i>t</i>, &nbsp; integer <i>m</i> chosen so that |<i>f</i><sub>apparent</sub>| ≤ <i>f</i><sub>Ny</sub></div>
+    <dl><dt>Δt, N</dt><dd>sampling step and number of samples</dd><dt>Δf</dt><dd>frequency resolution (bin spacing)</dd><dt>f<sub>Ny</sub></dt><dd>Nyquist frequency</dd><dt>f₀</dt><dd>rotating-frame (carrier) frequency subtracted before sampling; 0 for none</dd></dl>
+    <p>Zero-padding interpolates the spectrum but does not improve the true resolution 1/(NΔt) of the measured window.</p>
+    <ol class="refs"><li>J. W. Cooley &amp; J. W. Tukey, “An algorithm for the machine calculation of complex Fourier series,” <i>Math. Comput.</i> <b>19</b>, 297 (1965). <a href="https://doi.org/10.1090/S0025-5718-1965-0178586-1">doi:10.1090/S0025-5718-1965-0178586-1</a></li><li>C. E. Shannon, “Communication in the presence of noise,” <i>Proc. IRE</i> <b>37</b>, 10 (1949). <a href="https://doi.org/10.1109/JRPROC.1949.232969">doi:10.1109/JRPROC.1949.232969</a></li></ol>
+  </details>
 </section>
 
 <!-- 12 ----------------------------------------------------------- -->
@@ -290,11 +392,23 @@ permalink: /tools/
     <div class="field"><label><input type="checkbox" id="jc-norm" checked> normalise peak to 1</label></div>
   </div>
   <div class="field" style="margin-top:.6em"><label>…or paste data</label><textarea id="jc-text" rows="4" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:.85em" placeholder="700, 0.01&#10;701, 0.02&#10;…"></textarea></div>
-  <canvas id="jc-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:.6em;border:1px solid #eee;border-radius:4px"></canvas>
-  <button id="jc-dl" type="button" style="font:inherit;font-size:.88em;padding:.3em .7em;border:1px solid #2a7ae2;border-radius:4px;background:#2a7ae2;color:#fff;cursor:pointer" disabled>Download converted CSV</button>
+  <canvas class="plot" id="jc-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:.6em;display:block"></canvas>
+  <button id="jc-dl" type="button" class="btn primary" style="margin-top:.5em" disabled>Download converted CSV</button>
   <div class="err" id="jc-err"></div>
   <p class="note">A spectrum is a density per unit of its axis, so changing axes needs the Jacobian |dλ/dν̃| = λ²/10⁷: I(ν̃) = I(λ)·λ²/10⁷ (λ in nm, ν̃ in cm⁻¹), and conversely I(λ) = I(ν̃)·ν̃²/10⁷. This keeps the integrated intensity unchanged; simply relabelling the x-axis distorts line shapes and band ratios. Header and comment lines are ignored; the data never leave your browser.</p>
+
+  <details class="theory-card">
+    <summary>Theory, symbols &amp; references</summary>
+    <div class="eq"><i>I</i>(<i>ν̃</i>) = <i>I</i>(<i>λ</i>) |d<i>λ</i>/d<i>ν̃</i>| = <i>I</i>(<i>λ</i>) · <i>λ</i>²/10⁷ &nbsp; (<i>λ</i> in nm, <i>ν̃</i> in cm⁻¹)</div>
+    <div class="eq">∫ <i>I</i>(<i>ν̃</i>) d<i>ν̃</i> = ∫ <i>I</i>(<i>λ</i>) d<i>λ</i>, &nbsp; <i>I</i>(<i>E</i>) = <i>I</i>(<i>λ</i>) · <i>hc</i>/<i>E</i>²</div>
+    <dl><dt>I(λ)</dt><dd>spectral density per unit wavelength</dd><dt>I(ν̃)</dt><dd>spectral density per unit wavenumber</dd><dt>|dλ/dν̃|</dt><dd>Jacobian of the axis change</dd></dl>
+    <p>Relabelling the axis without the Jacobian shifts band maxima and changes relative band areas, most strongly for broad spectra.</p>
+    <ol class="refs"><li>J. Mooney &amp; P. Kambhampati, “Get the basics right: Jacobian conversion of wavelength and energy scales for quantitative analysis of emission spectra,” <i>J. Phys. Chem. Lett.</i> <b>4</b>, 3316 (2013). <a href="https://doi.org/10.1021/jz401508t">doi:10.1021/jz401508t</a></li></ol>
+  </details>
 </section>
+
+</div>
+</div>
 
 {% endraw %}<script src="{{ '/assets/js/sci-tools.js' | relative_url }}"></script>
 <script src="{{ '/assets/js/optics-tools.js' | relative_url }}"></script>
@@ -311,6 +425,7 @@ permalink: /tools/
     return a !== 0 && (a < 1e-3 || a >= 1e7) ? v.toExponential(6) : String(parseFloat(v.toPrecision(8)));
   };
   const setErr = (id, msg) => { $(id).textContent = msg || ""; };
+  const FONT = getComputedStyle(document.body).fontFamily;
 
   /* ---- 1. energy converter ---------------------------------------- */
   const grid = $("energy-grid");
@@ -422,7 +537,7 @@ permalink: /tools/
   fill($("md-mat"), MAT_KEYS, "fused_silica");
   const mdOut = ["md-n", "md-ng", "md-gvd", "md-tod", "md-gdd", "md-gd", "md-tout"];
   function plotDispersion(key, lnow) {
-    const cv = $("md-plot"), ctx = cv.getContext("2d"), W = cv.width, H = cv.height;
+    const cv = $("md-plot"), { ctx, W, H } = SiteTheme.fit(cv), K = SiteTheme.colors();
     const m = O.MATERIALS[key];
     const lo = Math.max(m.range[0] * 1000, 250), hi = Math.min(m.range[1] * 1000, 2000);
     const pts = [];
@@ -436,22 +551,22 @@ permalink: /tools/
     const X = (l) => pad.l + ((l - lo) / (hi - lo)) * (W - pad.l - pad.r);
     const Yn = (n) => H - pad.b - ((n - nMin) / (nMax - nMin || 1)) * (H - pad.t - pad.b);
     const Yg = (g) => H - pad.b - ((g - gMin) / (gMax - gMin || 1)) * (H - pad.t - pad.b);
-    ctx.clearRect(0, 0, W, H);
-    ctx.font = "12px sans-serif"; ctx.lineWidth = 1;
-    ctx.strokeStyle = "#ccc"; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
-    ctx.fillStyle = "#444"; ctx.textAlign = "center";
+    ctx.fillStyle = K.bg; ctx.fillRect(0, 0, W, H);
+    ctx.font = "12px " + FONT; ctx.lineWidth = 1;
+    ctx.strokeStyle = K.frame; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+    ctx.fillStyle = K.fg; ctx.textAlign = "center";
     for (let k = 0; k <= 4; k++) { const l = lo + ((hi - lo) * k) / 4; ctx.fillText(Math.round(l), X(l), H - pad.b + 15); }
     ctx.fillText("Wavelength (nm)", (W + pad.l - pad.r) / 2, H - 4);
     const line = (Y, idx, col) => { ctx.strokeStyle = col; ctx.lineWidth = 2; ctx.beginPath();
       pts.forEach((p, i) => (i ? ctx.lineTo(X(p[0]), Y(p[idx])) : ctx.moveTo(X(p[0]), Y(p[idx])))); ctx.stroke(); };
-    line(Yn, 1, "#2a7ae2"); line(Yg, 2, "#d9480f");
-    ctx.textAlign = "right"; ctx.fillStyle = "#2a7ae2";
+    line(Yn, 1, K.accent); line(Yg, 2, K.accent2);
+    ctx.textAlign = "right"; ctx.fillStyle = K.accent;
     ctx.fillText(nMax.toFixed(4), pad.l - 4, Yn(nMax) + 4); ctx.fillText(nMin.toFixed(4), pad.l - 4, Yn(nMin));
     ctx.save(); ctx.translate(12, H / 2); ctx.rotate(-Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("n", 0, 0); ctx.restore();
-    ctx.textAlign = "left"; ctx.fillStyle = "#d9480f";
+    ctx.textAlign = "left"; ctx.fillStyle = K.accent2;
     ctx.fillText(gMax.toFixed(0), W - pad.r + 4, Yg(gMax) + 4); ctx.fillText(gMin.toFixed(0), W - pad.r + 4, Yg(gMin));
     ctx.save(); ctx.translate(W - 10, H / 2); ctx.rotate(Math.PI / 2); ctx.textAlign = "center"; ctx.fillText("GVD (fs²/mm)", 0, 0); ctx.restore();
-    if (lnow >= lo && lnow <= hi) { ctx.strokeStyle = "#888"; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
+    if (lnow >= lo && lnow <= hi) { ctx.strokeStyle = K.muted; ctx.setLineDash([4, 4]); ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(X(lnow), pad.t); ctx.lineTo(X(lnow), H - pad.b); ctx.stroke(); ctx.setLineDash([]); }
   }
   function material() {
@@ -553,7 +668,7 @@ permalink: /tools/
   /** Line plot. series: [{x:[], y:[], color, dash, label, width}] */
   function plot(canvas, series, xlabel, opts) {
     opts = opts || {};
-    const ctx = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+    const { ctx, W, H } = SiteTheme.fit(canvas), K = SiteTheme.colors();
     const pad = { l: 48, r: 14, t: 22, b: 34 };
     const xs = series.flatMap((s) => s.x), ys = series.flatMap((s) => s.y);
     let x0 = Math.min(...xs), x1 = Math.max(...xs);
@@ -562,13 +677,13 @@ permalink: /tools/
     if (y1 === y0) y1 = y0 + 1;
     const X = (x) => pad.l + ((x - x0) / (x1 - x0)) * (W - pad.l - pad.r);
     const Y = (y) => H - pad.b - ((y - y0) / (y1 - y0)) * (H - pad.t - pad.b);
-    ctx.clearRect(0, 0, W, H); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, W, H);
-    ctx.strokeStyle = "#ddd"; ctx.lineWidth = 1; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
-    ctx.font = "11px sans-serif"; ctx.fillStyle = "#444"; ctx.textAlign = "center";
+    ctx.fillStyle = K.bg; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = K.frame; ctx.lineWidth = 1; ctx.strokeRect(pad.l, pad.t, W - pad.l - pad.r, H - pad.t - pad.b);
+    ctx.font = "11px " + FONT; ctx.fillStyle = K.fg; ctx.textAlign = "center";
     for (let k = 0; k <= 4; k++) { const x = x0 + ((x1 - x0) * k) / 4; ctx.fillText(+x.toPrecision(4), X(x), H - pad.b + 14); }
     ctx.fillText(xlabel, (W + pad.l - pad.r) / 2, H - 4);
     if (opts.title) { ctx.textAlign = "left"; ctx.fillText(opts.title, pad.l + 4, 14); }
-    if (y0 < 0 && y1 > 0) { ctx.strokeStyle = "#eee"; ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(W - pad.r, Y(0)); ctx.stroke(); }
+    if (y0 < 0 && y1 > 0) { ctx.strokeStyle = K.grid; ctx.beginPath(); ctx.moveTo(pad.l, Y(0)); ctx.lineTo(W - pad.r, Y(0)); ctx.stroke(); }
     series.forEach((s) => {
       ctx.strokeStyle = s.color; ctx.lineWidth = s.width || 1.5; ctx.setLineDash(s.dash || []);
       ctx.beginPath(); let started = false;
@@ -579,7 +694,7 @@ permalink: /tools/
     labelled.forEach((s, i) => {
       const yy = pad.t + 12 + i * 14; ctx.strokeStyle = s.color; ctx.setLineDash(s.dash || []); ctx.lineWidth = 2;
       ctx.beginPath(); ctx.moveTo(W - pad.r - 110, yy - 4); ctx.lineTo(W - pad.r - 92, yy - 4); ctx.stroke(); ctx.setLineDash([]);
-      ctx.fillStyle = "#333"; ctx.textAlign = "left"; ctx.fillText(s.label, W - pad.r - 88, yy);
+      ctx.fillStyle = K.fg; ctx.textAlign = "left"; ctx.fillText(s.label, W - pad.r - 88, yy);
     });
   }
 
@@ -605,7 +720,7 @@ permalink: /tools/
         <div class="field"><label>Component ${i + 1}</label><select data-st="${i}" class="st-mat">${MAT_KEYS.map((k) => `<option value="${k}"${k === r.material ? " selected" : ""}>${O.MATERIALS[k].name}</option>`).join("")}</select></div>
         <div class="field"><label>Thickness</label><div class="row"><input data-st="${i}" class="st-L" type="number" step="any" value="${r.thickness_mm}"><span class="unit">mm</span></div></div>
         <div class="field"><label>GDD / TOD</label><div class="row"><input class="out st-each" data-st="${i}" readonly><span class="unit">fs² / fs³</span></div></div>
-        <div class="field" style="align-self:end">${stackRows.length > 1 ? `<button type="button" data-rm="${i}" style="font:inherit;font-size:.85em;padding:.3em .6em;border:1px solid #bbb;border-radius:4px;background:#f7f7f7;cursor:pointer">Remove</button>` : ""}</div>
+        <div class="field" style="align-self:end">${stackRows.length > 1 ? `<button type="button" class="btn" data-rm="${i}">Remove</button>` : ""}</div>
       </div>`).join("");
     $("st-rows").querySelectorAll(".st-mat").forEach((el) => el.addEventListener("change", () => { stackRows[+el.dataset.st].material = el.value; stack(); }));
     $("st-rows").querySelectorAll(".st-L").forEach((el) => el.addEventListener("input", () => { stackRows[+el.dataset.st].thickness_mm = parseFloat(el.value) || 0; stack(); }));
@@ -623,12 +738,13 @@ permalink: /tools/
   ["md-l", "md-tin"].forEach((i) => $(i).addEventListener("input", stack));
   renderStack();
 
+  SiteTheme.onChange(() => { material(); jacobianRun(); });
+
   /* ---- spectral Jacobian ------------------------------------------ */
   let jcOut = null;
   function jacobianRun() {
     const pts = P.parseTwoColumn($("jc-text").value);
-    const ctx = $("jc-plot").getContext("2d");
-    if (pts.length < 2) { jcOut = null; $("jc-dl").disabled = true; ctx.clearRect(0, 0, 760, 260);
+    if (pts.length < 2) { jcOut = null; $("jc-dl").disabled = true; const f = SiteTheme.fit($("jc-plot")); f.ctx.fillStyle = SiteTheme.colors().bg; f.ctx.fillRect(0, 0, f.W, f.H);
       return setErr("jc-err", $("jc-text").value.trim() ? "Could not find two numeric columns." : ""); }
     if (pts.some(([x]) => !(x > 0))) return setErr("jc-err", "The x-column must be positive (nm or cm⁻¹).");
     setErr("jc-err");
@@ -637,8 +753,8 @@ permalink: /tools/
     const naive = pts.map(([x, y]) => [1e7 / x, y]).sort((a, b) => a[0] - b[0]);
     const nmax = norm ? Math.max(...naive.map((p) => Math.abs(p[1]))) : 1;
     plot($("jc-plot"), [
-      { x: jcOut.map((p) => p[0]), y: jcOut.map((p) => p[1]), color: "#d62728", label: "with Jacobian" },
-      { x: naive.map((p) => p[0]), y: naive.map((p) => p[1] / nmax), color: "#999", dash: [5, 4], label: "axis relabelled only" },
+      { x: jcOut.map((p) => p[0]), y: jcOut.map((p) => p[1]), color: SiteTheme.colors().accent2, label: "with Jacobian" },
+      { x: naive.map((p) => p[0]), y: naive.map((p) => p[1] / nmax), color: SiteTheme.colors().muted, dash: [5, 4], label: "axis relabelled only" },
     ], dir === "nm2cm" ? "Wavenumber (cm⁻¹)" : "Wavelength (nm)", { title: (norm ? "Normalised " : "") + "converted spectrum" });
     $("jc-dl").disabled = false;
   }

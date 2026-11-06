@@ -5,34 +5,34 @@ permalink: /tools/digitizer/
 ---
 {% raw %}
 <style>
-  .dz-intro { color: #555; }
+  .dz-intro { color: var(--text-secondary); }
   .dz-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1em; margin: 1.2em 0; }
-  .dz-card { border: 1px solid #e3e3e3; border-radius: 8px; padding: .9em 1em; background: #fff; font-size: .92em; }
+  .dz-card { border: 1px solid var(--border-color); border-radius: 8px; padding: .9em 1em; background: var(--bg-surface); font-size: .92em; }
   .dz-card h3 { margin: 0 0 .5em; font-size: 1.02em; }
-  .dz-card.active { border-color: #2a7ae2; box-shadow: 0 0 0 2px rgba(42,122,226,.15); }
-  .dz-card label { font-size: .85em; color: #555; }
-  .dz-card input[type=number], .dz-card input[type=text] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid #ccc; border-radius: 4px; }
+  .dz-card.active { border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(42,122,226,.15); }
+  .dz-card label { font-size: .85em; color: var(--text-secondary); }
+  .dz-card input[type=number], .dz-card input[type=text] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid var(--border-strong); border-radius: 4px; }
   .dz-cal { display: grid; grid-template-columns: auto 1fr; gap: .35em .5em; align-items: center; }
-  .dz-btn { font: inherit; font-size: .88em; padding: .35em .75em; margin: .2em .2em .2em 0; border: 1px solid #bbb; border-radius: 4px; background: #f7f7f7; cursor: pointer; }
-  .dz-btn.primary { background: #2a7ae2; border-color: #2a7ae2; color: #fff; }
-  .dz-btn.on { background: #e8f0fe; border-color: #2a7ae2; }
+  .dz-btn { font: inherit; font-size: .88em; padding: .35em .75em; margin: .2em .2em .2em 0; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-subtle); cursor: pointer; }
+  .dz-btn.primary { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--accent-contrast); }
+  .dz-btn.on { background: var(--bg-accent-soft); border-color: var(--accent-primary); }
   .dz-btn:disabled { opacity: .45; cursor: default; }
-  .dz-status { margin: .5em 0; padding: .55em .8em; background: #f4f8ff; border-left: 3px solid #2a7ae2; font-size: .92em; }
-  .dz-status.warn { background: #fff7e6; border-color: #e69500; }
+  .dz-status { margin: .5em 0; padding: .55em .8em; background: var(--bg-accent-soft); border-left: 3px solid var(--accent-primary); font-size: .92em; }
+  .dz-status.warn { background: var(--warn-bg); border-color: var(--warn-border); }
   .dz-work { display: flex; gap: 1em; align-items: flex-start; flex-wrap: wrap; }
-  .dz-canvas-wrap { position: relative; flex: 1 1 520px; max-height: 75vh; overflow: auto; border: 1px dashed #bbb; border-radius: 6px; background: #fafafa; min-height: 260px; }
-  .dz-canvas-wrap.drag { border-color: #2a7ae2; background: #eef5ff; }
+  .dz-canvas-wrap { position: relative; flex: 1 1 520px; max-height: 75vh; overflow: auto; border: 1px dashed var(--border-strong); border-radius: 6px; background: var(--bg-subtle); min-height: 260px; }
+  .dz-canvas-wrap.drag { border-color: var(--accent-primary); background: var(--bg-accent-soft); }
   #dz-canvas { display: block; cursor: crosshair; }
-  .dz-drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #777; text-align: center; padding: 1em; pointer-events: none; }
+  .dz-drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; padding: 1em; pointer-events: none; }
   .dz-side { flex: 0 0 210px; }
-  #dz-loupe { width: 200px; height: 200px; border: 1px solid #ccc; border-radius: 6px; background: #fff; display: block; }
-  .dz-readout { font-family: ui-monospace, Menlo, monospace; font-size: .85em; margin-top: .4em; min-height: 2.6em; color: #333; }
+  #dz-loupe { width: 200px; height: 200px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-surface); display: block; }
+  .dz-readout { font-family: ui-monospace, Menlo, monospace; font-size: .85em; margin-top: .4em; min-height: 2.6em; color: var(--text-primary); }
   .dz-table { width: 100%; border-collapse: collapse; font-size: .85em; margin-top: .6em; }
-  .dz-table th, .dz-table td { border-bottom: 1px solid #eee; padding: .25em .4em; text-align: right; }
+  .dz-table th, .dz-table td { border-bottom: 1px solid var(--border-color); padding: .25em .4em; text-align: right; }
   .dz-table th:first-child, .dz-table td:first-child { text-align: left; }
   .dz-table-wrap { max-height: 320px; overflow: auto; }
-  .dz-note { color: #666; font-size: .85em; }
-  kbd { font-size: .85em; padding: 0 .3em; border: 1px solid #ccc; border-radius: 3px; background: #f7f7f7; }
+  .dz-note { color: var(--text-muted); font-size: .85em; }
+  kbd { font-size: .85em; padding: 0 .3em; border: 1px solid var(--border-strong); border-radius: 3px; background: var(--bg-subtle); }
 </style>
 
 <p class="dz-intro">
@@ -98,6 +98,20 @@ permalink: /tools/digitizer/
   X1/X2 must lie on the x-axis and Y1/Y2 on the y-axis. The calibration then corrects for small rotations or skew in scanned figures.
   Use the magnifier to place points on line centres. Recalibrating updates all existing points.
 </p>
+
+
+<details class="theory-card">
+  <summary>Method, symbols &amp; references</summary>
+  <div class="eq"><i>x</i> = <i>a u</i> + <i>b v</i> + <i>c</i>, &nbsp; <i>y</i> = <i>d u</i> + <i>e v</i> + <i>f</i> &nbsp; (affine map from pixel (<i>u</i>, <i>v</i>) to data (<i>x</i>, <i>y</i>))</div>
+  <div class="eq"><i>x</i>(X₁) = <i>x</i>₁, &nbsp; <i>x</i>(X₂) = <i>x</i>₂, &nbsp; <i>x</i> constant along Y₁Y₂; &nbsp; <i>y</i>(Y₁) = <i>y</i>₁, &nbsp; <i>y</i>(Y₂) = <i>y</i>₂, &nbsp; <i>y</i> constant along X₁X₂; &nbsp; log axes: <i>x</i> → log₁₀ <i>x</i></div>
+  <dl>
+    <dt>(u, v)</dt><dd>pixel coordinates in the image (v increases downwards)</dd>
+    <dt>X₁, X₂, Y₁, Y₂</dt><dd>the four calibration clicks on the axes, with their typed values x₁, x₂, y₁, y₂</dd>
+    <dt>a … f</dt><dd>six coefficients from two 3 × 3 linear solves; they absorb scaling, rotation and shear of scanned figures</dd>
+  </dl>
+  <p>Accuracy is set by the click precision (use the loupe) relative to the axis span: one pixel of a 500-pixel axis is 0.2 % of full scale. The six conditions are exact, so the four calibration points are reproduced to rounding error (see the unit tests).</p>
+  <ol class="refs"><li>A. Rohatgi, <i>WebPlotDigitizer</i> (software), <a href="https://automeris.io">automeris.io</a>, for the same approach in a full application.</li></ol>
+</details>
 
 {% endraw %}<script src="{{ '/assets/js/digitizer-core.js' | relative_url }}"></script>{% raw %}
 <script>

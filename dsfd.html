@@ -5,46 +5,63 @@ permalink: /tools/dsfd/
 ---
 {% raw %}
 <style>
-  .fd-intro { color: #555; }
-  .fd-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1em; margin: 1.2em 0; }
-  .fd-card { border: 1px solid #e3e3e3; border-radius: 8px; padding: .9em 1em; background: #fff; font-size: .92em; }
-  .fd-card h3 { margin: 0 0 .5em; font-size: 1.02em; }
-  .fd-card label { display: block; font-size: .85em; color: #555; margin: .35em 0 .15em; }
-  .fd-card select, .fd-card input[type=text], .fd-card input[type=number] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid #ccc; border-radius: 4px; }
+  .fd-intro { color: var(--text-secondary); }
+  .fd-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1.4em; }
+  @media (min-width: 1100px) {
+    .fd-layout { grid-template-columns: 300px minmax(0, 1fr); }
+    .fd-side { position: sticky; top: 1em; align-self: start; max-height: calc(100vh - 2em); overflow: auto; }
+  }
+  .fd-card { border: 1px solid var(--border-color); border-radius: var(--radius); padding: .8em 1em; background: var(--bg-surface); font-size: .9em; margin-bottom: .9em; }
+  .fd-card h3 { margin: 0 0 .45em; font-size: .78em; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); font-weight: 600; }
+  .fd-card label { display: block; font-size: .85em; color: var(--text-secondary); margin: .4em 0 .15em; }
+  .fd-card label.inl { display: inline-flex; align-items: center; gap: .3em; margin: .2em .8em .2em 0; color: var(--text-primary); }
+  .fd-card select, .fd-card input[type=text], .fd-card input[type=number] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-input); }
   .fd-signs { display: flex; gap: .35em; flex-wrap: wrap; }
   .fd-signs select { width: auto; }
-  .fd-checks label { display: inline-block; margin-right: .8em; }
-  .fd-summary { margin: .4em 0 1em; padding: .55em .8em; background: #f4f8ff; border-left: 3px solid #2a7ae2; font-size: .93em; }
-  .fd-summary.warn { background: #fff7e6; border-color: #e69500; }
-  .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(255px, 1fr)); gap: 1em; }
-  .fd-diagram { border: 1px solid #e3e3e3; border-radius: 8px; padding: .6em .7em .8em; background: #fff; }
-  .fd-diagram h4 { margin: 0; font-size: .95em; display: flex; justify-content: space-between; }
-  .fd-tag { font-size: .78em; padding: .05em .45em; border-radius: 10px; color: #fff; }
-  .fd-term { font-size: .82em; color: #333; margin-top: .3em; line-height: 1.5; }
-  .fd-path { font-family: ui-monospace, Menlo, monospace; font-size: .78em; color: #555; margin-top: .2em; }
-  .fd-btn { font: inherit; font-size: .85em; padding: .3em .7em; border: 1px solid #bbb; border-radius: 4px; background: #f7f7f7; cursor: pointer; margin-top: .4em; }
-  .fd-btn.primary { background: #2a7ae2; border-color: #2a7ae2; color: #fff; }
-  .fd-note { color: #666; font-size: .85em; }
+  .fd-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; margin-top: .2em; }
+  .fd-seg label { margin: 0; padding: .2em .6em; cursor: pointer; font-size: .85em; color: var(--text-secondary); }
+  .fd-seg input { display: none; }
+  .fd-seg label:has(input:checked) { background: var(--accent-primary); color: var(--accent-contrast); }
+  .fd-summary { margin: 0 0 1em; padding: .6em .85em; background: var(--bg-accent-soft); border-left: 3px solid var(--accent-primary); font-size: .92em; border-radius: 0 var(--radius) var(--radius) 0; }
+  .fd-summary.warn { background: var(--warn-bg); border-color: var(--warn-border); }
+  .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1em; }
+  .fd-diagram { border: 1px solid var(--border-color); border-radius: var(--radius); padding: .6em .7em .7em; background: var(--bg-surface); }
+  .fd-diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+  .fd-diagram h4 { margin: 0 0 .2em; font-size: .92em; display: flex; justify-content: space-between; align-items: center; }
+  .fd-tag { font-size: .76em; padding: .08em .5em; border-radius: 10px; color: #fff; letter-spacing: .02em; }
+  .fd-tag.mono { background: transparent !important; color: var(--text-primary); border: 1.5px solid var(--text-primary); }
+  .fd-tag.mono.SE { border-style: dashed; } .fd-tag.mono.ESA { border-style: dotted; border-width: 2px; } .fd-tag.mono.DQC { border-style: double; border-width: 3px; }
+  .fd-term { font-size: .82em; color: var(--text-primary); margin-top: .35em; line-height: 1.55; }
+  .fd-term .k { color: var(--text-muted); }
+  .fd-path { font-family: var(--font-mono); font-size: .76em; color: var(--text-secondary); margin-top: .2em; }
+  .fd-btns { display: flex; flex-wrap: wrap; gap: .3em; margin-top: .45em; }
+  .fd-btns .btn { font-size: .78em; padding: .22em .55em; }
+  .fd-note { color: var(--text-muted); font-size: .85em; }
+  .fd-side .btn { width: 100%; margin-top: .35em; text-align: left; }
 </style>
 
 <p class="fd-intro">
-  Enumerate every Liouville pathway contributing to an <i>n</i>-th-order nonlinear signal in a chosen phase-matching direction, and draw its double-sided Feynman diagram.
-  Each diagram shows its sign (−1)<sup><i>n</i></sup>, classification (GSB / SE / ESA / DQC), and the corresponding term of the response function.
-  <a href="../">← All tools</a>
+  Enumerate every Liouville pathway that contributes to an <i>n</i>-th-order nonlinear signal in a chosen phase-matching direction, and draw its double-sided Feynman diagram.
+  Each diagram is classified (GSB / SE / ESA / DQC, or SFG / DFG at second order) and shown with its sign, wave-vector sum, time-evolution phase and response-function term.
+  Export publication-ready SVG, 300 dpi PNG, or a compilable TikZ/LaTeX file. <a href="../">← All tools</a>
 </p>
 
-<div class="fd-controls">
+<div class="layout-wide fd-layout">
+<aside class="fd-side">
   <div class="fd-card">
-    <h3>1 · Signal</h3>
+    <h3>1 · Experiment</h3>
     <label>Preset</label>
     <select id="fd-preset">
-      <option value="rephasing" selected>Rephasing (photon echo): −k₁ + k₂ + k₃</option>
-      <option value="nonrephasing">Non-rephasing: k₁ − k₂ + k₃</option>
+      <option value="rephasing" selected>2D rephasing (photon echo): −k₁ + k₂ + k₃</option>
+      <option value="nonrephasing">2D non-rephasing: k₁ − k₂ + k₃</option>
+      <option value="pumpprobe">Transient absorption (pump–probe), t₁ → 0</option>
       <option value="dqc">Double quantum: k₁ + k₂ − k₃</option>
+      <option value="sfg">2nd order: sum-frequency generation (IR + vis)</option>
+      <option value="dfg">2nd order: difference-frequency generation</option>
       <option value="linear">Linear absorption: k₁</option>
       <option value="custom">Custom…</option>
     </select>
-    <label>Order <i>n</i> (number of field interactions before emission)</label>
+    <label>Order <i>n</i> (field interactions before the signal)</label>
     <input type="number" id="fd-order" min="1" max="5" value="3">
     <label>Wave-vector signs (time-ordered)</label>
     <div class="fd-signs" id="fd-signs"></div>
@@ -56,171 +73,211 @@ permalink: /tools/dsfd/
     <input type="text" id="fd-singles" value="e">
     <label>Doubly excited states (empty for none)</label>
     <input type="text" id="fd-doubles" value="f">
-    <div class="fd-note" style="margin-top:.4em">Examples: two-level system <code>e</code> / empty; three-level ladder <code>e</code> / <code>f</code>; excitonic dimer <code>a, b</code> / <code>f</code>.</div>
+    <label class="inl"><input type="checkbox" id="fd-twoq"> allow g ↔ doubly-excited transitions (χ⁽²⁾ via an electronic state)</label>
+    <div class="fd-note" style="margin-top:.3em">Two-level <code>e</code> / –; ladder <code>e</code> / <code>f</code>; excitonic dimer <code>a, b</code> / <code>f</code>; vibrational SFG <code>v</code> / <code>n</code> with g ↔ n allowed.</div>
   </div>
   <div class="fd-card">
-    <h3>3 · Show</h3>
-    <div class="fd-checks" id="fd-filter">
-      <label><input type="checkbox" value="GSB" checked> GSB</label>
-      <label><input type="checkbox" value="SE" checked> SE</label>
-      <label><input type="checkbox" value="ESA" checked> ESA</label>
-      <label><input type="checkbox" value="DQC" checked> DQC</label>
-      <label><input type="checkbox" value="other" checked> other orders</label>
+    <h3>3 · Style</h3>
+    <label>Field arrows</label>
+    <div class="fd-seg"><label><input type="radio" name="fd-arrow" value="straight" checked>straight 15°</label><label><input type="radio" name="fd-arrow" value="wavy">wavy</label></div>
+    <label>Delay labels</label>
+    <div class="fd-seg"><label><input type="radio" name="fd-tl" value="t" checked>t₁, t₂, t₃</label><label><input type="radio" name="fd-tl" value="tau">τ, T, t</label><label><input type="radio" name="fd-tl" value="none">none</label></div>
+    <label>Colour</label>
+    <div class="fd-seg"><label><input type="radio" name="fd-col" value="color" checked>colour</label><label><input type="radio" name="fd-col" value="mono">print (black &amp; white)</label></div>
+    <label>Show</label>
+    <div id="fd-filter">
+      <label class="inl"><input type="checkbox" value="GSB" checked> GSB</label>
+      <label class="inl"><input type="checkbox" value="SE" checked> SE</label>
+      <label class="inl"><input type="checkbox" value="ESA" checked> ESA</label>
+      <label class="inl"><input type="checkbox" value="DQC" checked> DQC</label>
+      <label class="inl"><input type="checkbox" value="other" checked> other</label>
     </div>
-    <label><input type="checkbox" id="fd-tlabels" checked> label time intervals</label>
-    <button class="fd-btn primary" id="fd-dlall">Download all as SVG</button>
   </div>
+  <div class="fd-card">
+    <h3>4 · Export all</h3>
+    <button class="btn primary" id="fd-tikz-all">TikZ / LaTeX (.tex)</button>
+    <button class="btn" id="fd-svg-all">SVG sheet</button>
+    <button class="btn" id="fd-png-all">PNG sheet, 300 dpi</button>
+    <div class="fd-note" style="margin-top:.4em">Exports always use a white background. The TikZ file is a <code>standalone</code> document with one diagram per page; it needs <code>arrows.meta</code> and <code>decorations.pathmorphing</code>.</div>
+  </div>
+</aside>
+
+<div>
+  <div class="fd-summary" id="fd-summary"></div>
+  <div class="fd-grid" id="fd-grid"></div>
+
+  <details class="theory-card card" style="margin-top:1.6em">
+    <summary>Theory, conventions &amp; references</summary>
+    <div class="eq"><i>S</i><sup>(<i>n</i>)</sup>(<i>t<sub>n</sub></i>, …, <i>t</i>₁) = (<i>i</i>/ħ)<sup><i>n</i></sup> ⟨μ(<i>t<sub>n</sub></i> + … + <i>t</i>₁) [μ(<i>t</i><sub><i>n</i>−1</sub> + … + <i>t</i>₁), … [μ(<i>t</i>₁), [μ(0), ρ(−∞)]] … ]⟩ = (<i>i</i>/ħ)<sup><i>n</i></sup> Σ<sub>pathways</sub> (−1)<sup><i>n</i><sub>bra</sub></sup> <i>R<sub>α</sub></i></div>
+    <div class="eq"><b>k</b><sub>sig</sub> = Σ<sub><i>i</i></sub> ±<b>k</b><sub><i>i</i></sub>, &nbsp; <i>G<sub>ab</sub></i>(<i>t</i>) = exp(−<i>iω<sub>ab</sub>t</i> − Γ<sub><i>ab</i></sub><i>t</i>), &nbsp; e.g. rephasing SE: exp(+<i>iω</i><sub>eg</sub><i>t</i>₁ − <i>iω</i><sub>eg</sub><i>t</i>₃)</div>
+    <dl>
+      <dt>ket / bra</dt><dd>left and right rails, acting on |·⟩ and ⟨·| of ρ; time runs upward from ρ = |g⟩⟨g|</dd>
+      <dt>arrow direction</dt><dd>toward a rail: absorption (that side is excited); away: emission (de-excitation). Right-pointing arrows carry +<b>k</b>, left-pointing −<b>k</b></dd>
+      <dt>signal</dt><dd>dashed arrow: the emitted field, acting last on the ket and returning ρ to a population</dd>
+      <dt>sign</dt><dd>(−1)<sup><i>n</i><sub>bra</sub></sup>, <i>n</i><sub>bra</sub> = number of bra-side interactions before the signal</dd>
+      <dt>rephasing</dt><dd>the t₁ and t₃ coherences oscillate with opposite signs of frequency, so inhomogeneous dephasing is undone (photon echo)</dd>
+      <dt>GSB, SE, ESA</dt><dd>ground-state bleach (|g⟩⟨g| during t₂), stimulated emission (excited-state population or coherence, signal from e → g), excited-state absorption (third interaction excites to f)</dd>
+    </dl>
+    <p><b>Why ESA is negative.</b> ESA pathways always contain an odd number of bra-side interactions, so the rule (−1)<sup><i>n</i><sub>bra</sub></sup> already gives them the opposite sign to GSB and SE. An extra factor of (−1) for ESA would double-count it. The rotating-wave approximation keeps only resonant interactions (one manifold up or down per field), and the impulsive limit gives each interval its own propagator <i>G<sub>ab</sub></i>(<i>t<sub>i</sub></i>).
+      For pump–probe both pump interactions are degenerate (t₁ = 0), so rephasing and non-rephasing pathways both radiate along <b>k</b><sub>pr</sub>.</p>
+    <ol class="refs">
+      <li>S. Mukamel, <i>Principles of Nonlinear Optical Spectroscopy</i> (Oxford University Press, New York, 1995).</li>
+      <li>P. Hamm &amp; M. Zanni, <i>Concepts and Methods of 2D Infrared Spectroscopy</i> (Cambridge University Press, 2011).</li>
+      <li>D. M. Jonas, “Two-dimensional femtosecond spectroscopy,” <i>Annu. Rev. Phys. Chem.</i> <b>54</b>, 425 (2003). <a href="https://doi.org/10.1146/annurev.physchem.54.011002.103907">doi:10.1146/annurev.physchem.54.011002.103907</a></li>
+      <li>A. Tokmakoff, <i>Time-Dependent Quantum Mechanics and Spectroscopy</i>, lecture notes (University of Chicago), chapters on nonlinear response and diagrammatic perturbation theory.</li>
+      <li>Y. R. Shen, <i>The Principles of Nonlinear Optics</i> (Wiley, New York, 1984), for second-order (SFG/DFG) processes.</li>
+    </ol>
+  </details>
 </div>
-
-<div class="fd-summary" id="fd-summary"></div>
-<div class="fd-grid" id="fd-grid"></div>
-
-<p class="fd-note" style="margin-top:1.4em">
-  <b>Conventions</b> (Mukamel; Hamm &amp; Zanni). Time runs upward; the left line is the ket, the right line the bra; the system starts in |g⟩⟨g|.
-  An arrow pointing right carries +k, pointing left −k; an arrow pointing toward the diagram excites, away from it de-excites.
-  The final dashed arrow is the emitted signal field, which acts on the ket and leaves a population.
-  Each diagram has sign (−1)<sup><i>n</i></sup>, <i>n</i> = number of bra interactions, and contributes
-  ∏μ · G(t<sub>n</sub>)…G(t<sub>1</sub>) with G<sub>ab</sub>(t) = exp(−iω<sub>ab</sub>t − Γ<sub>ab</sub>t) in the impulsive limit.
-  Rotating-wave approximation: only resonant (up/down by one manifold) interactions are kept.
-</p>
+</div>
 
 {% endraw %}<script src="{{ '/assets/js/dsfd-core.js' | relative_url }}"></script>{% raw %}
 <script>
 (function () {
   "use strict";
-  const F = window.DSFD;
+  const F = window.DSFD, ST = window.SiteTheme;
   const $ = (id) => document.getElementById(id);
   const SUB = "₀₁₂₃₄₅₆₇₈₉";
-  const COLORS = { GSB: "#1f77b4", SE: "#2ca02c", ESA: "#d62728", DQC: "#9467bd", Linear: "#555", "—": "#555" };
+  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+  const radio = (name) => document.querySelector(`input[name="${name}"]:checked`).value;
+  let current = { signSets: null, fieldLabels: null, intervals: null };
 
   /* ---------- controls ---------- */
   function renderSigns(signs) {
     $("fd-signs").innerHTML = signs.map((s, i) =>
       `<select data-i="${i}"><option value="1"${s > 0 ? " selected" : ""}>+k${SUB[i + 1]}</option><option value="-1"${s < 0 ? " selected" : ""}>−k${SUB[i + 1]}</option></select>`).join("");
-    $("fd-signs").querySelectorAll("select").forEach((el) => el.addEventListener("change", () => { $("fd-preset").value = "custom"; update(); }));
+    $("fd-signs").querySelectorAll("select").forEach((el) => el.addEventListener("change", () => { $("fd-preset").value = "custom"; current = {}; update(); }));
   }
   const currentSigns = () => [...$("fd-signs").querySelectorAll("select")].map((s) => parseInt(s.value, 10));
-  $("fd-preset").addEventListener("change", () => {
-    const p = F.PRESETS[$("fd-preset").value];
-    if (p) { $("fd-order").value = p.signs.length; renderSigns(p.signs); }
+  function applyPreset(key) {
+    const p = F.PRESETS[key];
+    if (!p) { current = {}; update(); return; }
+    const signs = p.signs || p.signSets[0];
+    $("fd-order").value = signs.length; renderSigns(signs);
+    current = { signSets: p.signSets || null, fieldLabels: p.fieldLabels || null, intervals: p.intervals || null };
+    if (p.scheme) { $("fd-singles").value = p.scheme.singles; $("fd-doubles").value = p.scheme.doubles; $("fd-twoq").checked = !!p.scheme.twoQuantum; }
+    $("fd-signs").querySelectorAll("select").forEach((el) => (el.disabled = !!p.signSets));
     update();
-  });
+  }
+  $("fd-preset").addEventListener("change", () => applyPreset($("fd-preset").value));
   $("fd-order").addEventListener("input", () => {
     const n = Math.max(1, Math.min(5, parseInt($("fd-order").value, 10) || 1));
     const old = currentSigns();
     renderSigns(Array.from({ length: n }, (_, i) => old[i] || (i % 2 ? -1 : 1)));
-    $("fd-preset").value = "custom"; update();
+    $("fd-preset").value = "custom"; current = {}; update();
   });
   ["fd-singles", "fd-doubles"].forEach((id) => $(id).addEventListener("input", update));
+  ["fd-twoq"].forEach((id) => $(id).addEventListener("change", update));
   $("fd-filter").addEventListener("change", update);
-  $("fd-tlabels").addEventListener("change", update);
+  document.querySelectorAll('input[name="fd-arrow"], input[name="fd-tl"], input[name="fd-col"]').forEach((el) => el.addEventListener("change", update));
+  ST.onChange(update);
 
   const parseStates = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
-
-  /* ---------- drawing ---------- */
-  const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  function drawSVG(d, n, tlabels) {
-    const gap = 54, W = 240, kx = 95, bx = 145, top = 30, bottom = top + gap * (n + 1) + 10, H = bottom + 26;
-    const yAt = (j) => bottom - gap * j; // interaction j at y; j = n+1 is the emission
-    const parts = [];
-    const arrow = (x1, y1, x2, y2, dashed, col) =>
-      `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${col}" stroke-width="1.6"${dashed ? ' stroke-dasharray="5,3"' : ""} marker-end="url(#ah-${col.slice(1)})"/>`;
-    parts.push(`<defs>${["#222", "#c0392b"].map((c) => `<marker id="ah-${c.slice(1)}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="${c}"/></marker>`).join("")}</defs>`);
-    parts.push(`<rect width="${W}" height="${H}" fill="#fff"/>`);
-    parts.push(`<line x1="${kx}" y1="${bottom}" x2="${kx}" y2="${yAt(n + 1) - 10}" stroke="#222" stroke-width="1.8"/>`);
-    parts.push(`<line x1="${bx}" y1="${bottom}" x2="${bx}" y2="${yAt(n + 1) - 10}" stroke="#222" stroke-width="1.8"/>`);
-    // density-matrix labels
-    const lbl = (y, [a, b]) => `<text x="${(kx + bx) / 2}" y="${y}" text-anchor="middle" font-size="13" font-family="serif">|${esc(a)}⟩⟨${esc(b)}|</text>`;
-    parts.push(lbl(bottom - 8, d.rho[0]));
-    for (let j = 1; j <= n; j++) {
-      parts.push(lbl((yAt(j) + yAt(j + 1)) / 2 + 5, d.rho[j]));
-      if (tlabels) parts.push(`<text x="${bx + 52}" y="${(yAt(j) + yAt(j + 1)) / 2 + 4}" font-size="11" fill="#888" font-style="italic">t${SUB[j]}</text>`);
-    }
-    parts.push(lbl(yAt(n + 1) - 14, [d.emission.to, d.emission.to]));
-    // interactions
-    const L = 48, dy = 14;
-    d.interactions.concat([d.emission]).forEach((s, idx) => {
-      const y = yAt(idx + 1), isEmit = s.kind === "emit", col = isEmit ? "#c0392b" : "#222";
-      let x1, y1, x2, y2, tx;
-      if (s.side === "ket") {
-        if (s.kind === "up") { x1 = kx - L; y1 = y + dy; x2 = kx - 2; y2 = y; tx = x1 - 4; }      // →, toward ket
-        else { x1 = kx - 2; y1 = y; x2 = kx - L; y2 = y - dy; tx = x2 - 4; }                      // ←, away from ket
-      } else {
-        if (s.kind === "up") { x1 = bx + L; y1 = y + dy; x2 = bx + 2; y2 = y; tx = x1 + 4; }      // ←, toward bra
-        else { x1 = bx + 2; y1 = y; x2 = bx + L; y2 = y - dy; tx = x2 + 4; }                      // →, away from bra
-      }
-      parts.push(arrow(x1, y1, x2, y2, isEmit, col));
-      const name = isEmit ? "k" + "ₛ" : (s.sign > 0 ? "" : "−") + "k" + SUB[s.k];
-      parts.push(`<text x="${tx}" y="${(y1 + y2) / 2 + 4}" font-size="12" font-style="italic" fill="${col}" text-anchor="${s.side === "ket" ? "end" : "start"}">${name}</text>`);
-    });
-    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">${parts.join("")}</svg>`;
+  function intervalNames(n) {
+    const mode = radio("fd-tl");
+    if (mode === "none") return null;
+    if (current.intervals && current.intervals.length === n) return mode === "tau" ? current.intervals.map((s, i) => (i === 0 ? "τ = 0" : s)) : current.intervals;
+    if (mode === "tau" && n === 3) return ["τ", "T", "t"];
+    if (mode === "tau" && n === 2) return ["τ", "t"];
+    if (mode === "tau" && n === 1) return ["t"];
+    return Array.from({ length: n }, (_, i) => "t_" + (i + 1));
   }
 
-  function termHTML(d, scheme) {
+  /* ---------- term & phase ---------- */
+  function termHTML(d, scheme, names) {
     const mu = F.dipoles(d, scheme).map((ab) => `μ<sub>${esc(ab)}</sub>`).join("");
-    const G = d.rho.slice(1).map(([a, b], i) => `G<sub>${esc(a)}${esc(b)}</sub>(t<sub>${i + 1}</sub>)`).reverse().join(" ");
-    return `${d.sign > 0 ? "+" : "−"} ${mu} · ${G}`;
+    const lab = (i) => (names ? names[i].replace(/_(\d)/, "<sub>$1</sub>") : `t<sub>${i + 1}</sub>`);
+    const G = d.rho.slice(1).map(([a, b], i) => `G<sub>${esc(a)}${esc(b)}</sub>(${lab(i)})`).reverse().join(" ");
+    const pf = F.phaseFactors(d, scheme).parts.map((p, i) => (p.sign === 0 ? "" : `${p.sign < 0 ? "−" : "+"}iω<sub>${esc(p.upper)}${esc(p.lower)}</sub>${lab(i)}`)).filter(Boolean);
+    return `<span class="k">term</span> ${d.sign > 0 ? "+" : "−"} ${mu} · ${G}<br><span class="k">phase</span> ${pf.length ? `exp(${pf.join(" ")})` : "no oscillation"}`;
+  }
+  function kSum(d, fieldLabels) {
+    const lab = (i) => (fieldLabels ? `<sub>${fieldLabels[i]}</sub>` : `<sub>${i + 1}</sub>`);
+    return d.interactions.map((s, i) => `${s.sign > 0 ? (i ? " + " : "") : i ? " − " : "−"}<b>k</b>${lab(i)}`).join("");
   }
 
   /* ---------- main ---------- */
   let last = [];
   function update() {
-    const signs = currentSigns(), n = signs.length;
-    $("fd-dir").textContent = "k_s = " + F.direction(signs);
+    const n = currentSigns().length;
+    const signSets = current.signSets || [currentSigns()];
+    const fl = current.fieldLabels;
+    $("fd-dir").innerHTML = "k<sub>sig</sub> = " + esc(F.direction(signSets[0], fl)).replace(/k_(\w+)/g, "k<sub>$1</sub>");
     const singles = parseStates($("fd-singles").value), doubles = parseStates($("fd-doubles").value);
     const sum = $("fd-summary");
     const all = singles.concat(doubles);
-    if (!singles.length) { sum.textContent = "Add at least one singly excited state."; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; return; }
-    if (new Set(all).size !== all.length || all.includes("g")) { sum.textContent = "State names must be unique and different from g."; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; return; }
-    if (singles.length > 4 || doubles.length > 3) { sum.textContent = "Please use at most 4 singly and 3 doubly excited states."; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; return; }
-    const scheme = F.levelScheme(singles, doubles);
-    const ds = F.enumerate(signs, scheme);
+    const fail = (msg) => { sum.textContent = msg; sum.classList.add("warn"); $("fd-grid").innerHTML = ""; last = []; };
+    if (!singles.length) return fail("Add at least one singly excited state.");
+    if (new Set(all).size !== all.length || all.includes("g")) return fail("State names must be unique and different from g.");
+    if (all.some((s) => !/^[A-Za-z][A-Za-z0-9']{0,3}$/.test(s))) return fail("Use short alphanumeric state names (e.g. e, f, a, b, v1).");
+    if (singles.length > 4 || doubles.length > 3) return fail("Please use at most 4 singly and 3 doubly excited states.");
+    const scheme = F.levelScheme(singles, doubles, { twoQuantum: $("fd-twoq").checked });
+    const ds = signSets.flatMap((s) => F.enumerate(s, scheme));
     const show = new Set([...$("fd-filter").querySelectorAll("input:checked")].map((c) => c.value));
     const visible = ds.filter((d) => (["GSB", "SE", "ESA", "DQC"].includes(d.type) ? show.has(d.type) : show.has("other")));
     const counts = {};
     ds.forEach((d) => { if (d.type !== "—") counts[d.type] = (counts[d.type] || 0) + 1; });
-    const allDQC = ds.length && ds.every((d) => d.type === "DQC");
     sum.classList.toggle("warn", ds.length === 0);
+    const dirTxt = esc(F.direction(signSets[0], fl)).replace(/k_(\w+)/g, "k<sub>$1</sub>");
+    const reph = n === 3 && !current.signSets && ds.length && !ds.every((d) => d.type === "DQC") ? (ds[0].rephasing ? " · rephasing" : " · non-rephasing") : "";
     sum.innerHTML = ds.length
-      ? `<b>${ds.length}</b> pathway${ds.length > 1 ? "s" : ""} for k<sub>s</sub> = ${F.direction(signs)}` +
-        (Object.keys(counts).length ? " — " + Object.entries(counts).map(([t, c]) => `${c} ${t}`).join(", ") : "") +
-        (n === 3 && ds.length && !allDQC ? (ds[0].rephasing ? " · rephasing" : " · non-rephasing") : "") +
+      ? `<b>${ds.length}</b> pathway${ds.length > 1 ? "s" : ""} for k<sub>sig</sub> = ${dirTxt}` +
+        (Object.keys(counts).length ? " — " + Object.entries(counts).map(([t, c]) => `${c} ${t}`).join(", ") : "") + reph +
+        (current.signSets ? " · rephasing and non-rephasing pathways together" : "") +
         (visible.length < ds.length ? ` (showing ${visible.length})` : "")
-      : `No pathways: k<sub>s</sub> = ${F.direction(signs)} cannot be generated by this level scheme within the rotating-wave approximation.`;
-    const tl = $("fd-tlabels").checked;
-    last = visible.map((d, i) => ({ d, svg: drawSVG(d, n, tl), i }));
+      : `No pathways: k<sub>sig</sub> = ${dirTxt} cannot be generated by this level scheme within the rotating-wave approximation.` + (n % 2 === 0 ? " Even orders need a g ↔ doubly-excited transition: tick the χ⁽²⁾ option." : "");
+    const names = intervalNames(n), mono = radio("fd-col") === "mono", wavy = radio("fd-arrow") === "wavy";
+    const screenPal = mono ? F.palette("mono") : F.palette("color", ST.get() === "dark");
+    last = visible.map((d, i) => {
+      const header = `#${i + 1} ${d.type} (${d.sign > 0 ? "+" : "−"})`;
+      const lay = F.layout(d, { intervals: names || undefined, timeAxis: !!names, fieldLabels: fl || undefined });
+      const layH = F.layout(d, { intervals: names || undefined, timeAxis: !!names, fieldLabels: fl || undefined, header });
+      return { d, i, lay, layH, svg: F.toSVG(lay, { pal: screenPal, type: d.type, wavy }) };
+    });
     $("fd-grid").innerHTML = last.map(({ d, svg, i }) => `
       <div class="fd-diagram">
-        <h4><span>#${i + 1} &nbsp;<span class="fd-tag" style="background:${COLORS[d.type] || "#555"}">${esc(d.type)}</span></span><span>sign ${d.sign > 0 ? "+" : "−"}</span></h4>
-        <div>${svg}</div>
+        <h4><span>#${i + 1} &nbsp;<span class="fd-tag ${mono ? "mono " : ""}${esc(d.type)}" style="background:${F.PATHWAY_COLORS[d.type] || "#4A5568"}">${esc(d.type)}</span>${d.rephasing === true ? ' <span class="fd-note">R</span>' : d.rephasing === false ? ' <span class="fd-note">NR</span>' : ""}</span><span>sign ${d.sign > 0 ? "+" : "−"} <span class="fd-note">(n<sub>bra</sub> = ${d.nBra})</span></span></h4>
+        ${svg}
         <div class="fd-path">${esc(d.label)}</div>
-        <div class="fd-term">${termHTML(d, scheme)}</div>
-        <button class="fd-btn" data-dl="${i}">Download SVG</button>
+        <div class="fd-term"><span class="k">k-sum</span> ${kSum(d, fl)}<br>${termHTML(d, scheme, names)}</div>
+        <div class="fd-btns"><button class="btn" data-svg="${i}">SVG</button><button class="btn" data-png="${i}">PNG 300 dpi</button><button class="btn" data-tex="${i}">TikZ</button></div>
       </div>`).join("");
-    $("fd-grid").querySelectorAll("[data-dl]").forEach((b) => b.addEventListener("click", () => {
-      const k = +b.dataset.dl; download(`dsfd-${k + 1}-${last[k].d.type}.svg`, last[k].svg);
-    }));
   }
 
-  function download(name, text) {
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([text], { type: "image/svg+xml" }));
-    a.download = name; a.click(); URL.revokeObjectURL(a.href);
+  /* ---------- export ---------- */
+  const exportSVG = (it) => F.toSVG(it.layH, { pal: F.palette(radio("fd-col") === "mono" ? "mono" : "color"), type: it.d.type, wavy: radio("fd-arrow") === "wavy" });
+  const saveText = (text, name, type) => ST.download(new Blob([text], { type }), name);
+  function sheet(items) {
+    const cols = Math.min(4, items.length), pad = 12;
+    const w = Math.max(...items.map((it) => it.layH.W)), h = Math.max(...items.map((it) => it.layH.H));
+    const body = items.map((it, k) => `<g transform="translate(${(k % cols) * (w + pad)},${Math.floor(k / cols) * (h + pad)})">${exportSVG(it).replace(/^<svg[^>]*>|<\/svg>$/g, "")}</g>`).join("");
+    const W = cols * (w + pad) - pad, H = Math.ceil(items.length / cols) * (h + pad) - pad;
+    return `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}"><rect width="${W}" height="${H}" fill="#ffffff"/>${body}</svg>`;
   }
-  $("fd-dlall").addEventListener("click", () => {
-    if (!last.length) return;
-    const cols = Math.min(4, last.length), w = 240, pad = 10;
-    const sizes = last.map(({ svg }) => +svg.match(/height="(\d+)"/)[1]);
-    const h = Math.max(...sizes) + 26, rows = Math.ceil(last.length / cols);
-    const body = last.map(({ d, svg }, k) => {
-      const x = (k % cols) * (w + pad), y = Math.floor(k / cols) * (h + pad);
-      return `<g transform="translate(${x},${y})"><text x="6" y="14" font-size="12" font-family="sans-serif">#${k + 1} ${d.type} (${d.sign > 0 ? "+" : "−"})</text><g transform="translate(0,18)">${svg.replace(/^<svg[^>]*>|<\/svg>$/g, "")}</g></g>`;
-    }).join("");
-    download("dsfd-all.svg", `<svg xmlns="http://www.w3.org/2000/svg" width="${cols * (w + pad)}" height="${rows * (h + pad)}">${body}</svg>`);
+  function svgToPNG(svg, name, dpi) {
+    const w = +svg.match(/width="([\d.]+)"/)[1], h = +svg.match(/height="([\d.]+)"/)[1], scale = dpi / 96;
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+      const ctx = c.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(img, 0, 0, c.width, c.height);
+      c.toBlob((b) => b.arrayBuffer().then((buf) => ST.download(new Blob([F.pngWithDpi(new Uint8Array(buf), dpi)], { type: "image/png" }), name)), "image/png");
+    };
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  }
+  const tikzOf = (items) => F.toTikZ(items.map((it) => ({ lay: it.layH, type: it.d.type, sign: it.d.sign })), { mono: radio("fd-col") === "mono", wavy: radio("fd-arrow") === "wavy" });
+  $("fd-grid").addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return;
+    const k = +(b.dataset.svg ?? b.dataset.png ?? b.dataset.tex), it = last[k]; if (!it) return;
+    const base = `dsfd-${k + 1}-${it.d.type}`;
+    if (b.dataset.svg !== undefined) saveText(exportSVG(it), base + ".svg", "image/svg+xml");
+    else if (b.dataset.png !== undefined) svgToPNG(exportSVG(it), base + ".png", 300);
+    else saveText(tikzOf([it]), base + ".tex", "application/x-tex");
   });
+  $("fd-svg-all").addEventListener("click", () => { if (last.length) saveText(sheet(last), "dsfd-all.svg", "image/svg+xml"); });
+  $("fd-png-all").addEventListener("click", () => { if (last.length) svgToPNG(sheet(last), "dsfd-all.png", 300); });
+  $("fd-tikz-all").addEventListener("click", () => { if (last.length) saveText(tikzOf(last), "dsfd-diagrams.tex", "application/x-tex"); });
 
-  renderSigns(F.PRESETS.rephasing.signs);
-  update();
+  applyPreset("rephasing");
 })();
 </script>
 {% endraw %}
