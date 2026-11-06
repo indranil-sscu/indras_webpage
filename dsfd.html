@@ -230,9 +230,8 @@ permalink: /tools/dsfd/
     const screenPal = mono ? (dark ? { ink: "#E6E8EB", bg: "#161A20", muted: "#E6E8EB", accent: () => "#E6E8EB", mono: true } : F.palette("mono")) : F.palette("color", dark);
     const letter = (i) => (i < 26 ? String.fromCharCode(97 + i) : String(i + 1));
     last = visible.map((d, i) => {
-      const caption = `(${letter(i)}) ${F.hzLabel(d) || d.type}`;
-      const lay = F.layout(d, { fieldLabels: fl || undefined, caption, groundZero: $("fd-zero").checked, kLabels: $("fd-klab").checked });
-      return { d, i, lay, layH: lay, caption, svg: F.toSVG(lay, { pal: screenPal, type: d.type, wavy }) };
+      const lay = F.layout(d, { fieldLabels: fl || undefined, groundZero: $("fd-zero").checked, kLabels: $("fd-klab").checked });
+      return { d, i, lay, layH: lay, svg: F.toSVG(lay, { pal: screenPal, type: d.type, wavy }) };
     });
     $("fd-grid").innerHTML = last.map(({ d, svg, i }) => `
       <div class="fd-diagram">
