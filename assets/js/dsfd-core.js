@@ -8,6 +8,8 @@
  * P. Hamm & M. Zanni, "Concepts and Methods of 2D Infrared Spectroscopy";
  * A. Tokmakoff, lecture notes on nonlinear spectroscopy):
  *  - Time runs upward; the left rail is the ket, the right rail the bra.
+ *  - Pathway numbering R1–R6 follows Hamm & Zanni (R1–R3 rephasing SE, GSB, ESA;
+ *    R4–R6 non-rephasing SE, GSB, ESA).
  *  - The system starts in the ground-state population |g⟩⟨g|.
  *  - Rotating-wave approximation: each field interaction excites or
  *    de-excites the ket or the bra by one manifold.
@@ -192,67 +194,63 @@
   };
 
   /* ------------------------------------------------------------------ *
-   * Layout: geometry shared by the SVG and TikZ renderers.
+   * Layout: geometry shared by the SVG and TikZ renderers, in the textbook
+   * style of Hamm & Zanni: two rails, arrows at 45°, the ket and bra indices
+   * written as two columns between the rails (one row per interval, the
+   * initial ground state omitted), and a caption such as "(a) R₁" below.
    * Coordinates are in px with y pointing down (SVG convention).
    * ------------------------------------------------------------------ */
-  const SLOPE = Math.tan((15 * Math.PI) / 180); // interaction arrows rise at 15°
+
+  /** Hamm & Zanni numbering of third-order pathways: R₁–R₃ rephasing (SE, GSB, ESA), R₄–R₆ non-rephasing. */
+  function hzLabel(d) {
+    if (d.interactions.length !== 3 || d.rephasing === null || d.rephasing === undefined) return null;
+    const k = { SE: 1, GSB: 2, ESA: 3 }[d.type];
+    return k ? "R_" + (d.rephasing ? k : k + 3) : null;
+  }
 
   /**
    * @param {object} d diagram from enumerate()
-   * @param {object} o {intervals: [names for t₁…t_n], fieldLabels: [...], timeAxis: bool (default off), header: string}
+   * @param {object} o {caption: string, kLabels: bool, fieldLabels: [...], groundZero: bool (write g as 0)}
    */
   function layout(d, o) {
     o = o || {};
     const n = d.interactions.length;
-    const withAxis = o.timeAxis === true;
-    const gap = 50, axisX = 16, kx = withAxis ? 140 : 96, bx = kx + 60, L = 46, dy = L * SLOPE;
-    const top0 = o.header ? 34 : 18;
-    const yAt = (j) => top0 + gap * (n + 1 - j) + 38; // j = 0 initial … n+1 signal
-    const bottom = yAt(0) + 10, W = bx + 100, H = bottom + 10;
+    const gap = 40, L = 34, sep = 56, pad = o.kLabels ? 44 : 8;
+    const kx = pad + L + 2, bx = kx + sep, W = bx + L + pad + 2;
+    const rowTop = 26;                              // centre of the top row (the state after the signal)
+    const rowY = (k) => rowTop + (n + 1 - k) * gap; // row k: state after interaction k (k = 1 … n+1)
+    const hitY = (k) => rowY(k) + gap / 2;          // interaction k meets its rail at the lower edge of row k
+    const railTop = rowTop - gap / 2, railBot = hitY(1) + L + 2;
+    const H = railBot + (o.caption ? 32 : 6);
+    const name = (s) => (o.groundZero && s === "g" ? "0" : s);
     const SUBS = (i) => (o.fieldLabels && o.fieldLabels[i] ? "_{" + o.fieldLabels[i] + "}" : "_" + (i + 1));
-    const lay = { W, H, n, rails: [], arrows: [], rho: [], axis: null, brackets: [], header: o.header || "" };
-    const railTop = yAt(n + 1) - 36;
-    lay.rails.push({ x: kx, y1: bottom, y2: railTop }, { x: bx, y1: bottom, y2: railTop });
-    // density-matrix labels: initial below the first interaction, then between interactions
-    const mid = (kx + bx) / 2;
-    lay.rho.push({ x: mid, y: (yAt(0) + yAt(1)) / 2 + 4, ket: d.rho[0][0], bra: d.rho[0][1] });
-    for (let j = 1; j <= n; j++) lay.rho.push({ x: mid, y: (yAt(j) + yAt(j + 1)) / 2 + 4, ket: d.rho[j][0], bra: d.rho[j][1] });
-    lay.rho.push({ x: mid, y: (yAt(n + 1) + railTop) / 2 + 2, ket: d.emission.to, bra: d.emission.to });
-    // interaction arrows
+    const mid = (kx + bx) / 2, dx = sep * 0.22;
+    const lay = {
+      W, H, n, rails: [{ x: kx, y1: railBot, y2: railTop }, { x: bx, y1: railBot, y2: railTop }],
+      rows: [], arrows: [], caption: o.caption || "", captionY: railBot + 24,
+    };
+    for (let k = 1; k <= n; k++) lay.rows.push({ y: rowY(k), kx: mid - dx, bx: mid + dx, ket: name(d.rho[k][0]), bra: name(d.rho[k][1]) });
+    lay.rows.push({ y: rowY(n + 1), kx: mid - dx, bx: mid + dx, ket: name(d.emission.to), bra: name(d.emission.to) });
     d.interactions.concat([d.emission]).forEach((s, idx) => {
-      const y = yAt(idx + 1), sig = s.kind === "emit";
+      const y = hitY(idx + 1), inward = s.kind === "up";
       let a;
-      if (s.side === "ket") {
-        a = s.kind === "up" ? { x1: kx - L, y1: y + dy, x2: kx - 1.5, y2: y } : { x1: kx - 1.5, y1: y, x2: kx - L, y2: y - dy };
-        a.lx = Math.min(a.x1, a.x2) - 4; a.anchor = "end";
-      } else {
-        a = s.kind === "up" ? { x1: bx + L, y1: y + dy, x2: bx + 1.5, y2: y } : { x1: bx + 1.5, y1: y, x2: bx + L, y2: y - dy };
-        a.lx = Math.max(a.x1, a.x2) + 4; a.anchor = "start";
-      }
-      a.ly = (a.y1 + a.y2) / 2 + 4;
-      a.signal = sig;
-      a.inward = s.kind === "up";
-      a.side = s.side;
-      a.text = sig ? "k_{sig}" : (s.sign > 0 ? "+" : "−") + "k" + SUBS(s.k - 1);
+      if (s.side === "ket") a = inward ? { x1: kx - L, y1: y + L, x2: kx, y2: y } : { x1: kx, y1: y, x2: kx - L, y2: y - L };
+      else a = inward ? { x1: bx + L, y1: y + L, x2: bx, y2: y } : { x1: bx, y1: y, x2: bx + L, y2: y - L };
+      const outer = inward ? [a.x1, a.y1] : [a.x2, a.y2];
+      a.lx = outer[0] + (s.side === "ket" ? -3 : 3); a.ly = outer[1] + 4; a.anchor = s.side === "ket" ? "end" : "start";
+      a.signal = s.kind === "emit"; a.inward = inward; a.side = s.side;
+      a.text = a.signal ? "k_{sig}" : (s.sign > 0 ? "+" : "−") + "k" + SUBS(s.k - 1);
       lay.arrows.push(a);
     });
-    // time axis with bracketed intervals
-    if (withAxis) {
-      lay.axis = { x: axisX, y1: bottom, y2: railTop - 4 };
-      // interval t_j runs from interaction j to interaction j+1 (where the arrows touch the rails)
-      const uni = (t) => String(t).replace(/_(\d)/g, (_, d) => SUB[+d]);
-      const names = (o.intervals || Array.from({ length: n }, (_, i) => "t_" + (i + 1))).map(uni);
-      lay.ticks = Array.from({ length: n + 1 }, (_, j) => yAt(j + 1));
-      for (let j = 1; j <= n; j++) lay.brackets.push({ x: axisX + 8, y1: yAt(j) - 1.5, y2: yAt(j + 1) + 1.5, ym: (yAt(j) + yAt(j + 1)) / 2, text: names[j - 1] });
-    }
+    lay.kLabels = !!o.kLabels;
     return lay;
   }
 
   /* ---------------- text helpers ---------------- */
-  // "k_{sig}", "k_1", "t_2", "t₁ = 0" → SVG tspans / LaTeX
+  // "k_{sig}", "k_1", "R_1" → SVG tspans / LaTeX
   function svgText(s) {
     const esc = (t) => String(t).replace(/&/g, "&amp;").replace(/</g, "&lt;");
-    return esc(s).replace(/_\{([^}]*)\}|_(\w)/g, (_, a, b) => `<tspan baseline-shift="sub" font-size="75%">${a || b}</tspan>`);
+    return esc(s).replace(/_\{([^}]*)\}|_(\w)/g, (_, a, b) => `<tspan dy="0.28em" font-size="72%">${a || b}</tspan>`);
   }
   function texText(s) {
     const map = { "₀": "_0", "₁": "_1", "₂": "_2", "₃": "_3", "₄": "_4", "₅": "_5", "−": "-", "τ": "\\tau ", "ω": "\\omega " };
@@ -260,11 +258,13 @@
     t = t.replace(/k_\{sig\}/g, "\\mathbf{k}_{\\mathrm{s}}").replace(/k_\{([^}]*)\}/g, "\\mathbf{k}_{\\mathrm{$1}}").replace(/k_(\w)/g, "\\mathbf{k}_{$1}");
     return t;
   }
+  /** caption "(a) R_1" → "(a) $R_{1}$" (ASCII only) */
+  const texCaption = (s) => String(s).replace(/[#%&]/g, (c) => "\\" + c).replace(/([A-Za-z])_(\w+)/g, (_, a, b) => `$${a}_{${b}}$`).replace(/[^\x00-\x7F]/g, "");
   const texState = (s) => String(s).replace(/[^A-Za-z0-9']/g, "");
 
   /* ---------------- palettes ---------------- */
   const PATHWAY_COLORS = { GSB: "#2B6CB0", SE: "#2C7A7B", ESA: "#C53030", DQC: "#6B46C1", SFG: "#2B6CB0", DFG: "#2C7A7B", Linear: "#4A5568", "—": "#4A5568" };
-  /** palette: {ink, bg, muted, accent(type)} — "print" is pure black on white. */
+  /** palette: {ink, bg, muted, accent(type)} — "mono" is pure black on white. */
   function palette(kind, dark) {
     if (kind === "mono") return { ink: "#000000", bg: "#ffffff", muted: "#000000", accent: () => "#000000", mono: true };
     if (dark) return { ink: "#E6E8EB", bg: "#161A20", muted: "#8A919C", accent: (t) => ({ GSB: "#63B3ED", SE: "#4FD1C5", ESA: "#FC8181", DQC: "#B794F4" }[t] || "#CBD5E0") };
@@ -283,44 +283,33 @@
   /**
    * SVG string for one diagram (inline presentation attributes only, so it
    * survives export to Illustrator / Inkscape / LaTeX).
-   * opts: {pal, wavy, type, sign}
+   * opts: {pal, wavy, type}
    */
   function toSVG(lay, opts) {
-    const P = opts.pal, accent = P.accent(opts.type), font = "Times New Roman, STIX Two Text, serif";
+    const P = opts.pal, accent = P.accent(opts.type), font = "Latin Modern Roman, Computer Modern, CMU Serif, STIX Two Text, Times New Roman, serif";
     const out = [];
-    const mk = (id, col) => `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,1 L10,5 L0,9 z" fill="${col}"/></marker>`;
+    const mk = (id, col) => `<marker id="${id}" viewBox="0 0 10 10" refX="9.5" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse" markerUnits="userSpaceOnUse"><path d="M0,1.2 L10,5 L0,8.8 L2.2,5 z" fill="${col}"/></marker>`;
     const uid = "m" + Math.random().toString(36).slice(2, 8);
     out.push(`<defs>${mk(uid + "i", P.ink)}${mk(uid + "s", accent)}</defs>`);
     out.push(`<rect width="${lay.W}" height="${lay.H}" fill="${P.bg}"/>`);
-    if (lay.header) out.push(`<text x="10" y="18" font-family="${font}" font-size="13" fill="${accent}" font-weight="bold">${svgText(lay.header)}</text>`);
-    lay.rails.forEach((r) => out.push(`<line x1="${r.x}" y1="${r.y1}" x2="${r.x}" y2="${r.y2}" stroke="${P.ink}" stroke-width="2" stroke-linecap="square"/>`));
-    lay.rho.forEach((r) => out.push(`<text x="${r.x}" y="${r.y}" text-anchor="middle" font-family="${font}" font-size="13" fill="${P.ink}">|${svgText(r.ket)}⟩⟨${svgText(r.bra)}|</text>`));
+    lay.rails.forEach((r) => out.push(`<line x1="${r.x}" y1="${r.y1}" x2="${r.x}" y2="${r.y2}" stroke="${P.ink}" stroke-width="1.6"/>`));
+    lay.rows.forEach((r) => {
+      out.push(`<text x="${r.kx}" y="${r.y}" dominant-baseline="central" text-anchor="middle" font-family="${font}" font-size="16" font-style="${/^\d+$/.test(r.ket) ? "normal" : "italic"}" fill="${P.ink}">${svgText(r.ket)}</text>`);
+      out.push(`<text x="${r.bx}" y="${r.y}" dominant-baseline="central" text-anchor="middle" font-family="${font}" font-size="16" font-style="${/^\d+$/.test(r.bra) ? "normal" : "italic"}" fill="${P.ink}">${svgText(r.bra)}</text>`);
+    });
     lay.arrows.forEach((a) => {
       const col = a.signal ? accent : P.ink, marker = `url(#${uid}${a.signal ? "s" : "i"})`;
-      if (a.signal) {
-        out.push(`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${col}" stroke-width="1.6" stroke-dasharray="5,3" marker-end="${marker}"/>`);
-      } else if (opts.wavy) {
-        out.push(`<path d="${wavyPath(a.x1, a.y1, a.x2, a.y2, 2.6, 8, 7)}" fill="none" stroke="${col}" stroke-width="1.4" marker-end="${marker}"/>`);
-      } else {
-        out.push(`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${col}" stroke-width="1.5" marker-end="${marker}"/>`);
-      }
-      out.push(`<text x="${a.lx}" y="${a.ly}" font-family="${font}" font-size="13" font-style="italic" fill="${col}" text-anchor="${a.anchor}">${svgText(a.text)}</text>`);
+      if (a.signal) out.push(`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${col}" stroke-width="1.3" stroke-dasharray="4,3" marker-end="${marker}"/>`);
+      else if (opts.wavy) out.push(`<path d="${wavyPath(a.x1, a.y1, a.x2, a.y2, 2.4, 7, 8)}" fill="none" stroke="${col}" stroke-width="1.3" marker-end="${marker}"/>`);
+      else out.push(`<line x1="${a.x1}" y1="${a.y1}" x2="${a.x2}" y2="${a.y2}" stroke="${col}" stroke-width="1.3" marker-end="${marker}"/>`);
+      if (lay.kLabels) out.push(`<text x="${a.lx}" y="${a.ly}" font-family="${font}" font-size="13" font-style="italic" fill="${col}" text-anchor="${a.anchor}">${svgText(a.text)}</text>`);
     });
-    if (lay.axis) {
-      const A = lay.axis;
-      out.push(`<line x1="${A.x}" y1="${A.y1}" x2="${A.x}" y2="${A.y2}" stroke="${P.muted}" stroke-width="1" marker-end="url(#${uid}i)"/>`);
-      out.push(`<text x="${A.x}" y="${A.y2 - 6}" text-anchor="middle" font-family="${font}" font-size="13" font-style="italic" fill="${P.muted}">t</text>`);
-      (lay.ticks || []).forEach((y) => out.push(`<line x1="${A.x - 3}" y1="${y}" x2="${A.x + 3}" y2="${y}" stroke="${P.muted}" stroke-width="1"/>`));
-      lay.brackets.forEach((b) => {
-        out.push(`<path d="M${A.x + 3},${b.y1} H${b.x} V${b.y2} H${A.x + 3}" fill="none" stroke="${P.muted}" stroke-width="1"/>`);
-        out.push(`<text x="${b.x + 5}" y="${b.ym}" dominant-baseline="central" font-family="${font}" font-size="12" font-style="italic" fill="${P.muted}">${svgText(b.text)}</text>`);
-      });
-    }
+    if (lay.caption) out.push(`<text x="${lay.W / 2}" y="${lay.captionY}" text-anchor="middle" font-family="${font}" font-size="15" fill="${P.ink}">${svgText(lay.caption).replace(/([A-Za-z])(<tspan)/, '<tspan font-style="italic">$1</tspan>$2')}</text>`);
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${lay.W}" height="${lay.H}" viewBox="0 0 ${lay.W} ${lay.H}">${out.join("")}</svg>`;
   }
 
   /**
-   * Standalone LaTeX/TikZ document. items: [{lay, type, sign}] → one tikzpicture
+   * Standalone LaTeX/TikZ document. items: [{lay, type}] → one tikzpicture
    * (one page of the standalone PDF) per diagram.
    */
   function toTikZ(items, opts) {
@@ -330,37 +319,29 @@
     const cname = (t) => "path" + String(t).replace(/[^A-Za-z]/g, "");
     const f = (v) => (+v).toFixed(1);
     const lines = [
-      "% Double-sided Feynman diagrams — generated by https://indranil-sscu.github.io/indras_webpage/tools/dsfd/",
+      "% Double-sided Feynman diagrams, generated by https://indranil-sscu.github.io/indras_webpage/tools/dsfd/",
       "% Compile with pdflatex; each diagram is one page of the PDF.",
       "\\documentclass[tikz,border=4pt]{standalone}",
       "\\usetikzlibrary{arrows.meta, decorations.pathmorphing}",
       ...used.map((t) => `\\definecolor{${cname(t)}}{HTML}{${(mono ? "000000" : (PATHWAY_COLORS[t] || "#4A5568").slice(1))}}`),
       "\\tikzset{",
-      "  rail/.style={line width=1.5pt},",
-      "  field/.style={-{Stealth[length=5pt,width=4pt]}, line width=0.9pt" + (wavy ? ", decorate, decoration={snake, amplitude=1.6pt, segment length=5pt, post length=5pt}" : "") + "},",
-      "  signal/.style={-{Stealth[length=5pt,width=4pt]}, line width=0.9pt, dashed},",
-      "  axis/.style={-{Stealth[length=4pt]}, line width=0.5pt, gray},",
+      "  rail/.style={line width=1.2pt},",
+      "  field/.style={-{Stealth[length=6pt,width=4.5pt,inset=1.5pt]}, line width=0.9pt" + (wavy ? ", decorate, decoration={snake, amplitude=1.5pt, segment length=5pt, post length=6pt}" : "") + "},",
+      "  signal/.style={-{Stealth[length=6pt,width=4.5pt,inset=1.5pt]}, line width=0.9pt, dashed},",
+      "  idx/.style={font=\\large},",
       "}",
       "\\begin{document}",
     ];
     items.forEach((it) => {
       const L = it.lay, col = cname(it.type);
-      lines.push("\\begin{tikzpicture}[x=0.75pt, y=-0.75pt, every node/.style={font=\\small}]");
-      if (L.header) lines.push(`  \\node[anchor=west, text=${col}, font=\\small\\bfseries] at (10,14) {${L.header.replace(/[#%&_]/g, (c) => "\\" + c).replace(/−/g, "$-$").replace(/[^\x00-\x7F]/g, "")}};`);
+      lines.push("\\begin{tikzpicture}[x=0.75pt, y=-0.75pt]");
       L.rails.forEach((r) => lines.push(`  \\draw[rail] (${f(r.x)},${f(r.y1)}) -- (${f(r.x)},${f(r.y2)});`));
-      L.rho.forEach((r) => lines.push(`  \\node at (${f(r.x)},${f(r.y - 4)}) {$|${texState(r.ket)}\\rangle\\langle ${texState(r.bra)}|$};`));
+      L.rows.forEach((r) => lines.push(`  \\node[idx] at (${f(r.kx)},${f(r.y)}) {$${texState(r.ket)}$}; \\node[idx] at (${f(r.bx)},${f(r.y)}) {$${texState(r.bra)}$};`));
       L.arrows.forEach((a) => {
         lines.push(`  \\draw[${a.signal ? "signal, " + col : "field"}] (${f(a.x1)},${f(a.y1)}) -- (${f(a.x2)},${f(a.y2)});`);
-        lines.push(`  \\node[anchor=${a.anchor === "end" ? "east" : "west"}${a.signal ? ", text=" + col : ""}] at (${f(a.lx)},${f(a.ly - 4)}) {$${texText(a.text)}$};`);
+        if (L.kLabels) lines.push(`  \\node[anchor=${a.anchor === "end" ? "east" : "west"}, font=\\small${a.signal ? ", text=" + col : ""}] at (${f(a.lx)},${f(a.ly - 4)}) {$${texText(a.text)}$};`);
       });
-      if (L.axis) {
-        lines.push(`  \\draw[axis] (${f(L.axis.x)},${f(L.axis.y1)}) -- (${f(L.axis.x)},${f(L.axis.y2)}) node[above, text=gray] {$t$};`);
-        (L.ticks || []).forEach((y) => lines.push(`  \\draw[gray, line width=0.4pt] (${f(L.axis.x - 3)},${f(y)}) -- (${f(L.axis.x + 3)},${f(y)});`));
-        L.brackets.forEach((b) => {
-          lines.push(`  \\draw[gray, line width=0.4pt] (${f(L.axis.x + 3)},${f(b.y1)}) -- (${f(b.x)},${f(b.y1)}) -- (${f(b.x)},${f(b.y2)}) -- (${f(L.axis.x + 3)},${f(b.y2)});`);
-          lines.push(`  \\node[anchor=west, text=gray, font=\\footnotesize] at (${f(b.x + 2)},${f(b.ym)}) {$${texText(b.text)}$};`);
-        });
-      }
+      if (L.caption) lines.push(`  \\node at (${f(L.W / 2)},${f(L.captionY - 4)}) {${texCaption(L.caption)}};`);
       lines.push("\\end{tikzpicture}");
     });
     lines.push("\\end{document}");
@@ -383,5 +364,5 @@
     return out;
   }
 
-  return { levelScheme, enumerate, dipoles, propagators, phaseFactors, direction, layout, toSVG, toTikZ, palette, pngWithDpi, PATHWAY_COLORS, PRESETS };
+  return { levelScheme, enumerate, dipoles, propagators, phaseFactors, direction, hzLabel, layout, toSVG, toTikZ, palette, pngWithDpi, PATHWAY_COLORS, PRESETS };
 });

@@ -26,7 +26,7 @@ permalink: /tools/dsfd/
   .fd-summary.warn { background: var(--warn-bg); border-color: var(--warn-border); }
   .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1em; }
   .fd-diagram { border: 1px solid var(--border-color); border-radius: var(--radius); padding: .6em .7em .7em; background: var(--bg-surface); }
-  .fd-diagram svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
+  .fd-diagram svg { display: block; width: 100%; max-width: 270px; height: auto; margin: .2em auto 0; }
   .fd-diagram h4 { margin: 0 0 .2em; font-size: .92em; display: flex; justify-content: space-between; align-items: center; }
   .fd-tag { font-size: .76em; padding: .08em .5em; border-radius: 10px; color: #fff; letter-spacing: .02em; }
   .fd-tag.mono { background: transparent !important; color: var(--text-primary); border: 1.5px solid var(--text-primary); }
@@ -79,9 +79,11 @@ permalink: /tools/dsfd/
   <div class="fd-card">
     <h3>3 · Style</h3>
     <label>Field arrows</label>
-    <div class="fd-seg"><label><input type="radio" name="fd-arrow" value="straight" checked>straight 15°</label><label><input type="radio" name="fd-arrow" value="wavy">wavy</label></div>
+    <div class="fd-seg"><label><input type="radio" name="fd-arrow" value="straight" checked>straight</label><label><input type="radio" name="fd-arrow" value="wavy">wavy</label></div>
+    <label class="inl"><input type="checkbox" id="fd-zero" checked> write the ground state as 0</label>
+    <label class="inl"><input type="checkbox" id="fd-klab"> label arrows with ±k</label>
     <label>Colour</label>
-    <div class="fd-seg"><label><input type="radio" name="fd-col" value="color" checked>colour</label><label><input type="radio" name="fd-col" value="mono">print (black &amp; white)</label></div>
+    <div class="fd-seg"><label><input type="radio" name="fd-col" value="mono" checked>black &amp; white</label><label><input type="radio" name="fd-col" value="color">colour signal</label></div>
     <label>Show</label>
     <div id="fd-filter">
       <label class="inl"><input type="checkbox" value="GSB" checked> GSB</label>
@@ -114,6 +116,7 @@ permalink: /tools/dsfd/
       <dt>signal</dt><dd>dashed arrow: the emitted field, acting last on the ket and returning ρ to a population</dd>
       <dt>sign</dt><dd>(−1)<sup><i>n</i><sub>bra</sub></sup>, <i>n</i><sub>bra</sub> = number of bra-side interactions before the signal</dd>
       <dt>rephasing</dt><dd>the t₁ and t₃ coherences oscillate with opposite signs of frequency, so inhomogeneous dephasing is undone (photon echo)</dd>
+      <dt>R₁ … R₆</dt><dd>Hamm &amp; Zanni numbering of the third-order pathways: R₁, R₂, R₃ are the rephasing SE, GSB and ESA diagrams; R₄, R₅, R₆ the non-rephasing ones. Rows between the rails list the ket and bra indices after each interaction (ground state 0)</dd>
       <dt>GSB, SE, ESA</dt><dd>ground-state bleach (|g⟩⟨g| during t₂), stimulated emission (excited-state population or coherence, signal from e → g), excited-state absorption (third interaction excites to f)</dd>
     </dl>
     <p><b>Why ESA is negative.</b> ESA pathways always contain an odd number of bra-side interactions, so the rule (−1)<sup><i>n</i><sub>bra</sub></sup> already gives them the opposite sign to GSB and SE. An extra factor of (−1) for ESA would double-count it. The rotating-wave approximation keeps only resonant interactions (one manifold up or down per field), and the impulsive limit gives each interval its own propagator <i>G<sub>ab</sub></i>(<i>t<sub>i</sub></i>).
@@ -167,7 +170,7 @@ permalink: /tools/dsfd/
   ["fd-singles", "fd-doubles"].forEach((id) => $(id).addEventListener("input", update));
   ["fd-twoq"].forEach((id) => $(id).addEventListener("change", update));
   $("fd-filter").addEventListener("change", update);
-  document.querySelectorAll('input[name="fd-arrow"], input[name="fd-col"]').forEach((el) => el.addEventListener("change", update));
+  document.querySelectorAll('input[name="fd-arrow"], input[name="fd-col"], #fd-zero, #fd-klab').forEach((el) => el.addEventListener("change", update));
   ST.onChange(update);
 
   const parseStates = (s) => s.split(",").map((x) => x.trim()).filter(Boolean);
@@ -208,7 +211,9 @@ permalink: /tools/dsfd/
     const scheme = F.levelScheme(singles, doubles, { twoQuantum: $("fd-twoq").checked });
     const ds = signSets.flatMap((s) => F.enumerate(s, scheme));
     const show = new Set([...$("fd-filter").querySelectorAll("input:checked")].map((c) => c.value));
-    const visible = ds.filter((d) => (["GSB", "SE", "ESA", "DQC"].includes(d.type) ? show.has(d.type) : show.has("other")));
+    const rank = (d) => { const r = F.hzLabel(d); return r ? +r.slice(2) : 99; };
+    const visible = ds.filter((d) => (["GSB", "SE", "ESA", "DQC"].includes(d.type) ? show.has(d.type) : show.has("other")))
+      .map((d, i) => [d, i]).sort((a, b) => rank(a[0]) - rank(b[0]) || a[1] - b[1]).map((x) => x[0]);
     const counts = {};
     ds.forEach((d) => { if (d.type !== "—") counts[d.type] = (counts[d.type] || 0) + 1; });
     sum.classList.toggle("warn", ds.length === 0);
@@ -221,16 +226,17 @@ permalink: /tools/dsfd/
         (visible.length < ds.length ? ` (showing ${visible.length})` : "")
       : `No pathways: k<sub>sig</sub> = ${dirTxt} cannot be generated by this level scheme within the rotating-wave approximation.` + (n % 2 === 0 ? " Even orders need a g ↔ doubly-excited transition: tick the χ⁽²⁾ option." : "");
     const names = intervalNames(n), mono = radio("fd-col") === "mono", wavy = radio("fd-arrow") === "wavy";
-    const screenPal = mono ? F.palette("mono") : F.palette("color", ST.get() === "dark");
+    const dark = ST.get() === "dark";
+    const screenPal = mono ? (dark ? { ink: "#E6E8EB", bg: "#161A20", muted: "#E6E8EB", accent: () => "#E6E8EB", mono: true } : F.palette("mono")) : F.palette("color", dark);
+    const letter = (i) => (i < 26 ? String.fromCharCode(97 + i) : String(i + 1));
     last = visible.map((d, i) => {
-      const header = `#${i + 1} ${d.type} (${d.sign > 0 ? "+" : "−"})`;
-      const lay = F.layout(d, { fieldLabels: fl || undefined });
-      const layH = F.layout(d, { fieldLabels: fl || undefined, header });
-      return { d, i, lay, layH, svg: F.toSVG(lay, { pal: screenPal, type: d.type, wavy }) };
+      const caption = `(${letter(i)}) ${F.hzLabel(d) || d.type}`;
+      const lay = F.layout(d, { fieldLabels: fl || undefined, caption, groundZero: $("fd-zero").checked, kLabels: $("fd-klab").checked });
+      return { d, i, lay, layH: lay, caption, svg: F.toSVG(lay, { pal: screenPal, type: d.type, wavy }) };
     });
     $("fd-grid").innerHTML = last.map(({ d, svg, i }) => `
       <div class="fd-diagram">
-        <h4><span>#${i + 1} &nbsp;<span class="fd-tag ${mono ? "mono " : ""}${esc(d.type)}" style="background:${F.PATHWAY_COLORS[d.type] || "#4A5568"}">${esc(d.type)}</span>${d.rephasing === true ? ' <span class="fd-note">R</span>' : d.rephasing === false ? ' <span class="fd-note">NR</span>' : ""}</span><span>sign ${d.sign > 0 ? "+" : "−"} <span class="fd-note">(n<sub>bra</sub> = ${d.nBra})</span></span></h4>
+        <h4><span>(${letter(i)}) &nbsp;<span class="fd-tag ${mono ? "mono " : ""}${esc(d.type)}" style="background:${F.PATHWAY_COLORS[d.type] || "#4A5568"}">${esc(d.type)}</span>${d.rephasing === true ? ' <span class="fd-note">rephasing</span>' : d.rephasing === false ? ' <span class="fd-note">non-rephasing</span>' : ""}</span><span>sign ${d.sign > 0 ? "+" : "−"} <span class="fd-note">(n<sub>bra</sub> = ${d.nBra})</span></span></h4>
         ${svg}
         <div class="fd-path">${esc(d.label)}</div>
         <div class="fd-term"><span class="k">k-sum</span> ${kSum(d, fl)}<br>${termHTML(d, scheme, names)}</div>

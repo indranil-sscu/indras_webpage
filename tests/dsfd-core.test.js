@@ -98,46 +98,45 @@ test("phase factors: rephasing SE oscillates as e^{+iω_eg t1 − iω_eg t3}", (
   assert.deepStrictEqual(F.phaseFactors(nr, twoLevel).parts.map((p) => p.sign), [-1, 0, -1]);
 });
 
-test("layout: rails, n + 1 arrows at 15°, inward arrows for absorption", () => {
-  const esa = F.enumerate(R, threeLevel).find((d) => d.type === "ESA");
-  const L = F.layout(esa, { intervals: ["t_1", "t_2", "t_3"], timeAxis: true });
+test("layout: textbook style, 45° arrows, rows of ket/bra indices, R1–R6 captions", () => {
+  const all = [...F.enumerate(R, threeLevel), ...F.enumerate(NR, threeLevel)];
+  const lab = Object.fromEntries(all.map((d) => [F.hzLabel(d), d.type + (d.rephasing ? "/R" : "/NR")]));
+  assert.deepStrictEqual(lab, { R_1: "SE/R", R_2: "GSB/R", R_3: "ESA/R", R_4: "SE/NR", R_5: "GSB/NR", R_6: "ESA/NR" });
+  const r1 = all.find((d) => F.hzLabel(d) === "R_1");
+  const L = F.layout(r1, { groundZero: true, caption: "(a) R_1" });
   assert.strictEqual(L.rails.length, 2);
   assert.strictEqual(L.arrows.length, 4);
-  L.arrows.forEach((a) => near(Math.abs(a.y2 - a.y1) / Math.abs(a.x2 - a.x1), Math.tan(Math.PI / 12), 0.03));
-  esa.interactions.forEach((s, i) => assert.strictEqual(L.arrows[i].inward, s.kind === "up"));
-  assert.ok(L.arrows[3].signal && !L.arrows[3].inward);
-  assert.strictEqual(L.brackets.length, 3);
-  // each delay bracket spans exactly the two interaction times that bound it (where the arrows
-  // touch the rails), and its label is level with the density-matrix label of that interval
-  const railY = (a) => (a.inward ? a.y2 : a.y1);
-  L.brackets.forEach((b, j) => {
-    near(L.ticks[j], railY(L.arrows[j]), 1e-9);
-    near(b.y1, L.ticks[j] - 1.5, 1e-9);
-    near(b.y2, L.ticks[j + 1] + 1.5, 1e-9);
-    near(b.ym, (L.ticks[j] + L.ticks[j + 1]) / 2, 1e-9);
-    near(L.rho[j + 1].y - 4, b.ym, 1e-9);
+  L.arrows.forEach((a) => near(Math.abs(a.y2 - a.y1), Math.abs(a.x2 - a.x1), 1e-9)); // 45°
+  // rows bottom → top as in Hamm & Zanni Fig. R1: "0 e", "e e", "e 0", "0 0"
+  assert.deepStrictEqual(L.rows.map((r) => r.ket + " " + r.bra), ["0 e", "e e", "e 0", "0 0"]);
+  // interaction k meets its rail between row k−1 and row k; the signal is below the top row
+  L.arrows.forEach((a, k) => {
+    const y = a.inward ? a.y2 : a.y1;
+    assert.ok(y > L.rows[k].y && (k === 0 || y < L.rows[k - 1].y));
   });
-  assert.strictEqual(L.brackets[0].text, "t₁");
+  {
+    const esa = all.find((d) => F.hzLabel(d) === "R_3");
+    F.layout(esa).arrows.slice(0, 3).forEach((a, i) => assert.strictEqual(a.inward, true, "R3 has three absorptions"));
+  }
+  assert.ok(L.caption === "(a) R_1" && L.captionY > L.rails[0].y1);
 });
 
-test("default layout: no time axis; initial and final populations sit between the rails", () => {
+test("default layout: no ground-state renaming, all rows between the rails", () => {
   const d = F.enumerate(R, threeLevel)[0];
-  const L = F.layout(d, { header: "x" });
-  assert.strictEqual(L.axis, null);
-  assert.strictEqual(L.brackets.length, 0);
-  const top = Math.min(L.rails[0].y2, L.rails[0].y1), bot = Math.max(L.rails[0].y2, L.rails[0].y1);
-  L.rho.forEach((r) => assert.ok(r.y - 10 > top && r.y < bot, `label at ${r.y} outside rails ${top}–${bot}`));
-  const sig = L.arrows[L.arrows.length - 1];
-  assert.ok(L.rho[L.rho.length - 1].y < Math.min(sig.y1, sig.y2)); // final population above the signal
-  assert.ok(top > 22); // clear of the header line
+  const L = F.layout(d);
+  assert.strictEqual(L.rows[0].ket, "g");
+  const top = Math.min(L.rails[0].y1, L.rails[0].y2), bot = Math.max(L.rails[0].y1, L.rails[0].y2);
+  L.rows.forEach((r) => assert.ok(r.y - 8 > top && r.y + 8 < bot));
+  assert.ok(L.arrows.every((a) => Math.min(a.y1, a.y2) >= 0 && Math.max(a.x1, a.x2) <= L.W));
 });
 
 test("SVG and TikZ export are well formed", () => {
   const ds = F.enumerate(R, threeLevel);
-  const items = ds.map((d) => ({ lay: F.layout(d, { header: d.type }), type: d.type, sign: d.sign }));
+  const items = ds.map((d, i) => ({ lay: F.layout(d, { caption: `(${"abc"[i]}) ${F.hzLabel(d)}`, groundZero: true }), type: d.type, sign: d.sign }));
   const svg = F.toSVG(items[0].lay, { pal: F.palette("color"), type: items[0].type });
   assert.ok(svg.startsWith("<svg") && svg.endsWith("</svg>"));
-  assert.strictEqual((svg.match(/<line /g) || []).length, 2 + 4); // rails + arrows (no time axis by default)
+  assert.strictEqual((svg.match(/<line /g) || []).length, 2 + 4); // rails + arrows
+  assert.ok(svg.includes(">R<tspan") || svg.includes("R</tspan><tspan")); // caption R with subscript
   const wavy = F.toSVG(items[0].lay, { pal: F.palette("mono"), type: items[0].type, wavy: true });
   assert.strictEqual((wavy.match(/<path d="M[^"]*( L[^"]*){5,}"/g) || []).length, 3); // three wavy field arrows (signal stays dashed)
   assert.ok(!/#2B6CB0|#2C7A7B|#C53030/i.test(wavy)); // print mode is black and white
@@ -146,7 +145,8 @@ test("SVG and TikZ export are well formed", () => {
   assert.strictEqual((tex.match(/\\begin\{tikzpicture\}/g) || []).length, 3);
   assert.strictEqual((tex.match(/\{/g) || []).length, (tex.match(/\}/g) || []).length);
   assert.ok(tex.includes("\\definecolor{pathESA}{HTML}{C53030}"));
-  assert.ok(tex.includes("$|f\\rangle\\langle e|$"));
+  assert.ok(tex.includes("{$f$}") && tex.includes("{$0$}"));
+  assert.ok(/\(a\) \$R_\{\d\}\$/.test(tex));
   assert.ok(!/[^\x00-\x7F]/.test(tex.split("\n").slice(2).join("\n")), "TikZ body must be pure ASCII for pdflatex");
 });
 
