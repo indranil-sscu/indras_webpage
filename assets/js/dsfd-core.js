@@ -199,24 +199,25 @@
 
   /**
    * @param {object} d diagram from enumerate()
-   * @param {object} o {intervals: [names for t₁…t_n], fieldLabels: [...], timeAxis: bool, header: string}
+   * @param {object} o {intervals: [names for t₁…t_n], fieldLabels: [...], timeAxis: bool (default off), header: string}
    */
   function layout(d, o) {
     o = o || {};
     const n = d.interactions.length;
-    const gap = 50, axisX = 16, kx = 140, bx = 200, L = 46, dy = L * SLOPE;
+    const withAxis = o.timeAxis === true;
+    const gap = 50, axisX = 16, kx = withAxis ? 140 : 96, bx = kx + 60, L = 46, dy = L * SLOPE;
     const top0 = o.header ? 34 : 18;
-    const yAt = (j) => top0 + gap * (n + 1 - j) + 18; // j = 0 initial … n+1 signal
-    const bottom = yAt(0) + 10, W = 300, H = bottom + 10;
+    const yAt = (j) => top0 + gap * (n + 1 - j) + 38; // j = 0 initial … n+1 signal
+    const bottom = yAt(0) + 10, W = bx + 100, H = bottom + 10;
     const SUBS = (i) => (o.fieldLabels && o.fieldLabels[i] ? "_{" + o.fieldLabels[i] + "}" : "_" + (i + 1));
     const lay = { W, H, n, rails: [], arrows: [], rho: [], axis: null, brackets: [], header: o.header || "" };
-    const railTop = yAt(n + 1) - 14;
+    const railTop = yAt(n + 1) - 36;
     lay.rails.push({ x: kx, y1: bottom, y2: railTop }, { x: bx, y1: bottom, y2: railTop });
     // density-matrix labels: initial below the first interaction, then between interactions
     const mid = (kx + bx) / 2;
     lay.rho.push({ x: mid, y: (yAt(0) + yAt(1)) / 2 + 4, ket: d.rho[0][0], bra: d.rho[0][1] });
     for (let j = 1; j <= n; j++) lay.rho.push({ x: mid, y: (yAt(j) + yAt(j + 1)) / 2 + 4, ket: d.rho[j][0], bra: d.rho[j][1] });
-    lay.rho.push({ x: mid, y: railTop - 6, ket: d.emission.to, bra: d.emission.to });
+    lay.rho.push({ x: mid, y: (yAt(n + 1) + railTop) / 2 + 2, ket: d.emission.to, bra: d.emission.to });
     // interaction arrows
     d.interactions.concat([d.emission]).forEach((s, idx) => {
       const y = yAt(idx + 1), sig = s.kind === "emit";
@@ -236,7 +237,7 @@
       lay.arrows.push(a);
     });
     // time axis with bracketed intervals
-    if (o.timeAxis !== false) {
+    if (withAxis) {
       lay.axis = { x: axisX, y1: bottom, y2: railTop - 4 };
       // interval t_j runs from interaction j to interaction j+1 (where the arrows touch the rails)
       const uni = (t) => String(t).replace(/_(\d)/g, (_, d) => SUB[+d]);
