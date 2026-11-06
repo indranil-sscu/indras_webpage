@@ -238,8 +238,11 @@
     // time axis with bracketed intervals
     if (o.timeAxis !== false) {
       lay.axis = { x: axisX, y1: bottom, y2: railTop - 4 };
-      const names = o.intervals || Array.from({ length: n }, (_, i) => "t_" + (i + 1));
-      for (let j = 1; j <= n; j++) lay.brackets.push({ x: axisX + 10, y1: yAt(j) - 2, y2: yAt(j + 1) + 2, text: names[j - 1] });
+      // interval t_j runs from interaction j to interaction j+1 (where the arrows touch the rails)
+      const uni = (t) => String(t).replace(/_(\d)/g, (_, d) => SUB[+d]);
+      const names = (o.intervals || Array.from({ length: n }, (_, i) => "t_" + (i + 1))).map(uni);
+      lay.ticks = Array.from({ length: n + 1 }, (_, j) => yAt(j + 1));
+      for (let j = 1; j <= n; j++) lay.brackets.push({ x: axisX + 8, y1: yAt(j) - 1.5, y2: yAt(j + 1) + 1.5, ym: (yAt(j) + yAt(j + 1)) / 2, text: names[j - 1] });
     }
     return lay;
   }
@@ -306,9 +309,10 @@
       const A = lay.axis;
       out.push(`<line x1="${A.x}" y1="${A.y1}" x2="${A.x}" y2="${A.y2}" stroke="${P.muted}" stroke-width="1" marker-end="url(#${uid}i)"/>`);
       out.push(`<text x="${A.x}" y="${A.y2 - 6}" text-anchor="middle" font-family="${font}" font-size="13" font-style="italic" fill="${P.muted}">t</text>`);
+      (lay.ticks || []).forEach((y) => out.push(`<line x1="${A.x - 3}" y1="${y}" x2="${A.x + 3}" y2="${y}" stroke="${P.muted}" stroke-width="1"/>`));
       lay.brackets.forEach((b) => {
-        out.push(`<path d="M${b.x - 3},${b.y1} H${b.x} V${b.y2} H${b.x - 3}" fill="none" stroke="${P.muted}" stroke-width="1"/>`);
-        out.push(`<text x="${b.x + 4}" y="${(b.y1 + b.y2) / 2 + 4}" font-family="${font}" font-size="12" font-style="italic" fill="${P.muted}">${svgText(b.text)}</text>`);
+        out.push(`<path d="M${A.x + 3},${b.y1} H${b.x} V${b.y2} H${A.x + 3}" fill="none" stroke="${P.muted}" stroke-width="1"/>`);
+        out.push(`<text x="${b.x + 5}" y="${b.ym}" dominant-baseline="central" font-family="${font}" font-size="12" font-style="italic" fill="${P.muted}">${svgText(b.text)}</text>`);
       });
     }
     return `<svg xmlns="http://www.w3.org/2000/svg" width="${lay.W}" height="${lay.H}" viewBox="0 0 ${lay.W} ${lay.H}">${out.join("")}</svg>`;
@@ -350,9 +354,10 @@
       });
       if (L.axis) {
         lines.push(`  \\draw[axis] (${f(L.axis.x)},${f(L.axis.y1)}) -- (${f(L.axis.x)},${f(L.axis.y2)}) node[above, text=gray] {$t$};`);
+        (L.ticks || []).forEach((y) => lines.push(`  \\draw[gray, line width=0.4pt] (${f(L.axis.x - 3)},${f(y)}) -- (${f(L.axis.x + 3)},${f(y)});`));
         L.brackets.forEach((b) => {
-          lines.push(`  \\draw[gray, line width=0.4pt] (${f(b.x - 3)},${f(b.y1)}) -- (${f(b.x)},${f(b.y1)}) -- (${f(b.x)},${f(b.y2)}) -- (${f(b.x - 3)},${f(b.y2)});`);
-          lines.push(`  \\node[anchor=west, text=gray, font=\\footnotesize] at (${f(b.x + 2)},${f((b.y1 + b.y2) / 2)}) {$${texText(b.text)}$};`);
+          lines.push(`  \\draw[gray, line width=0.4pt] (${f(L.axis.x + 3)},${f(b.y1)}) -- (${f(b.x)},${f(b.y1)}) -- (${f(b.x)},${f(b.y2)}) -- (${f(L.axis.x + 3)},${f(b.y2)});`);
+          lines.push(`  \\node[anchor=west, text=gray, font=\\footnotesize] at (${f(b.x + 2)},${f(b.ym)}) {$${texText(b.text)}$};`);
         });
       }
       lines.push("\\end{tikzpicture}");
