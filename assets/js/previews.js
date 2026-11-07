@@ -188,6 +188,31 @@
       o.putImageData(img, 0, 0); P.ctx.drawImage(off, 0, 0, P.W, P.H);
       el.setAttribute("aria-label", "The Mandelbrot set coloured by escape time");
     },
+    /* absorptive 2D spectrum of a coupled dimer, computed by the 2DES engine */
+    twodes(el) {
+      const T2 = window.TwoDES; if (!T2) return;
+      const job = { source: "model", model: "dimer", params: Object.assign(T2.DEFAULT_PARAMS("dimer"), { J: T2.cm(300) }), T: 0,
+        numerics: { dt: 6, n1: 48, n3: 48, pad: 2, window: "none", broaden: 0, halfFirst: true, convention: "standard", carrier: T2.cm(15300) } };
+      const r = T2.run(job), S = r.total, lo = T2.cm(14300), hi = T2.cm(16400);
+      const P = PK().frame(canvasIn(el), { x0: 0, x1: 1, y0: 0, y1: 1, bare: true });
+      const ia = S.w1.findIndex((w) => w >= lo), ib = S.w1.length - 1 - [...S.w1].reverse().findIndex((w) => w <= hi);
+      const n = ib - ia + 1; let m = 0;
+      for (let a = ia; a <= ib; a++) for (let b = ia; b <= ib; b++) m = Math.max(m, Math.abs(S.re[a * S.N3 + b]));
+      const off = document.createElement("canvas"); off.width = n; off.height = n;
+      const o = off.getContext("2d"), img = o.createImageData(n, n), dark = window.SiteTheme.get() === "dark";
+      const bg = dark ? [15, 23, 42] : [255, 255, 255], pos = dark ? [248, 113, 113] : [178, 24, 43], neg = dark ? [96, 165, 250] : [33, 102, 172];
+      for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) {
+        const v = S.re[(ib - y) * S.N3 + ia + x] / m, t = Math.min(1, Math.abs(v)), c = v >= 0 ? pos : neg;
+        img.data.set([...bg.map((q, k) => Math.round(q + (c[k] - q) * t)), 255], (y * n + x) * 4);
+      }
+      o.putImageData(img, 0, 0);
+      const side = Math.min(P.W, P.H) - 8, x0 = (P.W - side) / 2, y0 = (P.H - side) / 2;
+      P.ctx.imageSmoothingEnabled = true; P.ctx.drawImage(off, x0, y0, side, side);
+      P.ctx.strokeStyle = P.K.muted; P.ctx.setLineDash([4, 3]); P.ctx.beginPath(); P.ctx.moveTo(x0, y0 + side); P.ctx.lineTo(x0 + side, y0); P.ctx.stroke(); P.ctx.setLineDash([]);
+      P.ctx.fillStyle = P.K.muted; P.ctx.font = "10px " + P.font; P.ctx.textAlign = "left";
+      P.ctx.fillText("ω₃ →", x0 + side + 6, y0 + side - 2); P.ctx.fillText("↑ ω₁", Math.max(2, x0 - 34), y0 + 10);
+      el.setAttribute("aria-label", "Absorptive 2D electronic spectrum of a coupled dimer, with diagonal peaks, cross peaks and negative excited-state absorption");
+    },
     reference(el) {
       const ink = css("--text-primary"), mut = css("--text-muted"), acc = css("--accent");
       const rows = [["c", "299 792 458 m/s", "exact"], ["h", "6.626 070 15e−34 J s", "exact"], ["1 eV", "8065.544 cm⁻¹", ""], ["800 nm", "12 500 cm⁻¹", "1.55 eV"]];

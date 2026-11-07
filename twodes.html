@@ -1,0 +1,905 @@
+---
+layout: page
+title: 2D Electronic Spectroscopy Simulator
+permalink: /tools/2des/
+crumbs:
+  - title: Explore Tools
+    url: /explore/
+short_title: 2DES simulator
+lead: Define a third-order response function R(t₃, T, t₁), from a built-in model, your own formula or measured data, and compute its rephasing, non-rephasing and absorptive 2D spectra with documented conventions.
+description: Browser-based 2D electronic spectroscopy simulator. Built-in two-level, GSB/SE/ESA, excitonic-dimer and vibronic models, custom response functions and CSV import; FFT with zero-padding, apodisation and selectable sign conventions; validated against analytical results.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/twodes-core.js
+---
+{% raw %}
+<style>
+  .td-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; grid-template-areas: "model" "stage" "proc" "bottom"; }
+  @media (min-width: 900px) { .td-layout { grid-template-columns: 300px minmax(0, 1fr); grid-template-areas: "model stage" "proc stage" "bottom bottom"; } .td-stage { align-self: start; } }
+  @media (min-width: 1280px) { .td-layout { grid-template-columns: 290px minmax(0, 1fr) 270px; grid-template-areas: "model stage proc" "bottom bottom bottom"; } }
+  .td-model { grid-area: model; } .td-stage { grid-area: stage; } .td-proc { grid-area: proc; } .td-bottom { grid-area: bottom; }
+  .td-panel { min-width: 0; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: .9rem 1rem; }
+  .td-panel > h2, .td-panel h3 { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); border: 0; padding: 0; margin: 0 0 .6rem; }
+  .td-panel h3 { margin: 1.1rem 0 .5rem; padding-top: .8rem; border-top: 1px solid var(--border-subtle); }
+  .td-f { margin: 0 0 .6rem; min-width: 0; }
+  .td-f > label, .td-f > .lbl { display: flex; justify-content: space-between; gap: .5em; font-size: .76rem; font-weight: 500; color: var(--text-secondary); margin-bottom: .25rem; }
+  .td-f input[type="number"], .td-f input[type="text"], .td-f select, .td-f textarea { width: 100%; box-sizing: border-box; }
+  .td-f input[type="range"] { width: 100%; }
+  .td-f .unit { color: var(--text-muted); font-weight: 400; }
+  .td-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .5rem; }
+  .td-code { font-family: var(--font-mono); font-size: .78rem; min-height: 4.6em; resize: vertical; }
+  .td-note { font-size: .76rem; color: var(--text-muted); margin: .3rem 0 .6rem; line-height: 1.45; }
+  .td-checks { display: flex; flex-wrap: wrap; gap: .3rem .9rem; margin: .2rem 0 .7rem; }
+  .td-checks label { display: inline-flex; align-items: center; gap: .35em; font-size: .8rem; color: var(--text-secondary); cursor: pointer; }
+  .td-tabs { display: flex; flex-wrap: wrap; gap: .4rem .6rem; align-items: center; margin-bottom: .55rem; }
+  .td-tabs .segmented { flex-wrap: wrap; }
+  .td-tabs .segmented button { height: 30px; padding: 0 .7em; }
+  .td-tabs .segmented button:disabled { opacity: .45; cursor: default; }
+  .td-Trow { display: grid; grid-template-columns: auto minmax(0, 1fr) 6.5em; gap: .6rem; align-items: center; margin: .2rem 0 .5rem; font-size: .8rem; color: var(--text-secondary); }
+  .td-conv { font: .74rem/1.45 var(--font-mono); color: var(--text-secondary); background: var(--bg-muted); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: .35rem .55rem; margin: .5rem 0 0; overflow-wrap: anywhere; }
+  .td-readout { min-height: 1.4em; font: .78rem var(--font-mono); color: var(--text-secondary); margin: .35rem 0 0; overflow-wrap: anywhere; }
+  .td-msgs { margin: .4rem 0 0; padding: 0; list-style: none; font-size: .8rem; }
+  .td-msgs li { padding: .35rem .6rem; border-radius: var(--radius-sm); margin: .3rem 0; border: 1px solid var(--warn-border); background: var(--warn-bg); color: var(--text-primary); }
+  .td-msgs li.err { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 9%, var(--bg-surface)); }
+  .td-msgs li.ok { border-color: var(--badge-se); background: color-mix(in srgb, var(--badge-se) 9%, var(--bg-surface)); }
+  .td-status { font-size: .76rem; color: var(--text-muted); min-height: 1.2em; }
+  .td-btns { display: flex; flex-wrap: wrap; gap: .4rem; margin: .3rem 0 .4rem; }
+  .td-btns .btn { height: 32px; }
+  .td-bottom-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  @media (min-width: 1000px) { .td-bottom-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  .td-bottom canvas, .td-stage canvas { display: block; width: 100%; background: var(--canvas-bg); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); }
+  .td-stage canvas#td-map { touch-action: manipulation; cursor: crosshair; }
+  .td-stage canvas:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+  .td-sub { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; margin-bottom: .4rem; }
+  .td-sub h3 { margin: 0; padding: 0; border: 0; }
+  .td-paths { width: 100%; font-size: .74rem; }
+  .td-paths th, .td-paths td { padding: .2rem .35rem; }
+  .td-paths td { font-family: var(--font-mono); }
+  .td-tag { display: inline-block; padding: 0 .35em; border-radius: 3px; font: 600 .68rem var(--font-mono); color: #fff; }
+  .td-tag.GSB { background: var(--badge-gsb); } .td-tag.SE { background: var(--badge-se); } .td-tag.ESA { background: var(--badge-esa); }
+  .td-file { font-size: .78rem; }
+  details.td-more { margin-top: .4rem; } details.td-more summary { cursor: pointer; font-size: .8rem; color: var(--accent); }
+  .td-stats { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
+  .td-stats .stat dd { font-size: .86rem; }
+</style>
+
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li>Pick a <b>response function</b> on the left: a built-in model (start from an example), your own formula, or measured data as CSV.</li>
+    <li>Choose what to look at above the map (rephasing, non-rephasing, absorptive; real, imaginary, magnitude, phase) and move the <b>waiting time T</b>.</li>
+    <li>Set the time-domain sampling, zero padding, window and units on the right. Click the map to read a value, take slices and compute the waiting-time trace at that point. Use <b>Check convergence</b> before trusting fine details.</li>
+  </ol>
+</div>
+
+<div class="layout-wide td-layout">
+  <!-- ======================= response function ======================= -->
+  <section class="td-panel td-model" aria-labelledby="td-model-h">
+    <h2 id="td-model-h">Response function</h2>
+    <div class="td-f">
+      <span class="lbl" id="td-src-l">Source</span>
+      <div class="segmented" role="group" aria-labelledby="td-src-l" id="td-src">
+        <button type="button" data-src="model" aria-pressed="true">Model</button>
+        <button type="button" data-src="expr" aria-pressed="false">Formula</button>
+        <button type="button" data-src="data" aria-pressed="false">Import CSV</button>
+      </div>
+    </div>
+
+    <div data-src-panel="model">
+      <div class="td-f"><label for="td-example">Load example</label>
+        <select id="td-example">
+          <option value="">Choose an example…</option>
+          <option value="ex1">1. Isolated two-level system</option>
+          <option value="ex2">2. Two uncoupled transitions</option>
+          <option value="ex3">3. Coupled two-state system (dimer)</option>
+          <option value="ex4">4. Vibronic system</option>
+          <option value="ex5">GSB, SE and ESA (three-level ladder)</option>
+        </select></div>
+      <p class="td-note" id="td-ex-note"></p>
+      <div class="td-f"><label for="td-model-sel">Model</label><select id="td-model-sel"></select></div>
+      <div id="td-params"></div>
+      <div class="td-f"><span class="lbl">Contributions</span>
+        <div class="td-checks" id="td-comps">
+          <label><input type="checkbox" value="GSB" checked> GSB</label>
+          <label><input type="checkbox" value="SE" checked> SE</label>
+          <label><input type="checkbox" value="ESA" checked> ESA</label>
+        </div></div>
+      <details class="td-more"><summary>Model assumptions</summary><p class="td-note" id="td-model-notes"></p></details>
+      <details class="td-more" id="td-paths-box"><summary>Liouville pathways in this model</summary>
+        <p class="td-note">Each term is one double-sided Feynman diagram; draw them with the <a href="../dsfd/">Feynman diagram generator</a>. Frequencies in the current unit; the factor shows the waiting-time dependence at the current T.</p>
+        <div style="overflow-x:auto"><table class="td-paths" id="td-paths"></table></div></details>
+    </div>
+
+    <div data-src-panel="expr" hidden>
+      <p class="td-note">Write the <b>lab-frame</b> response with <code>t1</code>, <code>t3</code>, <code>T</code> in fs and angular frequencies in rad/fs. The simulator multiplies by the rotating-frame factor exactly, so a coarse time step is fine as long as the signal lies within ωc ± π/Δt.</p>
+      <div class="td-f"><label for="td-expr-p">Parameters <span class="unit">name = value, one per line</span></label><textarea id="td-expr-p" class="td-code" rows="5" spellcheck="false"></textarea></div>
+      <div class="td-f"><label for="td-expr-r">Rephasing R<sub>R</sub>(t₃, T, t₁)</label><textarea id="td-expr-r" class="td-code" rows="3" spellcheck="false"></textarea></div>
+      <div class="td-f"><label for="td-expr-nr">Non-rephasing R<sub>NR</sub>(t₃, T, t₁)</label><textarea id="td-expr-nr" class="td-code" rows="3" spellcheck="false"></textarea></div>
+      <p class="td-note">Functions: exp, log, sqrt, sin, cos, tan, sinh, cosh, tanh, abs, arg, re, im, conj, pow; unit helpers cm(·), ev(·), thz(·) convert to rad/fs. Constants: i, pi, e. Operators + − * / ^ and parentheses. Leave a box empty to omit that pathway. The formula is parsed by a restricted parser; nothing is executed as code.</p>
+      <ul class="td-msgs" id="td-expr-msg" aria-live="polite"></ul>
+    </div>
+
+    <div data-src-panel="data" hidden>
+      <p class="td-note">CSV columns <code>t1, T, t3, re, im</code> (and optionally <code>pathway</code> = R or NR), with or without a header. Lines starting with # are comments; <code># carrier_rad_per_fs = …</code> sets the carrier. One file may hold several T values. Data stay in your browser.</p>
+      <div class="td-f"><label for="td-file-kind">File contains</label>
+        <select id="td-file-kind"><option value="col">a pathway column (R / NR)</option><option value="R">rephasing only</option><option value="NR">non-rephasing only</option><option value="signedR">signed t₁: t₁ &lt; 0 is rephasing</option><option value="signedNR">signed t₁: t₁ &lt; 0 is non-rephasing</option></select></div>
+      <div class="td-2">
+        <div class="td-f"><label for="td-file-unit">Time unit</label><select id="td-file-unit"><option value="fs">fs</option><option value="ps">ps</option></select></div>
+        <div class="td-f"><label for="td-file-carrier">Data carrier <span class="unit" data-unit></span></label><input type="number" id="td-file-carrier" value="0" step="any"></div>
+      </div>
+      <p class="td-note">Carrier 0 means lab-frame data. Rotating-frame data are defined as R_lab·e<sup>−iω<sub>c</sub>t₁+iω<sub>c</sub>t₃</sup> (rephasing) and R_lab·e<sup>+iω<sub>c</sub>t₁+iω<sub>c</sub>t₃</sup> (non-rephasing), the same definition as the export.</p>
+      <div class="td-f"><label for="td-file1">File 1</label><input type="file" id="td-file1" accept=".csv,.txt,.dat,text/csv,text/plain" class="td-file"></div>
+      <div class="td-f"><label for="td-file2">File 2 (optional, e.g. the other pathway)</label><input type="file" id="td-file2" accept=".csv,.txt,.dat,text/csv,text/plain" class="td-file"></div>
+      <div class="td-f"><label for="td-file2-kind">File 2 contains</label>
+        <select id="td-file2-kind"><option value="NR">non-rephasing only</option><option value="R">rephasing only</option><option value="col">a pathway column (R / NR)</option></select></div>
+      <ul class="td-msgs" id="td-data-msg" aria-live="polite"></ul>
+    </div>
+  </section>
+
+  <!-- ======================= the 2D spectrum ======================= -->
+  <section class="td-panel td-stage" aria-labelledby="td-stage-h">
+    <h2 id="td-stage-h">2D spectrum</h2>
+    <div class="td-tabs">
+      <div class="segmented" role="group" aria-label="Spectrum" id="td-spec">
+        <button type="button" data-spec="R" aria-pressed="false">Rephasing</button>
+        <button type="button" data-spec="NR" aria-pressed="false">Non-rephasing</button>
+        <button type="button" data-spec="abs" aria-pressed="true">Absorptive</button>
+        <button type="button" data-spec="total" aria-pressed="false">R + NR</button>
+      </div>
+      <div class="segmented" role="group" aria-label="Component" id="td-comp">
+        <button type="button" data-comp="re" aria-pressed="true">Real</button>
+        <button type="button" data-comp="im" aria-pressed="false">Imaginary</button>
+        <button type="button" data-comp="abs" aria-pressed="false">Magnitude</button>
+        <button type="button" data-comp="phase" aria-pressed="false">Phase</button>
+      </div>
+    </div>
+    <div class="td-Trow"><label for="td-T">Waiting time T</label><input type="range" id="td-T" min="0" max="1000" step="1" value="0"><input type="number" id="td-T-n" min="0" step="1" value="0" aria-label="Waiting time T in fs"></div>
+    <canvas id="td-map" tabindex="0" role="img" aria-label="2D spectrum: detection frequency ω3 horizontally, excitation frequency ω1 vertically"></canvas>
+    <p class="td-readout" id="td-readout" aria-live="polite"></p>
+    <div class="td-status" id="td-status" aria-live="polite"></div>
+    <ul class="td-msgs" id="td-msgs" aria-live="polite"></ul>
+    <p class="td-conv" id="td-conv"></p>
+  </section>
+
+  <!-- ======================= processing and display ======================= -->
+  <section class="td-panel td-proc" aria-labelledby="td-proc-h">
+    <h2 id="td-proc-h">Processing</h2>
+    <div class="td-2">
+      <div class="td-f"><label for="td-dt">Time step Δt <span class="unit">fs</span></label><input type="number" id="td-dt" min="0.05" max="100" step="any" value="4"></div>
+      <div class="td-f"><label for="td-pad">Zero padding</label><select id="td-pad"><option value="1">×1</option><option value="2" selected>×2</option><option value="4">×4</option><option value="8">×8</option></select></div>
+      <div class="td-f"><label for="td-n1">Points in t₁</label><input type="number" id="td-n1" min="8" max="1024" step="1" value="128"></div>
+      <div class="td-f"><label for="td-n3">Points in t₃</label><input type="number" id="td-n3" min="8" max="1024" step="1" value="128"></div>
+    </div>
+    <p class="td-note" id="td-tmax"></p>
+    <div class="td-f"><label for="td-win">Apodisation window</label><select id="td-win"></select></div>
+    <div class="td-f"><label for="td-broad">Numerical broadening, FWHM <span class="unit" data-unit></span></label><input type="number" id="td-broad" min="0" step="any" value="0"></div>
+    <div class="td-checks"><label><input type="checkbox" id="td-half" checked> Halve the t = 0 samples (trapezoid rule)</label></div>
+    <div class="td-f"><label for="td-carrier">Rotating-frame carrier ω<sub>c</sub> <span class="unit" data-unit></span></label><input type="number" id="td-carrier" step="any"></div>
+    <div class="td-checks"><label><input type="checkbox" id="td-carrier-auto" checked> Centre of the model's transitions</label></div>
+    <div class="td-f"><label for="td-conv-sel">Fourier sign convention</label><select id="td-conv-sel"></select></div>
+    <div class="td-f" id="td-nonu-box" hidden><label for="td-nonu">Nonuniform sampling</label><select id="td-nonu"><option value="direct">Direct nonuniform Fourier sum</option><option value="resample">Resample to a uniform grid, then FFT</option></select></div>
+
+    <h3>Display</h3>
+    <div class="td-f"><label for="td-unit">Frequency unit</label><select id="td-unit"><option value="cm">cm⁻¹</option><option value="ev">eV</option><option value="thz">THz</option><option value="radfs">rad/fs</option></select></div>
+    <div class="td-2">
+      <div class="td-f"><label for="td-r3a">ω₃ from</label><input type="number" id="td-r3a" step="any"></div>
+      <div class="td-f"><label for="td-r3b">ω₃ to</label><input type="number" id="td-r3b" step="any"></div>
+      <div class="td-f"><label for="td-r1a">ω₁ from</label><input type="number" id="td-r1a" step="any"></div>
+      <div class="td-f"><label for="td-r1b">ω₁ to</label><input type="number" id="td-r1b" step="any"></div>
+    </div>
+    <div class="td-btns"><button type="button" class="btn" id="td-autorange">Auto range</button></div>
+    <div class="td-f"><label for="td-cmap">Colour map</label><select id="td-cmap"><option value="div">Red–blue, zero-centred</option><option value="viridis">Viridis</option><option value="grey">Greyscale</option></select></div>
+    <div class="td-f"><label for="td-clip">Colour limit <output id="td-clip-o">100%</output></label><input type="range" id="td-clip" min="5" max="100" step="1" value="100"></div>
+    <div class="td-checks">
+      <label><input type="checkbox" id="td-contours" checked> Contours</label>
+      <label><input type="checkbox" id="td-diag" checked> Diagonal</label>
+      <label><input type="checkbox" id="td-anti"> Anti-diagonal</label>
+      <label><input type="checkbox" id="td-marks"> Pathway positions</label>
+      <label><input type="checkbox" id="td-auto" checked> Update automatically</label>
+    </div>
+
+    <h3>Actions</h3>
+    <div class="td-btns">
+      <button type="button" class="btn primary" id="td-calc">Recalculate</button>
+      <button type="button" class="btn" id="td-conv-check">Check convergence</button>
+      <button type="button" class="btn" id="td-reset">Reset to default</button>
+    </div>
+    <div class="td-btns">
+      <button type="button" class="btn" id="td-csv">Spectrum CSV</button>
+      <button type="button" class="btn" id="td-png">Figure PNG</button>
+      <button type="button" class="btn" id="td-resp">Response CSV</button>
+      <button type="button" class="btn" id="td-copy">Copy parameters</button>
+    </div>
+    <ul class="td-msgs" id="td-conv-msg" aria-live="polite"></ul>
+    <dl class="stats td-stats" id="td-stats"></dl>
+  </section>
+
+  <!-- ======================= time domain, slices, waiting time ======================= -->
+  <section class="td-panel td-bottom" aria-labelledby="td-bottom-h">
+    <h2 id="td-bottom-h">Time domain, slices and waiting-time dynamics</h2>
+    <div class="td-bottom-grid">
+      <div>
+        <div class="td-sub"><h3>Response (rotating frame)</h3>
+          <div class="segmented" role="group" aria-label="Time-domain view" id="td-tview">
+            <button type="button" data-tv="t1" aria-pressed="true">t₁ cut</button><button type="button" data-tv="t3" aria-pressed="false">t₃ cut</button><button type="button" data-tv="map" aria-pressed="false">2D</button>
+          </div></div>
+        <canvas id="td-time" role="img" aria-label="Time-domain response along t1 at t3 = 0, real and imaginary parts and the window"></canvas>
+      </div>
+      <div>
+        <div class="td-sub"><h3>Slices through the selected point</h3></div>
+        <canvas id="td-slice" role="img" aria-label="Slices of the displayed spectrum through the selected point"></canvas>
+      </div>
+      <div>
+        <div class="td-sub"><h3>Waiting-time trace</h3><button type="button" class="btn" id="td-trace-btn" style="height:28px">Compute</button></div>
+        <canvas id="td-trace" role="img" aria-label="Signal at the selected point against waiting time T"></canvas>
+        <p class="td-note" id="td-trace-note">Select a point on the map, then compute S(ω₁, T, ω₃) for T from 0 to the slider maximum.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>Understanding the mathematics</h2>
+  <details class="theory-card" open>
+    <summary>Response functions, pathways and 2D spectra</summary>
+    <p><b>The third-order response.</b> Three short pulses, separated by the coherence time <i>t</i>₁ and the waiting (population) time <i>T</i>, drive a polarization that radiates during the detection time <i>t</i>₃. In the impulsive limit the radiated signal is the third-order response function, a sum of nested commutators of the dipole operator:</p>
+    <div class="eq"><i>R</i><sup>(3)</sup>(<i>t</i>₃, <i>T</i>, <i>t</i>₁) = (<i>i</i>/ħ)³ θ(<i>t</i>₃)θ(<i>T</i>)θ(<i>t</i>₁) ⟨[[[μ(<i>t</i>₁ + <i>T</i> + <i>t</i>₃), μ(<i>t</i>₁ + <i>T</i>)], μ(<i>t</i>₁)], μ(0)] ρ<sub>eq</sub>⟩ = Σ<sub>pathways</sub> ± <i>R<sub>α</sub></i></div>
+    <p><b>Why three intervals?</b> During <i>t</i>₁ the system is in an optical coherence (a superposition of ground and excited states), which oscillates at the transition frequency. The second pulse turns it into a population, or into a coherence between two excited states, which evolves during <i>T</i>. The third pulse creates a new optical coherence that radiates during <i>t</i>₃. The first and last intervals therefore label <i>which</i> frequency was excited and <i>which</i> was detected. <i>T</i> tracks what happened in between: relaxation, energy transfer, vibrational or electronic coherence.</p>
+    <p><b>Rephasing and non-rephasing pathways.</b> Phase matching selects terms by their wavevector. In the rephasing direction <b>k</b><sub>R</sub> = −<b>k</b>₁ + <b>k</b>₂ + <b>k</b>₃ the coherence evolves as e<sup>+iωt₁</sup> and then e<sup>−iωt₃</sup>, so dephasing from static disorder is undone at <i>t</i>₃ = <i>t</i>₁: a photon echo. In the non-rephasing direction <b>k</b><sub>NR</sub> = +<b>k</b>₁ − <b>k</b>₂ + <b>k</b>₃ both intervals evolve with the same sign and no echo forms. The two must be computed separately; one response cannot simply be used for both.</p>
+    <div class="eq">two-level system: &nbsp; <i>R</i><sub>R</sub> = <i>A</i> e<sup>+iω<sub>eg</sub>t₁ − Γt₁</sup> e<sup>−iω<sub>eg</sub>t₃ − Γt₃</sup> e<sup>−T/T₁</sup>, &nbsp; <i>R</i><sub>NR</sub> = <i>A</i> e<sup>−iω<sub>eg</sub>t₁ − Γt₁</sup> e<sup>−iω<sub>eg</sub>t₃ − Γt₃</sup> e<sup>−T/T₁</sup></div>
+    <p><b>Why Fourier transform along t₁ and t₃.</b> Transforming the two coherence times turns oscillation frequencies into peak positions: excitation frequency ω₁ and detection frequency ω₃. <i>T</i> is kept as a parameter, so a 2D spectrum is a correlation map, "excite here, see the response there", at each waiting time:</p>
+    <div class="eq"><i>S</i><sub>R</sub>(ω₁, <i>T</i>, ω₃) = ∫₀<sup>∞</sup>d<i>t</i>₁ ∫₀<sup>∞</sup>d<i>t</i>₃ <i>R</i><sub>R</sub> e<sup>−iω₁t₁</sup> e<sup>+iω₃t₃</sup>, &nbsp; <i>S</i><sub>NR</sub> = ∫∫ <i>R</i><sub>NR</sub> e<sup>+iω₁t₁</sup> e<sup>+iω₃t₃</sup>, &nbsp; <i>S</i><sub>abs</sub> = Re[<i>S</i><sub>R</sub> + <i>S</i><sub>NR</sub>]</div>
+    <p>Each one-sided transform of e<sup>−Γt</sup> gives a complex Lorentzian with an absorptive real part and a dispersive imaginary part. In the rephasing spectrum alone the dispersive parts mix in and the peaks look "phase twisted"; adding the non-rephasing spectrum cancels them, leaving purely absorptive peaks: 2Γ/(Γ² + Δ₁²) · Γ/(Γ² + Δ₃²) for a two-level system.</p>
+    <p><b>Diagonal and cross peaks.</b> A peak on the diagonal (ω₁ = ω₃) means the transition that was excited also responded. A cross peak at (ω<sub>a</sub>, ω<sub>b</sub>) means that exciting <i>a</i> changed the response at <i>b</i>: the transitions share a ground state, are coupled, or exchange energy. Two independent transitions give no cross peaks, because their cross-peak pathways (GSB, SE and ESA) cancel exactly; example 2 shows this. Coupling breaks the cancellation (example 3). Excited-state absorption gives negative features where the doubly excited state absorbs.</p>
+    <p><b>Homogeneous and inhomogeneous broadening.</b> Fast fluctuations (homogeneous dephasing Γ) broaden a peak equally in all directions: a round peak of FWHM 2Γ. A static spread of transition frequencies (inhomogeneous broadening) stretches the peak along the diagonal, because each molecule is excited and detected at its own frequency. The anti-diagonal width still reports the homogeneous linewidth: the rephasing echo removes the static spread. As the waiting time grows, spectral diffusion would make the peak rounder; this is a planned extension.</p>
+    <ol class="refs">
+      <li>S. Mukamel, <i>Principles of Nonlinear Optical Spectroscopy</i> (Oxford University Press, 1995), ch. 6–7.</li>
+      <li>P. Hamm and M. Zanni, <i>Concepts and Methods of 2D Infrared Spectroscopy</i> (Cambridge University Press, 2011), ch. 4–5 and 9.</li>
+      <li>D. M. Jonas, “Two-dimensional femtosecond spectroscopy,” <i>Annu. Rev. Phys. Chem.</i> <b>54</b>, 425 (2003).</li>
+      <li>M. Cho, <i>Two-Dimensional Optical Spectroscopy</i> (CRC Press, 2009).</li>
+      <li>M. Khalil, N. Demirdöven and A. Tokmakoff, “Obtaining absorptive line shapes in two-dimensional infrared vibrational correlation spectra,” <i>Phys. Rev. Lett.</i> <b>90</b>, 047401 (2003).</li>
+      <li>A. Tokmakoff, “Two-dimensional line shapes derived from coherent third-order nonlinear spectroscopy,” <i>J. Phys. Chem. A</i> <b>104</b>, 4247 (2000).</li>
+      <li>T. Brixner, J. Stenger, H. M. Vaswani, M. Cho, R. E. Blankenship and G. R. Fleming, “Two-dimensional spectroscopy of electronic couplings in photosynthesis,” <i>Nature</i> <b>434</b>, 625 (2005).</li>
+      <li>Y.-C. Cheng and G. R. Fleming, “Coherence quantum beats in two-dimensional electronic spectroscopy,” <i>J. Phys. Chem. A</i> <b>112</b>, 4254 (2008).</li>
+      <li>V. Butkus, D. Zigmantas, L. Valkunas and D. Abramavicius, “Vibrational vs. electronic coherences in 2D spectrum of molecular systems,” <i>Chem. Phys. Lett.</i> <b>545</b>, 40 (2012).</li>
+      <li>V. Tiwari, W. K. Peters and D. M. Jonas, “Electronic resonance with anticorrelated pigment vibrations drives photosynthetic energy transfer outside the adiabatic framework,” <i>Proc. Natl. Acad. Sci. USA</i> <b>110</b>, 1203 (2013).</li>
+    </ol>
+  </details>
+  <details class="theory-card">
+    <summary>Conventions and numerical methods</summary>
+    <p><b>Sign conventions.</b> The built-in models use the E ∝ e<sup>−iωt</sup> convention: R<sub>R</sub> ∝ e<sup>+iω<sub>a</sub>t₁</sup>e<sup>−iω<sub>b</sub>t₃</sup> and R<sub>NR</sub> ∝ e<sup>−iω<sub>a</sub>t₁</sup>e<sup>−iω<sub>b</sub>t₃</sup>. The transform kernels are selectable. The standard choice flips the rephasing ω₁ axis so that both pathways appear at positive frequencies. The unflipped choice shows the rephasing signal at −ω₁. The conjugate choice is for data written with e<sup>+iωt</sup>. Changing a kernel sign mirrors that frequency axis; the tests check this exactly. The absorptive spectrum is Re[S<sub>R</sub> + S<sub>NR</sub>], in which ground-state bleach and stimulated emission are positive and excited-state absorption negative. The factor <i>i</i> of the emitted field and the local-oscillator phase are absorbed into this convention.</p>
+    <p><b>Rotating frame.</b> Optical frequencies (around 3 rad/fs) would need sub-femtosecond sampling. The response is therefore sampled in a frame rotating at the carrier ω<sub>c</sub>: R<sub>rot</sub> = R<sub>lab</sub>·e<sup>−iω<sub>c</sub>t₁+iω<sub>c</sub>t₃</sup> (rephasing) and R<sub>lab</sub>·e<sup>+iω<sub>c</sub>t₁+iω<sub>c</sub>t₃</sup> (non-rephasing). The frequency axes are shifted back by ω<sub>c</sub>. Only frequencies inside ω<sub>c</sub> ± π/Δt are represented; anything outside aliases, and the simulator warns when a model transition does.</p>
+    <p><b>Discrete transform.</b> S(ω₁, ω₃) ≈ Δt² Σ w<sub>j</sub> w<sub>k</sub> R(<i>j</i>Δt, <i>k</i>Δt) e<sup>i s₁ω₁jΔt + i s₃ω₃kΔt</sup> by a radix-2 FFT, with ω = ω<sub>c</sub> + 2π<i>m</i>/(<i>N</i>Δt) after the FFT shift. The t = 0 samples are halved (trapezoid rule). Without this the one-sided transform acquires a constant offset that distorts the absorptive spectrum. Nonuniformly sampled data are transformed by a direct nonuniform Fourier sum with trapezoid weights, or, if you choose, resampled to a uniform grid; uniform sampling is never assumed silently.</p>
+    <p><b>Zero padding is not resolution.</b> Padding to <i>N</i> points makes the displayed grid finer (2π/(<i>N</i>Δt)) by interpolation. The physical resolution is set by the sampled window, about 2π/t<sub>max</sub>, and by the linewidths. A truncated response (signal not decayed by t<sub>max</sub>) gives sinc ripples; a window removes them at the cost of extra broadening. The numerical broadening option multiplies by e<sup>−γt/2</sup> on both axes, adding a Lorentzian of FWHM γ. <b>Check convergence</b> recomputes with Δt/2 and with 2t<sub>max</sub> and reports how much the spectrum changes in the displayed region.</p>
+    <p><b>Validation.</b> Automated tests (<code>tests/twodes-core.test.js</code>) check:</p>
+    <ul>
+      <li>a single transition peaks at (ω<sub>eg</sub>, ω<sub>eg</sub>), and its width is 2Γ on both axes</li>
+      <li>the signal decays as e<sup>−T/T₁</sup></li>
+      <li>the rephasing and non-rephasing peak positions follow each convention, and static disorder elongates the rephasing peak along the diagonal</li>
+      <li>the absorptive spectrum equals the product of Lorentzians to 0.2%</li>
+      <li>zero padding leaves the linewidth unchanged</li>
+      <li>the FFT equals a direct Fourier sum to 10⁻¹⁰</li>
+      <li>flipping a convention mirrors the axis</li>
+      <li>the J = 0 dimer equals two independent transitions, and the electronic beat period is 2π/|E₊ − E₋|</li>
+      <li>the vibronic model reduces to the two-level system at S = 0 and beats at 2π/ω<sub>v</sub></li>
+      <li>the formula mode reproduces the built-in model</li>
+      <li>CSV export and import round-trip exactly</li>
+    </ul>
+    <ol class="refs"><li>G. Otting, H. Widmer, G. Wagner and K. Wüthrich, “Origin of τ₁ and τ₂ ridges in 2D NMR spectra and procedures for suppression,” <i>J. Magn. Reson.</i> <b>66</b>, 187 (1986): halving the first point.</li><li>W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, <i>Numerical Recipes</i>, 3rd ed. (Cambridge University Press, 2007), §12–13.</li></ol>
+  </details>
+  <details class="theory-card">
+    <summary>Scope and limitations</summary>
+    <p>This is an <b>impulsive-limit</b> simulator: the pulses are treated as delta functions, so the spectra are those of the molecular response itself. A measured 2D spectrum also contains the pulse spectra and phases (finite-pulse convolution and windowing), the detection and phasing procedure, scatter, propagation and solvent effects, and the local-oscillator phase. Quantitative agreement with an experiment should not be expected unless those are included.</p>
+    <p>Not included yet, and planned as separate modules:</p>
+    <ul>
+      <li>finite-duration Gaussian pulses and their convolution with the response</li>
+      <li>spectral diffusion (time-dependent frequency correlation) beyond static disorder</li>
+      <li>population transfer between excitons</li>
+      <li>polarization schemes beyond ⟨ZZZZ⟩ and ⟨ZZYY⟩</li>
+      <li>double-quantum spectroscopy</li>
+    </ul>
+    <p>The models use Bloch (exponential) dephasing except the vibronic model, which treats one harmonic mode exactly within the cumulant expansion.</p>
+  </details>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/twodes-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+<script>window.TD_WORKER_URL = "{{ '/assets/js/twodes-worker.js' | relative_url }}";</script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const D = window.TwoDES, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const cm = D.cm;
+  const EXAMPLES = {
+    ex1: { model: "tls", params: {}, T: 0, note: "One diagonal peak at ω_eg. Its width on both axes is 2Γ = 2/T₂: change T₂ and watch the peak grow or shrink. The rephasing spectrum alone is phase-twisted; the absorptive sum is a clean, positive peak. Add static disorder to see it stretch along the diagonal." },
+    ex2: { model: "dimer", params: { J: 0, bx: 0 }, T: 0, note: "Two transitions with J = 0 and no biexciton shift. Every cross-peak pathway (GSB, SE, ESA) is present but they cancel exactly, leaving two diagonal peaks; the faint signal at the cross positions is only the overlap of the diagonal peaks' tails. Switch off ESA to see the uncancelled cross peaks appear." },
+    ex3: { model: "dimer", params: { J: cm(300) }, T: 0, note: "Increase the coupling J: the excitons repel, the dipole strength redistributes, and cross peaks appear because the GSB, SE and ESA pathways no longer cancel. Move T to see the electronic coherence beat at |E₊ − E₋| on the rephasing cross peaks (and on the non-rephasing diagonal peaks); then compute the waiting-time trace." },
+    ex4: { model: "vibronic", params: {}, T: 0, note: "A vibrational progression: peaks at ω₀₀ + nω_v in excitation and ω₀₀ − nω_v in emission, with Franck–Condon weights set by S. Peaks and cross peaks oscillate in T with the vibrational period 2π/ω_v. Vary S, ω_v and the damping." },
+    ex5: { model: "ladder", params: {}, T: 0, note: "Separate contributions: toggle GSB, SE and ESA. ESA appears below the diagonal at ω_fe = ω_eg − Δ, with the sign you choose (negative in a real measurement). With Δ = 0 and |μ_fe|² = 2|μ_eg|² (a harmonic oscillator) the signal vanishes entirely." },
+  };
+  const DEFAULT_EXPR = {
+    params: "# a two-level system, lab frame\nA = 1\nw = cm(15000)   # transition, rad/fs\nG = 1/50        # dephasing rate, 1/fs\nT1 = 1000       # population lifetime, fs",
+    R: "2*A*exp(i*w*t1 - G*t1)*exp(-i*w*t3 - G*t3)*exp(-T/T1)",
+    NR: "2*A*exp(-i*w*t1 - G*t1)*exp(-i*w*t3 - G*t3)*exp(-T/T1)",
+  };
+  const DEF_NUM = { dt: 4, n1: 128, n3: 128, pad: 2, window: "none", broaden: 0, halfFirst: true, convention: "standard", carrier: cm(15000), autoCarrier: true, nonuniform: "direct" };
+  const DEF_VIEW = { unit: "cm", spec: "abs", comp: "re", range: null, cmap: "div", clip: 100, contours: true, diag: true, anti: false, marks: false, auto: true, tview: "t1" };
+  const fresh = () => ({ source: "model", model: "tls", params: D.DEFAULT_PARAMS("tls"), comps: { GSB: true, SE: true, ESA: true }, expr: Object.assign({}, DEFAULT_EXPR), T: 0, Tmax: 1000, num: Object.assign({}, DEF_NUM), view: Object.assign({}, DEF_VIEW), sel: null });
+  let S = fresh(), data = null, result = null, busy = false, pending = false, reqId = 0, trace = null;
+
+  /* ---------- units ---------- */
+  const U = () => D.UNITS[S.view.unit];
+  const toU = (w) => U().to(w), fromU = (v) => U().from(v);
+  const fmtU = (w, extra) => { const u = U(), v = u.to(w); return (Math.abs(v) >= 1e4 || u.digits === 0 ? v.toFixed(Math.max(0, u.digits + (extra || 0))) : v.toFixed(u.digits + (extra || 0))); };
+  const inU = (w) => +U().to(w).toPrecision(8);
+  document.querySelectorAll("[data-unit]").forEach((el) => (el.textContent = U().label));
+
+  /* ---------- engine: worker with a main-thread fallback ---------- */
+  let worker = null;
+  try { worker = new Worker(window.TD_WORKER_URL); } catch (e) { worker = null; }
+  const waiting = new Map();
+  if (worker) {
+    worker.onmessage = (e) => { const w = waiting.get(e.data.id); if (!w) return; waiting.delete(e.data.id); e.data.ok ? w.res(e.data.result) : w.rej(new Error(e.data.error)); };
+    worker.onerror = () => { worker = null; waiting.forEach((w) => w.rej(new Error("worker failed"))); waiting.clear(); };
+  }
+  function strip(r, T) { if (r.paths) r.paths = r.paths.map((p) => Object.assign({}, p, { tfT: p.tf(T), tf: undefined })); return r; }
+  function call(kind, job, extra) {
+    if (worker) return new Promise((res, rej) => { const id = ++reqId; waiting.set(id, { res, rej }); worker.postMessage({ id, kind, job, extra }); })
+      .catch((err) => { if (/worker failed/.test(err.message)) return call(kind, job, extra); throw err; });
+    return new Promise((res, rej) => setTimeout(() => {
+      try { res(kind === "run" ? strip(D.run(job), job.T) : kind === "trace" ? D.waitingTrace(job, extra.w1, extra.w3, extra.Ts) : D.convergence(job, extra.range)); } catch (err) { rej(err); }
+    }, 0));
+  }
+  function buildJob() {
+    const num = Object.assign({}, S.num);
+    if (S.source === "model" && S.num.autoCarrier) num.carrier = autoCarrier();
+    const job = { source: S.source, T: S.T, numerics: num };
+    if (S.source === "model") Object.assign(job, { model: S.model, params: S.params, comps: S.comps });
+    else if (S.source === "expr") job.expr = S.expr;
+    else { job.data = data; job.Tindex = data ? nearestT() : 0; }
+    return job;
+  }
+  function autoCarrier() {
+    const M = D.MODELS[S.model], tr = M.transitions.call(M, S.params);
+    if (S.model === "vibronic") return S.params.w + S.params.S * S.params.wv;
+    const ok = tr.filter((w) => isFinite(w)), lo = Math.min(...ok), hi = Math.max(...ok);
+    return (lo + hi) / 2;
+  }
+  const nearestT = () => { const Ts = data.Ts; let b = 0; Ts.forEach((v, i) => { if (Math.abs(v - S.T) < Math.abs(Ts[b] - S.T)) b = i; }); return b; };
+  function validateGrid() {
+    const n = S.num, N1 = D.nextPow2(n.n1) * n.pad, N3 = D.nextPow2(n.n3) * n.pad;
+    if (!(n.dt > 0)) return "The time step must be positive.";
+    if (n.n1 < 8 || n.n3 < 8 || n.n1 > 1024 || n.n3 > 1024) return "Use between 8 and 1024 points per axis.";
+    if (N1 * N3 > 4194304) return `The padded grid (${N1} × ${N3}) is too large; reduce the points or the zero padding.`;
+    return null;
+  }
+
+  async function compute() {
+    if (S.source === "data" && !data) { result = null; drawAll(); setStatus("Load a CSV file to compute its spectra."); return; }
+    const bad = S.source !== "data" && validateGrid();
+    if (bad) { showMsgs([{ t: "err", m: bad }]); return; }
+    if (busy) { pending = true; return; }
+    busy = true; setStatus("Computing…");
+    const t0 = performance.now(), job = buildJob();
+    try {
+      const r = await call("run", job);
+      result = r; result.ms = performance.now() - t0; result.jobT = job.T;
+      if (S.view.range === null || S.view.rangeAuto) autoRange(true);
+      exprMsg([]);
+      showMsgs(r.warnings.map((m) => ({ t: "warn", m })));
+      setStatus(`Computed in ${Math.round(result.ms)} ms${worker ? " (Web Worker)" : ""}.`);
+      drawAll();
+    } catch (err) {
+      setStatus("");
+      if (S.source === "expr") exprMsg([{ t: "err", m: err.message }]); else showMsgs([{ t: "err", m: err.message }]);
+    } finally {
+      busy = false;
+      if (pending) { pending = false; compute(); }
+    }
+  }
+  let deb = null;
+  const schedule = (force) => { if (!S.view.auto && !force) { setStatus("Settings changed: press Recalculate."); return; } clearTimeout(deb); deb = setTimeout(compute, 120); };
+
+  /* ---------- messages ---------- */
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+  const listMsgs = (el, items) => { el.innerHTML = items.map((x) => `<li class="${x.t}">${esc(x.m)}</li>`).join(""); };
+  const showMsgs = (items) => listMsgs($("td-msgs"), items);
+  const exprMsg = (items) => listMsgs($("td-expr-msg"), items);
+  const setStatus = (s) => ($("td-status").textContent = s);
+
+  /* ---------- spectrum selection ---------- */
+  const sigma = () => { const c = D.CONVENTIONS[S.num.convention], st = D.STD; return { R: [c.R[0] / st.R[0], c.R[1] / st.R[1]], NR: [c.NR[0] / st.NR[0], c.NR[1] / st.NR[1]] }; };
+  /** The spectrum and the quantity on display: {S, val(j), kind: "signed" | "positive" | "phase", label, sig: [σ1, σ3]} */
+  function current() {
+    if (!result) return null;
+    const v = S.view, sg = sigma();
+    let Sp = null, sig = sg.NR, name = "";
+    if (v.spec === "R") { Sp = result.R; sig = sg.R; name = "Rephasing S_R"; }
+    else if (v.spec === "NR") { Sp = result.NR; name = "Non-rephasing S_NR"; }
+    else { Sp = result.total; name = v.spec === "abs" ? "Absorptive Re[S_R + S_NR]" : "S_R + S_NR"; }
+    if (!Sp) return { missing: v.spec === "R" ? "No rephasing response is defined." : v.spec === "NR" ? "No non-rephasing response is defined." : "The absorptive spectrum needs both the rephasing and the non-rephasing response." };
+    const comp = v.spec === "abs" ? "re" : v.comp;
+    const val = comp === "re" ? (j) => Sp.re[j] : comp === "im" ? (j) => Sp.im[j] : comp === "abs" ? (j) => Math.hypot(Sp.re[j], Sp.im[j]) : (j) => Math.atan2(Sp.im[j], Sp.re[j]);
+    const kind = comp === "abs" ? "positive" : comp === "phase" ? "phase" : "signed";
+    const label = v.spec === "abs" ? name : `${name}, ${{ re: "real part", im: "imaginary part", abs: "magnitude", phase: "phase" }[comp]}`;
+    return { S: Sp, val, kind, label, sig, comp };
+  }
+  function autoRange(keepAuto) {
+    let lo, hi;
+    if (S.source === "model") {
+      const M = D.MODELS[S.model], tr = M.transitions.call(M, S.params).filter(isFinite);
+      const lw = 1 / (S.params.tau2 || 60), m = Math.max(cm(700), 8 * lw + (S.params.inh || 0));
+      if (S.model === "vibronic") { lo = S.params.w - S.params.wv * 1.5 - m * 0.6; hi = S.params.w + S.params.wv * Math.max(2, 1 + 2 * S.params.S) + m * 0.6; }
+      else { lo = Math.min(...tr) - m; hi = Math.max(...tr) + m; }
+    } else if (result) {
+      const c = result.info.carrier, h = 0.6 * result.info.nyquist; lo = c - h; hi = c + h;
+    } else { lo = cm(13500); hi = cm(16500); }
+    // clamp to the computed band
+    if (result) { const c = result.info.carrier, h = result.info.nyquist * 0.98; lo = Math.max(lo, c - h); hi = Math.min(hi, c + h); }
+    // round to a tidy step in the display unit
+    const u = U(), ul = u.to(lo), uh = u.to(hi), st = niceStep((uh - ul) / 5);
+    lo = u.from(Math.floor(ul / st) * st); hi = u.from(Math.ceil(uh / st) * st);
+    const sp = current(), sig = sp && sp.sig ? sp.sig : [1, 1];
+    const map = (s) => (s > 0 ? [lo, hi] : [-hi, -lo]);
+    S.view.range = { w1: map(sig[0]), w3: map(sig[1]) }; S.view.rangeAuto = !!keepAuto || S.view.rangeAuto !== false;
+    syncRange();
+  }
+  function syncRange() {
+    const r = S.view.range; if (!r) return;
+    $("td-r3a").value = inU(r.w3[0]); $("td-r3b").value = inU(r.w3[1]); $("td-r1a").value = inU(r.w1[0]); $("td-r1b").value = inU(r.w1[1]);
+  }
+
+  const niceStep = (x) => { const e = Math.pow(10, Math.floor(Math.log10(x))), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; };
+  /** Number of tick intervals that land on round values for the range [x0, x1] (falls back to 5). */
+  const tickCount = (x0, x1, target) => { const st = niceStep(Math.abs(x1 - x0) / target), n = Math.abs(x1 - x0) / st; return Math.abs(n - Math.round(n)) < 1e-6 && n >= 2 && n <= 10 ? Math.round(n) : target; };
+
+  /* ---------- colour maps ---------- */
+  const lerp = (a, b, t) => a + (b - a) * t;
+  const VIR = [[68, 1, 84], [59, 82, 139], [33, 145, 140], [94, 201, 98], [253, 231, 37]];
+  const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+  function colour(kind, t, K) {
+    // t in [−1, 1] for signed, [0, 1] for positive
+    if (S.view.cmap === "grey" || (kind === "positive" && S.view.cmap === "div" && false)) { const x = kind === "signed" ? (t + 1) / 2 : t; const g = Math.round(255 * (K.dark ? x : 1 - x)); return [g, g, g]; }
+    if (S.view.cmap === "viridis" || kind === "positive") { let x = kind === "signed" ? (t + 1) / 2 : t; x = Math.min(1, Math.max(0, x)) * 4; const i = Math.min(3, Math.floor(x)), f = x - i; return VIR[i].map((c, k) => Math.round(lerp(c, VIR[i + 1][k], f))); }
+    // diverging: negative blue, zero = background, positive red
+    const bg = hex(K.bgHex), pos = K.dark ? [248, 113, 113] : [178, 24, 43], neg = K.dark ? [96, 165, 250] : [33, 102, 172];
+    const pos2 = K.dark ? [254, 226, 226] : [103, 0, 31], neg2 = K.dark ? [219, 234, 254] : [5, 48, 97];
+    const a = Math.min(1, Math.abs(t)), c1 = t >= 0 ? pos : neg, c2 = t >= 0 ? pos2 : neg2;
+    return a < 0.7 ? bg.map((c, k) => Math.round(lerp(c, c1[k], a / 0.7))) : c1.map((c, k) => Math.round(lerp(c, c2[k], (a - 0.7) / 0.3)));
+  }
+  function phaseColour(ph, mag) { // hue from phase, brightness from magnitude
+    const h = ((ph / (2 * Math.PI)) + 1) % 1, s = 0.75, l = 0.15 + 0.45 * Math.min(1, mag);
+    const f = (n) => { const k = (n + h * 12) % 12, a = s * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))); };
+    return [f(0), f(8), f(4)];
+  }
+
+  /* ---------- the 2D map ---------- */
+  let mapGeo = null;
+  function drawMap() {
+    const cv = $("td-map"), sp = current(), K0 = window.SiteTheme.colors();
+    const w = cv.getBoundingClientRect().width || 600, h = Math.round(Math.min(620, Math.max(300, w * 0.82)));
+    const rng = S.view.range || { w1: [0, 1], w3: [0, 1] };
+    const u = U();
+    const P = PK.frame(cv, { height: h, x0: u.to(rng.w3[0]), x1: u.to(rng.w3[1]), y0: u.to(rng.w1[0]), y1: u.to(rng.w1[1]), xlabel: `Detection frequency ω₃ (${u.label})`, ylabel: `Excitation frequency ω₁ (${u.label})`, pad: { l: 58, r: 66, t: 12, b: 38 }, xticks: tickCount(u.to(rng.w3[0]), u.to(rng.w3[1]), w < 500 ? 3 : 5), yticks: tickCount(u.to(rng.w1[0]), u.to(rng.w1[1]), 5), xfmt: (v) => (+v.toPrecision(6)).toString(), yfmt: (v) => (+v.toPrecision(6)).toString() });
+    const c = P.ctx; mapGeo = null;
+    if (!sp || sp.missing) {
+      c.fillStyle = P.K.muted; c.font = "13px " + P.font; c.textAlign = "center";
+      c.fillText(sp && sp.missing ? sp.missing : S.source === "data" ? "Load a CSV file" : "Computing…", P.pad.l + P.pw / 2, P.pad.t + P.ph / 2);
+      return;
+    }
+    const Sp = sp.S, N3 = Sp.N3;
+    const inR = (ax, r) => { let a0 = -1, a1 = -1; for (let i = 0; i < ax.length; i++) if (ax[i] >= Math.min(r[0], r[1]) && ax[i] <= Math.max(r[0], r[1])) { if (a0 < 0) a0 = i; a1 = i; } return [a0, a1]; };
+    const [a0, a1] = inR(Sp.w1, rng.w1), [b0, b1] = inR(Sp.w3, rng.w3);
+    if (a0 < 0 || b0 < 0 || a1 - a0 < 1 || b1 - b0 < 1) { c.fillStyle = P.K.muted; c.font = "13px " + P.font; c.textAlign = "center"; c.fillText("No computed points in this range: press Auto range", P.pad.l + P.pw / 2, P.pad.t + P.ph / 2); return; }
+    const na = a1 - a0 + 1, nb = b1 - b0 + 1;
+    let vmax = 0, magMax = 0;
+    for (let a = a0; a <= a1; a++) for (let b = b0; b <= b1; b++) { const j = a * N3 + b, v = sp.val(j); if (sp.kind !== "phase") vmax = Math.max(vmax, Math.abs(v)); magMax = Math.max(magMax, Math.hypot(Sp.re[j], Sp.im[j])); }
+    const L = (vmax || 1) * S.view.clip / 100;
+    const K = Object.assign({}, K0, { bgHex: toHex(K0.bg) });
+    const off = document.createElement("canvas"); off.width = nb; off.height = na;
+    const o = off.getContext("2d"), img = o.createImageData(nb, na);
+    for (let y = 0; y < na; y++) for (let x = 0; x < nb; x++) {
+      const a = a1 - y, b = b0 + x, j = a * N3 + b, v = sp.val(j);
+      const col = sp.kind === "phase" ? phaseColour(v, Math.hypot(Sp.re[j], Sp.im[j]) / (magMax * S.view.clip / 100 || 1)) : colour(sp.kind, sp.kind === "signed" ? v / L : v / L, K);
+      img.data.set([col[0], col[1], col[2], 255], (y * nb + x) * 4);
+    }
+    o.putImageData(img, 0, 0);
+    const d1 = Sp.w1[1] - Sp.w1[0], d3 = Sp.w3[1] - Sp.w3[0];
+    const X = (wv) => P.X(u.to(wv)), Y = (wv) => P.Y(u.to(wv));
+    c.save(); c.beginPath(); c.rect(P.pad.l, P.pad.t, P.pw, P.ph); c.clip();
+    c.imageSmoothingEnabled = true;
+    const xl = X(Sp.w3[b0] - d3 / 2), xr = X(Sp.w3[b1] + d3 / 2), yt = Y(Sp.w1[a1] + d1 / 2), yb = Y(Sp.w1[a0] - d1 / 2);
+    c.drawImage(off, Math.min(xl, xr), Math.min(yt, yb), Math.abs(xr - xl), Math.abs(yb - yt));
+    // contours
+    if (S.view.contours && sp.kind !== "phase") {
+      const levels = sp.kind === "signed" ? [-0.9, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9] : [0.1, 0.3, 0.5, 0.7, 0.9];
+      const grid = (a, b) => sp.val(a * N3 + b);
+      c.lineWidth = 0.8;
+      levels.forEach((lv) => {
+        c.strokeStyle = K.dark ? "rgba(255,255,255,.55)" : "rgba(15,23,42,.5)"; c.setLineDash(lv < 0 ? [3, 2] : []);
+        c.beginPath(); contour(grid, a0, a1, b0, b1, lv * L, (A1, B1, A2, B2) => { c.moveTo(X(lerpAx(Sp.w3, B1)), Y(lerpAx(Sp.w1, A1))); c.lineTo(X(lerpAx(Sp.w3, B2)), Y(lerpAx(Sp.w1, A2))); }); c.stroke();
+      });
+      c.setLineDash([]);
+    }
+    // guides
+    const ink = K.dark ? "rgba(226,232,240,.75)" : "rgba(15,23,42,.6)", ds = sp.sig[0] * sp.sig[1];
+    if (S.view.diag) { c.strokeStyle = ink; c.lineWidth = 1; c.setLineDash([5, 4]); c.beginPath(); const big = 50; const p0 = Math.min(rng.w3[0], rng.w3[1]) - big, p1 = Math.max(rng.w3[0], rng.w3[1]) + big; c.moveTo(X(p0), Y(ds * p0)); c.lineTo(X(p1), Y(ds * p1)); c.stroke(); c.setLineDash([]); }
+    if (S.view.anti && S.sel) { c.strokeStyle = ink; c.lineWidth = 1; c.setLineDash([2, 3]); const s0 = S.sel.w1 + ds * S.sel.w3, big = 50; c.beginPath(); const p0 = Math.min(rng.w3[0], rng.w3[1]) - big, p1 = Math.max(rng.w3[0], rng.w3[1]) + big; c.moveTo(X(p0), Y(s0 - ds * p0)); c.lineTo(X(p1), Y(s0 - ds * p1)); c.stroke(); c.setLineDash([]); }
+    if (S.view.marks && result.paths) {
+      const sg = sigma();
+      result.paths.forEach((p) => {
+        if (S.comps[p.kind] === false) return;
+        if ((S.view.spec === "R" && p.path !== "R") || (S.view.spec === "NR" && p.path !== "NR")) return;
+        if (Math.abs(p.amp) < 1e-9 || Math.hypot(p.tfT[0], p.tfT[1]) < 1e-6) return;
+        const s1 = S.view.spec === "R" ? sg.R[0] : sg.NR[0], s3 = sg.NR[1], x = X(s3 * p.w3), y = Y(s1 * p.w1);
+        c.strokeStyle = p.kind === "ESA" ? (K.dark ? "#fca5a5" : "#7f1d1d") : (K.dark ? "#fff" : "#0f172a"); c.lineWidth = 1.4;
+        c.beginPath(); if (p.kind === "ESA") { c.moveTo(x - 4, y - 4); c.lineTo(x + 4, y + 4); c.moveTo(x + 4, y - 4); c.lineTo(x - 4, y + 4); } else c.arc(x, y, 4.5, 0, 2 * Math.PI); c.stroke();
+      });
+    }
+    if (S.sel) { const x = X(S.sel.w3), y = Y(S.sel.w1); c.strokeStyle = K.dark ? "#fde047" : "#a16207"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x - 9, y); c.lineTo(x - 3, y); c.moveTo(x + 3, y); c.lineTo(x + 9, y); c.moveTo(x, y - 9); c.lineTo(x, y - 3); c.moveTo(x, y + 3); c.lineTo(x, y + 9); c.stroke(); }
+    c.restore();
+    // colour bar
+    const bx = P.W - P.pad.r + 14, bw = 12, by = P.pad.t, bh = P.ph;
+    for (let i = 0; i < bh; i++) {
+      const t = 1 - i / (bh - 1), col = sp.kind === "phase" ? phaseColour(-Math.PI + 2 * Math.PI * t, 1) : colour(sp.kind, sp.kind === "signed" ? 2 * t - 1 : t, K);
+      c.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; c.fillRect(bx, by + i, bw, 1);
+    }
+    c.strokeStyle = P.K.frame; c.strokeRect(bx + 0.5, by + 0.5, bw, bh);
+    c.fillStyle = P.K.muted; c.font = "10px " + P.font; c.textAlign = "left";
+    const fmtv = (v) => (v === 0 ? "0" : Math.abs(v) >= 1e4 || Math.abs(v) < 1e-2 ? v.toExponential(1) : (+v.toPrecision(3)).toString());
+    if (sp.kind === "phase") { c.fillText("+π", bx + bw + 3, by + 8); c.fillText("0", bx + bw + 3, by + bh / 2 + 3); c.fillText("−π", bx + bw + 3, by + bh); }
+    else if (sp.kind === "signed") { c.fillText(fmtv(L), bx + bw + 3, by + 8); c.fillText("0", bx + bw + 3, by + bh / 2 + 3); c.fillText(fmtv(-L), bx + bw + 3, by + bh); }
+    else { c.fillText(fmtv(L), bx + bw + 3, by + 8); c.fillText("0", bx + bw + 3, by + bh); }
+    mapGeo = { P, u, a0, a1, b0, b1, Sp, sp, L };
+    cv.setAttribute("aria-label", `${sp.label} at T = ${S.T} fs; detection frequency ω3 horizontally from ${fmtU(rng.w3[0])} to ${fmtU(rng.w3[1])} ${u.label}, excitation frequency ω1 vertically from ${fmtU(rng.w1[0])} to ${fmtU(rng.w1[1])} ${u.label}. Positive values red, negative blue.`);
+  }
+  const toHex = (c) => { if (/^#[0-9a-f]{6}$/i.test(c)) return c; const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c); return m ? "#" + [m[1], m[2], m[3]].map((x) => (+x).toString(16).padStart(2, "0")).join("") : "#ffffff"; };
+  const lerpAx = (ax, f) => { const i = Math.floor(f), t = f - i; return i + 1 < ax.length ? ax[i] + t * (ax[i + 1] - ax[i]) : ax[i]; };
+  /** Marching squares on grid(a, b) over [a0, a1] × [b0, b1]; seg(a1, b1, a2, b2) gets fractional indices. */
+  function contour(grid, a0, a1, b0, b1, lv, seg) {
+    for (let a = a0; a < a1; a++) for (let b = b0; b < b1; b++) {
+      const v00 = grid(a, b), v01 = grid(a, b + 1), v10 = grid(a + 1, b), v11 = grid(a + 1, b + 1);
+      const pts = [];
+      const edge = (va, vb, A1, B1, A2, B2) => { if ((va > lv) !== (vb > lv)) { const t = (lv - va) / (vb - va); pts.push([A1 + t * (A2 - A1), B1 + t * (B2 - B1)]); } };
+      edge(v00, v01, a, b, a, b + 1); edge(v01, v11, a, b + 1, a + 1, b + 1); edge(v11, v10, a + 1, b + 1, a + 1, b); edge(v10, v00, a + 1, b, a, b);
+      if (pts.length === 2) seg(pts[0][0], pts[0][1], pts[1][0], pts[1][1]);
+      else if (pts.length === 4) { seg(pts[0][0], pts[0][1], pts[1][0], pts[1][1]); seg(pts[2][0], pts[2][1], pts[3][0], pts[3][1]); }
+    }
+  }
+
+  /* ---------- readout and selection ---------- */
+  function pickAt(px, py) {
+    if (!mapGeo) return null;
+    const { P, u, Sp } = mapGeo;
+    if (px < P.pad.l || px > P.pad.l + P.pw || py < P.pad.t || py > P.pad.t + P.ph) return null;
+    const v3 = u.from(P.x0 + ((px - P.pad.l) / P.pw) * (P.x1 - P.x0)), v1 = u.from(P.y0 + ((P.pad.t + P.ph - py) / P.ph) * (P.y1 - P.y0));
+    const a = D.nearest(Sp.w1, v1), b = D.nearest(Sp.w3, v3);
+    return { a, b, w1: Sp.w1[a], w3: Sp.w3[b] };
+  }
+  function readout(pt) {
+    const sp = current();
+    if (!pt || !sp || sp.missing) { $("td-readout").textContent = S.sel ? $("td-readout").textContent : "Hover or tap the map to read values; click to select a point."; return; }
+    const j = pt.a * sp.S.N3 + pt.b, re = sp.S.re[j], im = sp.S.im[j], u = U();
+    $("td-readout").textContent = `ω₃ = ${fmtU(pt.w3)} ${u.label}, ω₁ = ${fmtU(pt.w1)} ${u.label}: Re = ${re.toPrecision(4)}, Im = ${im.toPrecision(4)}, |S| = ${Math.hypot(re, im).toPrecision(4)}, phase = ${(Math.atan2(im, re) / Math.PI).toFixed(3)}π`;
+  }
+  const map = $("td-map");
+  const loc = (e) => { const r = map.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  map.addEventListener("pointermove", (e) => readout(pickAt(...loc(e))));
+  map.addEventListener("pointerleave", () => { if (S.sel) readout(selPoint()); });
+  map.addEventListener("click", (e) => { const pt = pickAt(...loc(e)); if (!pt) return; S.sel = { w1: pt.w1, w3: pt.w3 }; trace = null; readout(pt); drawMap(); drawSlices(); drawTrace(); });
+  map.addEventListener("keydown", (e) => {
+    if (!mapGeo) return;
+    const { Sp } = mapGeo; let pt = selPoint() || { a: Math.round((mapGeo.a0 + mapGeo.a1) / 2), b: Math.round((mapGeo.b0 + mapGeo.b1) / 2) };
+    const mv = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [1, 0], ArrowDown: [-1, 0] }[e.key]; if (!mv) return;
+    e.preventDefault(); const step = e.shiftKey ? 5 : 1;
+    const a = Math.max(mapGeo.a0, Math.min(mapGeo.a1, pt.a + mv[0] * step)), b = Math.max(mapGeo.b0, Math.min(mapGeo.b1, pt.b + mv[1] * step));
+    S.sel = { w1: Sp.w1[a], w3: Sp.w3[b] }; trace = null; readout({ a, b, w1: Sp.w1[a], w3: Sp.w3[b] }); drawMap(); drawSlices(); drawTrace();
+  });
+  function selPoint() { const sp = current(); if (!S.sel || !sp || sp.missing) return null; const a = D.nearest(sp.S.w1, S.sel.w1), b = D.nearest(sp.S.w3, S.sel.w3); return { a, b, w1: sp.S.w1[a], w3: sp.S.w3[b] }; }
+
+  /* ---------- bottom panel ---------- */
+  function drawTime() {
+    const cv = $("td-time"), pal = PK.palette();
+    if (!result) { PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: -1, y1: 1, bare: true }); return; }
+    const key = S.view.spec === "NR" ? "NR" : result.resp.R ? "R" : "NR", x = result.resp[key], g = result.grid;
+    if (!x) { PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: -1, y1: 1, bare: true }); return; }
+    const n1 = g.n1, n3 = g.n3, ts1 = g.direct ? Array.from(data.t1) : Array.from({ length: n1 }, (_, i) => i * g.dt), ts3 = g.direct ? Array.from(data.t3) : Array.from({ length: n3 }, (_, i) => i * g.dt);
+    let peak = 0; for (let j = 0; j < x.re.length; j++) peak = Math.max(peak, Math.hypot(x.re[j], x.im[j]));
+    peak = peak || 1;
+    if (S.view.tview === "map") {
+      const P = PK.frame(cv, { height: 220, x0: 0, x1: ts3[n3 - 1], y0: 0, y1: ts1[n1 - 1], xlabel: "t₃ (fs)", ylabel: "t₁ (fs)", xfmt: (v) => v.toFixed(0), yfmt: (v) => v.toFixed(0), pad: { l: 50 } });
+      const off = document.createElement("canvas"); off.width = n3; off.height = n1;
+      const o = off.getContext("2d"), img = o.createImageData(n3, n1), K = Object.assign({}, P.K, { bgHex: toHex(P.K.bg) });
+      for (let i = 0; i < n1; i++) for (let k = 0; k < n3; k++) { const col = colour("signed", x.re[i * n3 + k] / peak, K); img.data.set([col[0], col[1], col[2], 255], ((n1 - 1 - i) * n3 + k) * 4); }
+      o.putImageData(img, 0, 0); P.ctx.imageSmoothingEnabled = !g.direct; P.ctx.drawImage(off, P.pad.l, P.pad.t, P.pw, P.ph);
+      P.ctx.fillStyle = P.K.fg; P.ctx.font = "11px " + P.font; P.ctx.textAlign = "right"; P.ctx.fillText(`Re ${key === "R" ? "R_R" : "R_NR"}`, P.W - P.pad.r - 4, P.pad.t + 14);
+      return;
+    }
+    const along1 = S.view.tview === "t1", ts = along1 ? ts1 : ts3, n = ts.length;
+    const re = along1 ? ts1.map((_, i) => x.re[i * n3] / peak) : ts3.map((_, k) => x.re[k] / peak);
+    const im = along1 ? ts1.map((_, i) => x.im[i * n3] / peak) : ts3.map((_, k) => x.im[k] / peak);
+    const P = PK.frame(cv, { height: 220, x0: 0, x1: ts[n - 1], y0: -1.1, y1: 1.1, xlabel: `${along1 ? "t₁" : "t₃"} (fs), ${along1 ? "t₃" : "t₁"} = 0`, ylabel: `${key === "R" ? "R_R" : "R_NR"} / max`, xfmt: (v) => v.toFixed(0) });
+    const wv = D.taper(Float64Array.from(ts), S.num);
+    PK.line(P, ts, Array.from(wv), { color: P.K.muted, width: 1.2, dash: [5, 4] });
+    PK.line(P, ts, re.map((v, i) => Math.hypot(v, im[i])), { color: pal.c, width: 1.2 });
+    PK.line(P, ts, im, { color: pal.b, width: 1.3 });
+    PK.line(P, ts, re, { color: pal.a, width: 1.6 });
+    PK.legend(P, [{ label: "Re", color: pal.a }, { label: "Im", color: pal.b }, { label: "|R|", color: pal.c }, { label: "window", color: P.K.muted, dash: [5, 4] }]);
+  }
+  function drawSlices() {
+    const cv = $("td-slice"), pal = PK.palette(), sp = current(), pt = selPoint();
+    if (!sp || sp.missing || !pt || !mapGeo) {
+      const P = PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: 0, y1: 1, bare: true });
+      P.ctx.fillStyle = P.K.muted; P.ctx.font = "12px " + P.font; P.ctx.textAlign = "center"; P.ctx.fillText("Click the map to choose a point", P.W / 2, P.H / 2); return;
+    }
+    const { a0, a1, b0, b1, Sp } = mapGeo, u = U();
+    const hx = [], hy = [], vx = [], vy = [];
+    for (let b = b0; b <= b1; b++) { hx.push(u.to(Sp.w3[b])); hy.push(sp.val(pt.a * Sp.N3 + b)); }
+    for (let a = a0; a <= a1; a++) { vx.push(u.to(Sp.w1[a])); vy.push(sp.val(a * Sp.N3 + pt.b)); }
+    const all = hy.concat(vy), lo = Math.min(0, ...all), hi = Math.max(0, ...all), padY = (hi - lo) * 0.08 || 1;
+    const x0 = Math.min(hx[0], vx[0], hx[hx.length - 1], vx[vx.length - 1]), x1 = Math.max(hx[0], vx[0], hx[hx.length - 1], vx[vx.length - 1]);
+    const P = PK.frame(cv, { height: 220, x0, x1, y0: lo - padY, y1: hi + padY, xlabel: `Frequency (${u.label})`, ylabel: sp.kind === "phase" ? "Phase (rad)" : "Signal", xticks: 4, xfmt: (v) => (+v.toPrecision(5)).toString() });
+    PK.line(P, [x0, x1], [0, 0], { color: P.K.muted, width: 1 });
+    PK.line(P, hx, hy, { color: pal.a, width: 1.7 });
+    PK.line(P, vx, vy, { color: pal.b, width: 1.7, dash: [5, 3] });
+    PK.legend(P, [{ label: `vs ω₃ at ω₁ = ${fmtU(pt.w1)}`, color: pal.a }, { label: `vs ω₁ at ω₃ = ${fmtU(pt.w3)}`, color: pal.b, dash: [5, 3] }]);
+  }
+  function drawTrace() {
+    const cv = $("td-trace"), pal = PK.palette();
+    if (!trace) { const P = PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: 0, y1: 1, bare: true }); P.ctx.fillStyle = P.K.muted; P.ctx.font = "12px " + P.font; P.ctx.textAlign = "center"; P.ctx.fillText(S.sel ? "Press Compute" : "Select a point first", P.W / 2, P.H / 2); return; }
+    const key = S.view.spec === "R" ? "R" : S.view.spec === "NR" ? "NR" : "total", comp = S.view.spec === "abs" ? "re" : S.view.comp;
+    const f = (z) => (!z ? NaN : comp === "re" ? z[0] : comp === "im" ? z[1] : comp === "abs" ? Math.hypot(z[0], z[1]) : Math.atan2(z[1], z[0]));
+    const ys = trace[key].map(f), xs = trace.T, lo = Math.min(0, ...ys.filter(isFinite)), hi = Math.max(0, ...ys.filter(isFinite)), pd = (hi - lo) * 0.08 || 1;
+    const P = PK.frame(cv, { height: 220, x0: xs[0], x1: xs[xs.length - 1] || 1, y0: lo - pd, y1: hi + pd, xlabel: "Waiting time T (fs)", ylabel: S.view.spec === "abs" ? "Absorptive signal" : "Signal", xfmt: (v) => v.toFixed(0) });
+    PK.line(P, [xs[0], xs[xs.length - 1]], [0, 0], { color: P.K.muted, width: 1 });
+    PK.line(P, xs, ys, { color: pal.a, width: 1.7 });
+    if (xs.length < 40) PK.dots(P, xs, ys, { color: pal.a, r: 2.5 });
+    PK.line(P, [S.T, S.T], [lo - pd, hi + pd], { color: pal.b, width: 1, dash: [3, 3] });
+  }
+  async function computeTrace() {
+    if (!S.sel) { $("td-trace-note").textContent = "Select a point on the map first."; return; }
+    const job = buildJob(), Ts = S.source === "data" ? data.Ts.slice() : Array.from({ length: 161 }, (_, i) => (i * S.Tmax) / 160);
+    $("td-trace-btn").disabled = true; $("td-trace-note").textContent = "Computing the waiting-time trace…";
+    try {
+      const t0 = performance.now();
+      trace = await call("trace", job, { w1: S.sel.w1, w3: S.sel.w3, Ts });
+      $("td-trace-note").textContent = `S at ω₁ = ${fmtU(S.sel.w1)}, ω₃ = ${fmtU(S.sel.w3)} ${U().label} for ${Ts.length} waiting times (${Math.round(performance.now() - t0)} ms). Dashed line: current T.`;
+    } catch (err) { $("td-trace-note").textContent = err.message; }
+    $("td-trace-btn").disabled = false; drawTrace();
+  }
+  $("td-trace-btn").addEventListener("click", computeTrace);
+
+  /* ---------- stats, convention ---------- */
+  function drawStats() {
+    const c = D.CONVENTIONS[S.num.convention];
+    $("td-conv").textContent = `Convention: ${c.text}  Absorptive = Re[S_R + S_NR]: GSB, SE > 0, ESA < 0.  Carrier ωc = ${result ? fmtU(result.info.carrier) : "–"} ${U().label}.`;
+    const g = result && result.grid, n1 = g ? g.n1 : S.num.n1, n3 = g ? g.n3 : S.num.n3, dt = g ? g.dt : S.num.dt;
+    $("td-tmax").textContent = `t₁ max = ${((n1 - 1) * dt).toFixed(0)} fs, t₃ max = ${((n3 - 1) * dt).toFixed(0)} fs; padded grid ${result ? result.info.N1 + " × " + result.info.N3 : "–"}.`;
+    if (!result) { $("td-stats").innerHTML = ""; return; }
+    const i = result.info, u = U();
+    $("td-stats").innerHTML = [
+      ["Band (Nyquist)", `±${fmtU(i.nyquist)}`], ["Grid spacing", fmtU(i.gridSpacing3, 1)], ["Resolution 2π/t_max", fmtU(i.resolution3, 1)], ["Compute time", `${Math.round(result.ms)} ms`],
+    ].map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v} ${/ms$/.test(v) ? "" : `<small>${u.label}</small>`}</dd></div>`).join("");
+  }
+  function drawPaths() {
+    const box = $("td-paths-box"), M = D.MODELS[S.model];
+    $("td-model-notes").textContent = M.notes;
+    if (!result || !result.paths || S.source !== "model") { box.hidden = !M.paths; $("td-paths").innerHTML = M.paths ? "<tr><td>Computing…</td></tr>" : ""; if (!M.paths) box.hidden = true; return; }
+    box.hidden = false;
+    const rows = result.paths.filter((p) => Math.abs(p.amp) > 1e-12);
+    $("td-paths").innerHTML = `<thead><tr><th>Type</th><th>Path</th><th>ω₁</th><th>ω₃</th><th>Amplitude</th><th>T factor</th></tr></thead><tbody>${rows.map((p) => `<tr><td><span class="td-tag ${p.kind}">${p.kind}</span></td><td>${p.path}</td><td>${fmtU(p.w1)}</td><td>${fmtU(p.w3)}</td><td>${p.amp.toFixed(3)}</td><td>${Math.abs(p.tfT[1]) > 1e-9 ? `${p.tfT[0].toFixed(3)}${p.tfT[1] < 0 ? "−" : "+"}${Math.abs(p.tfT[1]).toFixed(3)}i` : p.tfT[0].toFixed(3)}</td></tr>`).join("")}</tbody>`;
+  }
+  function drawAll() { drawMap(); drawTime(); drawSlices(); drawTrace(); drawStats(); drawPaths(); if (S.sel) readout(selPoint()); else readout(null); }
+
+  /* ---------- model parameter form ---------- */
+  const modelSel = $("td-model-sel");
+  modelSel.innerHTML = Object.entries(D.MODELS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
+  function renderParams() {
+    const M = D.MODELS[S.model];
+    $("td-params").innerHTML = M.params.map((q) => {
+      const id = `td-p-${q.k}`, v = S.params[q.k];
+      if (q.type === "sign") return `<div class="td-f"><label for="${id}">${q.label}</label><select id="${id}" data-k="${q.k}"><option value="-1"${v < 0 ? " selected" : ""}>negative (physical)</option><option value="1"${v > 0 ? " selected" : ""}>positive</option></select></div>`;
+      if (q.type === "pol") return `<div class="td-f"><label for="${id}">${q.label}</label><select id="${id}" data-k="${q.k}"><option value="zzzz"${v === "zzzz" ? " selected" : ""}>all parallel ⟨ZZZZ⟩</option><option value="zzyy"${v === "zzyy" ? " selected" : ""}>⟨ZZYY⟩ (pulses 1, 2 ⊥ 3, LO)</option></select></div>`;
+      const unit = q.type === "energy" ? U().label : q.type === "time" ? "fs" : q.type === "angle" ? "°" : q.type === "temp" ? "K" : "";
+      const shown = q.type === "energy" ? inU(v) : v;
+      const step = q.type === "energy" ? "any" : q.step || "any";
+      return `<div class="td-f"><label for="${id}">${q.label} <span class="unit">${unit}</span></label><input type="number" id="${id}" data-k="${q.k}" step="${step}" value="${shown}"${q.min !== undefined && q.type !== "energy" ? ` min="${q.min}"` : ""}${q.max !== undefined && q.type !== "energy" ? ` max="${q.max}"` : ""}></div>`;
+    }).join("");
+    $("td-model-notes").textContent = M.notes;
+    $("td-comps").querySelector('[value="ESA"]').closest("label").hidden = !(S.model === "ladder" || S.model === "dimer");
+  }
+  $("td-params").addEventListener("input", (e) => {
+    const el = e.target, k = el.dataset.k; if (!k) return;
+    const q = D.MODELS[S.model].params.find((x) => x.k === k);
+    if (q.type === "pol") S.params[k] = el.value;
+    else {
+      let v = +el.value; if (!isFinite(v) || el.value === "") return;
+      if (q.type === "energy") v = fromU(v);
+      if (q.min !== undefined && q.type !== "energy" && v < q.min) return;
+      if (q.type === "energy" && q.min !== undefined && v < q.min) return;
+      S.params[k] = v;
+    }
+    $("td-example").value = ""; $("td-ex-note").textContent = "";
+    trace = null; schedule();
+  });
+  $("td-params").addEventListener("change", (e) => { if (e.target.tagName === "SELECT") { const k = e.target.dataset.k; S.params[k] = k === "pol" ? e.target.value : +e.target.value; schedule(); } });
+  modelSel.addEventListener("change", () => { S.model = modelSel.value; S.params = D.DEFAULT_PARAMS(S.model); S.view.rangeAuto = true; S.sel = null; trace = null; renderParams(); schedule(true); });
+  $("td-comps").addEventListener("change", (e) => { S.comps[e.target.value] = e.target.checked; trace = null; schedule(); });
+  $("td-example").addEventListener("change", () => {
+    const ex = EXAMPLES[$("td-example").value]; if (!ex) { $("td-ex-note").textContent = ""; return; }
+    setSource("model", true);
+    S.model = ex.model; S.params = Object.assign(D.DEFAULT_PARAMS(ex.model), ex.params); S.comps = { GSB: true, SE: true, ESA: true }; S.T = ex.T; S.sel = null; trace = null; S.view.rangeAuto = true;
+    modelSel.value = S.model; document.querySelectorAll("#td-comps input").forEach((c) => (c.checked = true)); renderParams(); syncT();
+    $("td-ex-note").textContent = ex.note; schedule(true);
+  });
+
+  /* ---------- source switching, formula and data ---------- */
+  function setSource(src, silent) {
+    S.source = src;
+    document.querySelectorAll("#td-src [data-src]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.src === src)));
+    document.querySelectorAll("[data-src-panel]").forEach((p) => (p.hidden = p.dataset.srcPanel !== src));
+    $("td-carrier-auto").closest("label").hidden = src !== "model";
+    $("td-carrier").disabled = (src === "model" && S.num.autoCarrier) || src === "data";
+    $("td-nonu-box").hidden = !(src === "data" && data && !data.uniform);
+    ["td-dt", "td-n1", "td-n3"].forEach((id) => ($(id).disabled = src === "data"));
+    S.view.rangeAuto = true; S.sel = null; trace = null;
+    if (!silent) schedule(true);
+    syncT();
+  }
+  document.querySelectorAll("#td-src [data-src]").forEach((b) => b.addEventListener("click", () => setSource(b.dataset.src)));
+  $("td-expr-p").value = S.expr.params; $("td-expr-r").value = S.expr.R; $("td-expr-nr").value = S.expr.NR;
+  ["td-expr-p", "td-expr-r", "td-expr-nr"].forEach((id) => $(id).addEventListener("input", () => { S.expr = { params: $("td-expr-p").value, R: $("td-expr-r").value, NR: $("td-expr-nr").value }; trace = null; clearTimeout(deb); if (S.view.auto) deb = setTimeout(compute, 400); }));
+
+  const files = [null, null];
+  $("td-file1").addEventListener("change", (e) => readFile(0, e.target.files[0]));
+  $("td-file2").addEventListener("change", (e) => readFile(1, e.target.files[0]));
+  ["td-file-kind", "td-file2-kind", "td-file-unit"].forEach((id) => $(id).addEventListener("change", importData));
+  $("td-file-carrier").addEventListener("change", () => { if (data) { data.carrier = fromU(+$("td-file-carrier").value || 0); S.view.rangeAuto = true; schedule(true); } });
+  function readFile(k, f) {
+    if (!f) { files[k] = null; importData(); return; }
+    if (f.size > 50e6) { listMsgs($("td-data-msg"), [{ t: "err", m: `${f.name} is larger than 50 MB.` }]); return; }
+    const rd = new FileReader();
+    rd.onload = () => { files[k] = { name: f.name, text: String(rd.result) }; importData(); };
+    rd.onerror = () => listMsgs($("td-data-msg"), [{ t: "err", m: `Could not read ${f.name}.` }]);
+    rd.readAsText(f);
+  }
+  function importData() {
+    const msgs = [], rowsList = []; let carrier = null;
+    files.forEach((f, k) => {
+      if (!f) return;
+      const kind = $(k === 0 ? "td-file-kind" : "td-file2-kind").value;
+      const p = D.parseCSV(f.text, { timeUnit: $("td-file-unit").value, pathway: kind === "col" ? undefined : kind });
+      p.errors.forEach((m) => msgs.push({ t: "err", m: `${f.name}: ${m}` })); p.warnings.forEach((m) => msgs.push({ t: "warn", m: `${f.name}: ${m}` }));
+      if (kind === "col" && p.rows.some((r) => !r.path) && !p.errors.length) msgs.push({ t: "err", m: `${f.name}: no pathway column found; choose what the file contains` });
+      if (p.meta.carrier !== undefined) carrier = p.meta.carrier;
+      if (!p.errors.length) rowsList.push(p.rows);
+    });
+    if (carrier !== null) $("td-file-carrier").value = inU(carrier);
+    data = null;
+    if (rowsList.length && !msgs.some((m) => m.t === "err")) {
+      const ds = D.buildDataset(rowsList, { carrier: fromU(+$("td-file-carrier").value || 0) });
+      ds.errors.forEach((m) => msgs.push({ t: "err", m })); ds.warnings.forEach((m) => msgs.push({ t: "warn", m }));
+      if (ds.data) {
+        data = ds.data;
+        msgs.unshift({ t: "ok", m: `Loaded ${data.R ? "rephasing" : ""}${data.R && data.NR ? " and " : ""}${data.NR ? "non-rephasing" : ""} data: ${data.n1} × ${data.n3} points (t₁ to ${data.t1[data.n1 - 1]} fs, t₃ to ${data.t3[data.n3 - 1]} fs), ${data.Ts.length} waiting time${data.Ts.length > 1 ? "s" : ""}${data.uniform ? `, uniform step ${+data.dt.toFixed(4)} fs` : ", nonuniform"}.` });
+      }
+    }
+    if (!files[0] && !files[1]) msgs.push({ t: "warn", m: "No file selected yet." });
+    listMsgs($("td-data-msg"), msgs);
+    $("td-nonu-box").hidden = !(data && !data.uniform);
+    S.view.rangeAuto = true; S.sel = null; trace = null; syncT();
+    if (S.source === "data") schedule(true);
+  }
+
+  /* ---------- waiting time ---------- */
+  function syncT() {
+    const tr = $("td-T"), tn = $("td-T-n");
+    if (S.source === "data" && data) { tr.min = 0; tr.max = data.Ts.length - 1; tr.step = 1; const k = nearestT(); tr.value = k; tn.value = data.Ts[k]; S.T = data.Ts[k]; tn.readOnly = true; }
+    else { tr.min = 0; tr.max = S.Tmax; tr.step = 1; tr.value = S.T; tn.value = S.T; tn.readOnly = false; tn.max = 100000; }
+  }
+  $("td-T").addEventListener("input", () => { if (S.source === "data" && data) S.T = data.Ts[+$("td-T").value]; else S.T = +$("td-T").value; $("td-T-n").value = S.T; schedule(); });
+  $("td-T-n").addEventListener("change", () => { const v = Math.max(0, +$("td-T-n").value || 0); if (v > S.Tmax) S.Tmax = Math.ceil(v / 100) * 100; S.T = v; syncT(); schedule(); });
+
+  /* ---------- processing and display controls ---------- */
+  $("td-win").innerHTML = Object.entries(D.WINDOWS).map(([k, v]) => `<option value="${k}">${v}</option>`).join("");
+  $("td-conv-sel").innerHTML = Object.entries(D.CONVENTIONS).map(([k, v]) => `<option value="${k}">${v.name}</option>`).join("");
+  function syncProc() {
+    const n = S.num;
+    $("td-dt").value = n.dt; $("td-n1").value = n.n1; $("td-n3").value = n.n3; $("td-pad").value = n.pad; $("td-win").value = n.window;
+    $("td-broad").value = n.broaden ? inU(n.broaden) : 0; $("td-half").checked = n.halfFirst; $("td-conv-sel").value = n.convention; $("td-nonu").value = n.nonuniform;
+    $("td-carrier-auto").checked = n.autoCarrier; $("td-carrier").value = inU(S.source === "model" && n.autoCarrier ? autoCarrier() : n.carrier);
+    const v = S.view;
+    $("td-unit").value = v.unit; $("td-cmap").value = v.cmap; $("td-clip").value = v.clip; $("td-clip-o").textContent = v.clip + "%";
+    $("td-contours").checked = v.contours; $("td-diag").checked = v.diag; $("td-anti").checked = v.anti; $("td-marks").checked = v.marks; $("td-auto").checked = v.auto;
+    document.querySelectorAll("[data-unit]").forEach((el) => (el.textContent = U().label));
+    syncTabs(); syncRange();
+  }
+  const numIn = (id, key, cast, ok) => $(id).addEventListener("change", () => { const v = cast($(id).value); if (!ok(v)) { syncProc(); return; } S.num[key] = v; trace = null; S.view.rangeAuto = S.view.rangeAuto !== false; schedule(); });
+  numIn("td-dt", "dt", Number, (v) => v > 0 && v <= 100);
+  numIn("td-n1", "n1", (x) => Math.round(+x), (v) => v >= 8 && v <= 1024);
+  numIn("td-n3", "n3", (x) => Math.round(+x), (v) => v >= 8 && v <= 1024);
+  $("td-pad").addEventListener("change", () => { S.num.pad = +$("td-pad").value; schedule(); });
+  $("td-win").addEventListener("change", () => { S.num.window = $("td-win").value; trace = null; schedule(); });
+  $("td-broad").addEventListener("change", () => { const v = +$("td-broad").value; if (!(v >= 0)) return syncProc(); S.num.broaden = fromU(v); trace = null; schedule(); });
+  $("td-half").addEventListener("change", () => { S.num.halfFirst = $("td-half").checked; trace = null; schedule(); });
+  $("td-carrier-auto").addEventListener("change", () => { S.num.autoCarrier = $("td-carrier-auto").checked; $("td-carrier").disabled = S.num.autoCarrier; if (!S.num.autoCarrier) S.num.carrier = autoCarrier(); syncProc(); schedule(); });
+  $("td-carrier").addEventListener("change", () => { const v = +$("td-carrier").value; if (!isFinite(v)) return syncProc(); S.num.carrier = fromU(v); S.view.rangeAuto = true; schedule(); });
+  $("td-conv-sel").addEventListener("change", () => { S.num.convention = $("td-conv-sel").value; S.view.rangeAuto = true; S.sel = null; trace = null; schedule(true); });
+  $("td-nonu").addEventListener("change", () => { S.num.nonuniform = $("td-nonu").value; schedule(true); });
+  $("td-unit").addEventListener("change", () => { S.view.unit = $("td-unit").value; renderParams(); syncProc(); if (data) $("td-file-carrier").value = inU(data.carrier); if (S.view.rangeAuto !== false) autoRange(true); drawAll(); });
+  ["td-r3a", "td-r3b", "td-r1a", "td-r1b"].forEach((id) => $(id).addEventListener("change", () => {
+    const r = [+$("td-r1a").value, +$("td-r1b").value, +$("td-r3a").value, +$("td-r3b").value];
+    if (!r.every(isFinite) || r[0] === r[1] || r[2] === r[3]) return syncRange();
+    S.view.range = { w1: [fromU(Math.min(r[0], r[1])), fromU(Math.max(r[0], r[1]))], w3: [fromU(Math.min(r[2], r[3])), fromU(Math.max(r[2], r[3]))] }; S.view.rangeAuto = false;
+    drawAll();
+  }));
+  $("td-autorange").addEventListener("click", () => { S.view.rangeAuto = true; autoRange(true); drawAll(); });
+  $("td-cmap").addEventListener("change", () => { S.view.cmap = $("td-cmap").value; drawMap(); });
+  $("td-clip").addEventListener("input", () => { S.view.clip = +$("td-clip").value; $("td-clip-o").textContent = S.view.clip + "%"; drawMap(); });
+  [["td-contours", "contours"], ["td-diag", "diag"], ["td-anti", "anti"], ["td-marks", "marks"]].forEach(([id, k]) => $(id).addEventListener("change", () => { S.view[k] = $(id).checked; drawMap(); }));
+  $("td-auto").addEventListener("change", () => { S.view.auto = $("td-auto").checked; if (S.view.auto) schedule(true); });
+  function syncTabs() {
+    document.querySelectorAll("#td-spec [data-spec]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.spec === S.view.spec)));
+    document.querySelectorAll("#td-comp [data-comp]").forEach((b) => { b.setAttribute("aria-pressed", String(S.view.spec === "abs" ? b.dataset.comp === "re" : b.dataset.comp === S.view.comp)); b.disabled = S.view.spec === "abs"; });
+    document.querySelectorAll("#td-tview [data-tv]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tv === S.view.tview)));
+  }
+  document.querySelectorAll("#td-spec [data-spec]").forEach((b) => b.addEventListener("click", () => {
+    const prev = current(); S.view.spec = b.dataset.spec; syncTabs();
+    const now = current(); if (prev && now && prev.sig && now.sig && (prev.sig[0] !== now.sig[0] || prev.sig[1] !== now.sig[1]) && S.view.rangeAuto !== false) autoRange(true);
+    trace = trace; drawAll();
+  }));
+  document.querySelectorAll("#td-comp [data-comp]").forEach((b) => b.addEventListener("click", () => { S.view.comp = b.dataset.comp; syncTabs(); drawAll(); }));
+  document.querySelectorAll("#td-tview [data-tv]").forEach((b) => b.addEventListener("click", () => { S.view.tview = b.dataset.tv; syncTabs(); drawTime(); }));
+
+  /* ---------- actions ---------- */
+  $("td-calc").addEventListener("click", () => compute());
+  $("td-reset").addEventListener("click", () => {
+    S = fresh(); data = null; files[0] = files[1] = null; $("td-file1").value = ""; $("td-file2").value = ""; listMsgs($("td-data-msg"), []); listMsgs($("td-conv-msg"), []);
+    $("td-expr-p").value = S.expr.params; $("td-expr-r").value = S.expr.R; $("td-expr-nr").value = S.expr.NR; $("td-example").value = ""; $("td-ex-note").textContent = "";
+    modelSel.value = S.model; document.querySelectorAll("#td-comps input").forEach((c) => (c.checked = true));
+    renderParams(); setSource("model", true); syncProc(); syncT(); result = null; trace = null; compute();
+  });
+  $("td-conv-check").addEventListener("click", async () => {
+    if (S.source === "data") { listMsgs($("td-conv-msg"), [{ t: "warn", m: "The convergence check needs a model or formula: imported data cannot be resampled more finely." }]); return; }
+    const n = S.num;
+    if (n.n1 * 2 > 2048 || n.n3 * 2 > 2048 || D.nextPow2(2 * n.n1) * n.pad * D.nextPow2(2 * n.n3) * n.pad > 16777216) { listMsgs($("td-conv-msg"), [{ t: "warn", m: "The grid is too large to double for the check; reduce the points or padding." }]); return; }
+    listMsgs($("td-conv-msg"), [{ t: "warn", m: "Checking convergence (three calculations)…" }]);
+    try {
+      const c = await call("convergence", buildJob(), { range: S.view.range });
+      const ok = c.sampling < 0.01 && c.window < 0.01;
+      listMsgs($("td-conv-msg"), [{ t: ok ? "ok" : "warn", m: `In the displayed region: halving Δt changes the spectrum by ${(100 * c.sampling).toFixed(2)}% of its maximum; doubling t_max changes it by ${(100 * c.window).toFixed(2)}%. ${ok ? "Converged to better than 1%." : c.window >= 0.01 ? "Increase the number of points (longer t_max) or apply a window." : "Reduce the time step."}` }]);
+    } catch (err) { listMsgs($("td-conv-msg"), [{ t: "err", m: err.message }]); }
+  });
+  const stamp = () => new Date().toISOString().slice(0, 10);
+  $("td-csv").addEventListener("click", () => {
+    const sp = current(); if (!sp || sp.missing || !mapGeo) return;
+    const { a0, a1, b0, b1, Sp } = mapGeo, u = U(), conv = D.CONVENTIONS[S.num.convention];
+    const lines = [`# ${sp.label.replace(/,.*/, "")} (complex), T = ${S.T} fs, exported ${stamp()} from Indra's Webpage 2DES simulator`, `# convention: ${conv.text}`, `# absorptive = Re[S_R + S_NR]; frequencies in ${u.label}; displayed range only`, `omega1_${S.view.unit},omega3_${S.view.unit},re,im`];
+    for (let a = a0; a <= a1; a++) for (let b = b0; b <= b1; b++) { const j = a * Sp.N3 + b; lines.push(`${+u.to(Sp.w1[a]).toPrecision(9)},${+u.to(Sp.w3[b]).toPrecision(9)},${Sp.re[j].toPrecision(8)},${Sp.im[j].toPrecision(8)}`); }
+    window.SiteTheme.download(new Blob([lines.join("\n") + "\n"], { type: "text/csv" }), `2des-${S.view.spec}-T${S.T}fs.csv`);
+  });
+  $("td-png").addEventListener("click", () => window.SiteTheme.savePNG($("td-map"), `2des-${S.view.spec}-${S.view.spec === "abs" ? "re" : S.view.comp}-T${S.T}fs.png`));
+  $("td-resp").addEventListener("click", () => {
+    if (!result) return;
+    const g = result.grid;
+    if (g.direct) { showMsgs([{ t: "warn", m: "The response of nonuniformly sampled data is not re-exported; use the original file." }]); return; }
+    const text = D.responseCSV(result.resp, g.n1, g.n3, g.dt, S.T, result.info.carrier);
+    window.SiteTheme.download(new Blob([text], { type: "text/csv" }), `2des-response-T${S.T}fs.csv`);
+  });
+  $("td-copy").addEventListener("click", async () => {
+    const p = { simulator: "Indra's Webpage 2DES simulator v1.0", source: S.source, T_fs: S.T, numerics: Object.assign({}, S.num, { carrier_rad_per_fs: S.num.carrier, broaden_rad_per_fs: S.num.broaden }), view: { spectrum: S.view.spec, component: S.view.comp, unit: S.view.unit } };
+    if (S.source === "model") { p.model = S.model; p.parameters = Object.fromEntries(Object.entries(S.params).map(([k, v]) => { const q = D.MODELS[S.model].params.find((x) => x.k === k); return [k + (q && q.type === "energy" ? "_rad_per_fs" : q && q.type === "time" ? "_fs" : ""), v]; })); p.contributions = S.comps; }
+    if (S.source === "expr") p.formula = S.expr;
+    if (S.source === "data") p.data = data ? { n1: data.n1, n3: data.n3, Ts_fs: data.Ts, carrier_rad_per_fs: data.carrier, uniform: data.uniform } : null;
+    const text = JSON.stringify(p, null, 2);
+    try { await navigator.clipboard.writeText(text); setStatus("Parameters copied to the clipboard."); }
+    catch (e) { window.SiteTheme.download(new Blob([text], { type: "application/json" }), "2des-parameters.json"); setStatus("Clipboard unavailable: parameters downloaded as JSON."); }
+  });
+
+  window.SiteTheme.onChange(drawAll);
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 150); });
+  renderParams(); syncProc(); syncT(); setSource("model", true); compute();
+})();
+</script>
+{% endraw %}
