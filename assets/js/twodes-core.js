@@ -1004,6 +1004,127 @@
     return { real, pos, neg, w1: st.w1, w3: st.w3, na: st.na, nb: st.nb, tau: st.tau };
   }
 
+  /* ======================= pathway decomposition, comparison and 1D analysis (v2) ======================= */
+  /** Liouville-pathway families a built-in model contains (the others are absent from its response). */
+  const MODEL_PATHWAYS = { tls: ["GSB", "SE"], ladder: ["GSB", "SE", "ESA"], dimer: ["GSB", "SE", "ESA"], vibronic: ["GSB", "SE"], brownian: ["GSB", "SE"] };
+  /**
+   * Spectra of each pathway family on its own and of all of them together, for a built-in model job.
+   * The response is linear in the pathways, so the complex spectra add exactly; maxDev reports
+   * max |Σ parts − total| / max |total| over the R, NR and total spectra as a check.
+   */
+  function decompose(job) {
+    if (job.source !== "model") throw new Error("Pathway decomposition needs a built-in model (a formula or imported data is a single response)");
+    const kinds = MODEL_PATHWAYS[job.model] || [], parts = {};
+    const only = (k) => Object.fromEntries(["GSB", "SE", "ESA"].map((x) => [x, x === k]));
+    for (const k of kinds) parts[k] = run(Object.assign({}, job, { comps: only(k) }));
+    const total = run(Object.assign({}, job, { comps: { GSB: true, SE: true, ESA: true } }));
+    let dev = 0, top = 0;
+    for (const key of ["R", "NR", "total"]) {
+      const T = total[key]; if (!T) continue;
+      for (let j = 0; j < T.re.length; j++) {
+        let sr = 0, si = 0; for (const k of kinds) { const P = parts[k][key]; sr += P.re[j]; si += P.im[j]; }
+        dev = Math.max(dev, Math.hypot(sr - T.re[j], si - T.im[j])); top = Math.max(top, Math.hypot(T.re[j], T.im[j]));
+      }
+    }
+    return { kinds, parts, total, maxDev: top ? dev / top : 0 };
+  }
+  /** Two spectra can be compared point by point only on identical frequency grids. Returns null or the reason. */
+  function incompatibility(A, B) {
+    if (!A || !B) return "One of the spectra is missing";
+    if (A.N1 !== B.N1 || A.N3 !== B.N3) return `Different grids (${A.N1} × ${A.N3} vs ${B.N1} × ${B.N3}): use the same time step, number of points and zero padding`;
+    const tol = 1e-9 * Math.max(Math.abs(A.w1[A.N1 - 1]), Math.abs(A.w3[A.N3 - 1]), 1e-12);
+    for (let a = 0; a < A.N1; a++) if (Math.abs(A.w1[a] - B.w1[a]) > tol) return "Different ω₁ axes: use the same time step, carrier and Fourier convention";
+    for (let b = 0; b < A.N3; b++) if (Math.abs(A.w3[b] - B.w3[b]) > tol) return "Different ω₃ axes: use the same time step, carrier and Fourier convention";
+    return null;
+  }
+  /** Complex difference spectrum A − B on a shared grid (throws if the grids differ). */
+  function difference(A, B) {
+    const why = incompatibility(A, B); if (why) throw new Error(why);
+    return { re: Float64Array.from(A.re, (v, j) => v - B.re[j]), im: Float64Array.from(A.im, (v, j) => v - B.im[j]), w1: A.w1, w3: A.w3, N1: A.N1, N3: A.N3 };
+  }
+  /**
+   * A 1D cut through the point (w1c, w3c) of a spectrum, by bilinear interpolation of the complex values.
+   * kind: "h" (ω3 varies at fixed ω1), "v" (ω1 varies at fixed ω3), "diag" (both increase), "anti" (ω1 up, ω3 down).
+   * x is the offset from the point along the varying frequency (projected on one axis, so widths are in
+   * ordinary frequency units), sampled at the grid spacing over ±half (rad/fs).
+   */
+  function cut(S, w1c, w3c, kind, half) {
+    const d1 = S.w1[1] - S.w1[0], d3 = S.w3[1] - S.w3[0], step = Math.min(Math.abs(d1), Math.abs(d3)), n = Math.max(2, Math.round(half / step));
+    const at = (w1, w3) => {
+      const fa = (w1 - S.w1[0]) / d1, fb = (w3 - S.w3[0]) / d3, ia = Math.floor(fa), ib = Math.floor(fb);
+      if (ia < 0 || ib < 0 || ia + 1 >= S.N1 || ib + 1 >= S.N3) return null;
+      const ta = fa - ia, tb = fb - ib, j = ia * S.N3 + ib, w = [(1 - ta) * (1 - tb), (1 - ta) * tb, ta * (1 - tb), ta * tb], J = [j, j + 1, j + S.N3, j + S.N3 + 1];
+      return [J.reduce((s, q, k) => s + w[k] * S.re[q], 0), J.reduce((s, q, k) => s + w[k] * S.im[q], 0)];
+    };
+    const out = { x: [], w1: [], w3: [], re: [], im: [] };
+    for (let k = -n; k <= n; k++) {
+      const x = k * step, w1 = kind === "h" ? w1c : w1c + x, w3 = kind === "v" ? w3c : kind === "anti" ? w3c - x : w3c + x, v = at(w1, w3);
+      if (!v) continue;
+      out.x.push(x); out.w1.push(w1); out.w3.push(w3); out.re.push(v[0]); out.im.push(v[1]);
+    }
+    return out;
+  }
+  /**
+   * Directly calculated peak quantities of a sampled 1D profile (no model assumed): maximum, its position,
+   * FWHM from linear interpolation of the half-maximum crossings, trapezoid integral, and quality flags.
+   */
+  function peakStats(xs, ys) {
+    const n = xs.length; if (n < 3) return { ok: false, reason: "Too few points" };
+    let im = 0; for (let i = 1; i < n; i++) if (ys[i] > ys[im]) im = i;
+    const amp = ys[im], h = amp / 2, dx = Math.abs(xs[1] - xs[0]);
+    let l = im, r = im;
+    while (l > 0 && ys[l] > h) l--;
+    while (r < n - 1 && ys[r] > h) r++;
+    const leftOK = ys[l] <= h && l < im, rightOK = ys[r] <= h && r > im;
+    const xl = leftOK ? xs[l] + ((h - ys[l]) * (xs[l + 1] - xs[l])) / (ys[l + 1] - ys[l]) : NaN;
+    const xr = rightOK ? xs[r - 1] + ((h - ys[r - 1]) * (xs[r] - xs[r - 1])) / (ys[r] - ys[r - 1]) : NaN;
+    const fwhm = xr - xl;
+    let area = 0; for (let i = 1; i < n; i++) area += 0.5 * (ys[i] + ys[i - 1]) * (xs[i] - xs[i - 1]);
+    const warnings = [];
+    if (!(amp > 0)) warnings.push("No positive peak in this cut");
+    if (im === 0 || im === n - 1) warnings.push("The maximum is at the edge of the cut: the peak may extend beyond the computed range");
+    if (!leftOK || !rightOK) warnings.push("The profile does not fall to half maximum on both sides: FWHM unavailable");
+    else if (fwhm / dx < 5) warnings.push(`Only ${(fwhm / dx).toFixed(1)} grid points across the FWHM: increase zero padding (interpolation) or check the physical resolution`);
+    return { ok: amp > 0, amp, x0: xs[im], dxGrid: dx, fwhm: isFinite(fwhm) ? fwhm : NaN, area, warnings };
+  }
+  /** Nelder–Mead minimiser (small, dependency-free). */
+  function nelderMead(f, x0, scale, iters) {
+    const n = x0.length; let P = [x0.slice()];
+    for (let i = 0; i < n; i++) { const p = x0.slice(); p[i] += scale[i]; P.push(p); }
+    let F = P.map(f);
+    for (let it = 0; it < (iters || 600); it++) {
+      const o = F.map((v, i) => i).sort((a, b) => F[a] - F[b]); P = o.map((i) => P[i]); F = o.map((i) => F[i]);
+      if (Math.abs(F[n] - F[0]) <= 1e-14 * (Math.abs(F[0]) + 1e-300)) break;
+      const c = Array.from({ length: n }, (_, k) => P.slice(0, n).reduce((s, p) => s + p[k], 0) / n);
+      const at = (t) => c.map((ck, k) => ck + t * (P[n][k] - ck));
+      const xr = at(-1), fr = f(xr);
+      if (fr < F[0]) { const xe = at(-2), fe = f(xe); if (fe < fr) { P[n] = xe; F[n] = fe; } else { P[n] = xr; F[n] = fr; } }
+      else if (fr < F[n - 1]) { P[n] = xr; F[n] = fr; }
+      else { const xc = at(fr < F[n] ? -0.5 : 0.5), fc = f(xc); if (fc < Math.min(fr, F[n])) { P[n] = xc; F[n] = fc; } else { for (let i = 1; i <= n; i++) { P[i] = P[i].map((v, k) => P[0][k] + 0.5 * (v - P[0][k])); F[i] = f(P[i]); } } }
+    }
+    let b = 0; for (let i = 1; i <= n; i++) if (F[i] < F[b]) b = i;
+    return { x: P[b], f: F[b] };
+  }
+  /**
+   * Least-squares fit of a Lorentzian or Gaussian (+ constant offset) to a 1D profile. The window is the region
+   * above 20% of the maximum around the peak (at least 7 points). Returns fitted position, FWHM, amplitude, area
+   * (analytic, of the peak function without the offset), R² and the points used. These are model-dependent estimates.
+   */
+  function fitPeak(xs, ys, shape) {
+    const st = peakStats(xs, ys); if (!st.ok) return { ok: false, reason: st.warnings[0] || "No peak" };
+    const n = xs.length; let im = 0; for (let i = 1; i < n; i++) if (ys[i] > ys[im]) im = i;
+    let l = im, r = im; while (l > 0 && ys[l - 1] > 0.2 * st.amp) l--; while (r < n - 1 && ys[r + 1] > 0.2 * st.amp) r++;
+    while (r - l + 1 < 7 && (l > 0 || r < n - 1)) { if (l > 0) l--; if (r < n - 1) r++; }
+    const X = xs.slice(l, r + 1), Y = ys.slice(l, r + 1);
+    const g = shape === "gauss" ? (x, p) => p[0] * Math.exp((-4 * Math.LN2 * (x - p[1]) ** 2) / (p[2] * p[2])) + p[3] : (x, p) => p[0] / (1 + (4 * (x - p[1]) ** 2) / (p[2] * p[2])) + p[3];
+    const w0 = isFinite(st.fwhm) ? st.fwhm : (X[X.length - 1] - X[0]) / 2;
+    const sse = (p) => (p[2] <= 0 ? Infinity : X.reduce((s, x, i) => s + (Y[i] - g(x, p)) ** 2, 0));
+    const res = nelderMead(sse, [st.amp, st.x0, w0, 0], [0.1 * st.amp, 0.2 * w0, 0.2 * w0, 0.05 * st.amp], 2000);
+    const p = res.x, mean = Y.reduce((s, y) => s + y, 0) / Y.length, tot = Y.reduce((s, y) => s + (y - mean) ** 2, 0);
+    const area = shape === "gauss" ? p[0] * Math.abs(p[2]) * Math.sqrt(Math.PI / (4 * Math.LN2)) : (Math.PI / 2) * p[0] * Math.abs(p[2]);
+    return { ok: true, shape: shape === "gauss" ? "gauss" : "lorentz", amp: p[0], x0: p[1], fwhm: Math.abs(p[2]), offset: p[3], area, r2: tot > 0 ? 1 - res.f / tot : 1, npts: X.length, range: [X[0], X[X.length - 1]] };
+  }
+
   /* ======================= small helpers for analysis and tests ======================= */
   /** Full width at half maximum of a sampled peak (linear interpolation of the half-maximum crossings). */
   function fwhm(xs, ys) {
@@ -1023,5 +1144,6 @@
     mirror1, combine, orient, MODELS, DEFAULT_PARAMS, modelResponse, pathwayResponse, vibronicResponse, applyDisorder, fwhmToSigma,
     tokenize, parseExpr, compile, parseParams, exprResponse, parseCSV, buildDataset, resampleSlice, responseCSV, run, waitingTrace, convergence, fwhm, nearest,
     parseModes, boDensity, boGrid, cumulantResponse, globalExpFit, cmPrepare, cmMaps,
+    MODEL_PATHWAYS, decompose, incompatibility, difference, cut, peakStats, fitPeak, nelderMead,
   };
 });

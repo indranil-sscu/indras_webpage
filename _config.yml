@@ -48,5 +48,6 @@ minima:
 
 exclude:
   - tests/
+  - docs/
   - README.md
   - .sass-cache/

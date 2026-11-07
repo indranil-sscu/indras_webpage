@@ -28,6 +28,10 @@ self.onmessage = (e) => {
     } else if (kind === "cmMaps") {
       const m = TwoDES.cmMaps(extra.wT);
       self.postMessage({ id, ok: true, result: { real: m.real, pos: m.pos, neg: m.neg, w1: m.w1.slice(), w3: m.w3.slice(), na: m.na, nb: m.nb, tau: m.tau } }, [m.real.buffer, m.pos.buffer, m.neg.buffer]);
+    } else if (kind === "decompose") {
+      const d = TwoDES.decompose(job), transfer = [], strip = (r) => { const o = { R: r.R, NR: r.NR, total: r.total }; [o.R, o.NR, o.total].forEach((S) => S && transfer.push(S.re.buffer, S.im.buffer)); return o; };
+      const parts = Object.fromEntries(d.kinds.map((k) => [k, strip(d.parts[k])]));
+      self.postMessage({ id, ok: true, result: { kinds: d.kinds, maxDev: d.maxDev, parts, total: strip(d.total) } }, transfer);
     } else if (kind === "convergence") {
       self.postMessage({ id, ok: true, result: TwoDES.convergence(job, extra.range) });
     }

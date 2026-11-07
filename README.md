@@ -15,7 +15,7 @@ I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), In
 **Indra's Webpage** is an interactive science site: laboratory tools for spectroscopy and optics, data utilities, hands-on mathematics experiments for everyone, and tutorials. Everything runs client-side (plain HTML, CSS and JavaScript on GitHub Pages; no frameworks, no tracking).
 
 - **Explore Tools** (`/explore/`): every tool as a card with a live preview, filterable by category and searchable. Cards come from `_data/tools.yml`.
-- **Physics & optics:** calculators (`/tools/`), multilayer TMM and polariton solver (`/tools/tmm/`), double-sided Feynman diagram generator (`/tools/dsfd/`), 2D electronic spectroscopy simulator (`/tools/2des/`), constants cheat sheet (`/reference/`).
+- **Physics & optics:** calculators (`/tools/`), multilayer TMM and polariton solver (`/tools/tmm/`), double-sided Feynman diagram generator (`/tools/dsfd/`), 2D electronic spectroscopy simulator (`/tools/2des/`; architecture in `docs/twodes-architecture.md`), constants cheat sheet (`/reference/`).
 - **Data & analysis:** plot digitizer (`/tools/digitizer/`), spectral Jacobian and FFT axis designer (sections of `/tools/`).
 - **Science for the Curious** (`/curious/`): probability playground, Monty Hall problem, birthday and Simpson's paradoxes, Fourier series visualiser, pendulum playground (simple and double, RK4), Mandelbrot and Julia set explorer.
 - **Tutorials & Notes** (`/posts/`) and **About** (`/about/`).
@@ -42,7 +42,7 @@ Run the tests (scientific calculations against analytical results and benchmarks
 ├── _layouts/             # default (skip link, landmarks) and page (breadcrumbs, title, version bar)
 ├── assets/css/site.css   # Design tokens, light/dark themes and components
 ├── assets/js/            # Tool engines (sci-, optics-, spectra-tools, tmm-engine, dsfd-core, digitizer-core,
-│                         #   curious-core, physics-core, fractal-core, twodes-core + twodes-worker), plotkit (charts),
+│                         #   curious-core, physics-core, fractal-core, twodes-core + twodes-ui + twodes-worker), plotkit (charts),
 │                         #   previews (card previews), theme
 ├── assets/img/           # Social-sharing image
 └── tests/                # Node unit tests

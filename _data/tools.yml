@@ -35,7 +35,7 @@
   preview: twodes
   featured: true
   badge: Updated
-  description: Rephasing, non-rephasing and absorptive 2D spectra and coherence maps from a response function (Brownian-oscillator, exciton and vibronic models, your own formula or CSV data); reproduces Sahu & Tiwari, JPCL 2023.
+  description: Explore 2D spectra in three modes, from five beginner presets to your own response functions and data; waiting-time animation, pathway decomposition, cuts and fits, A/B comparison and coherence maps (reproduces Sahu & Tiwari, JPCL 2023).
 - id: reference
   title: Constants & lab cheat sheet
   url: /reference/
