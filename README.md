@@ -12,7 +12,7 @@ I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), In
 
 ## What is here
 
-**Indra's Lab** is an interactive science site: laboratory tools for spectroscopy and optics, data utilities, hands-on mathematics experiments for everyone, and tutorials. Everything runs client-side (plain HTML, CSS and JavaScript on GitHub Pages; no frameworks, no tracking).
+**Indra's Webpage** is an interactive science site: laboratory tools for spectroscopy and optics, data utilities, hands-on mathematics experiments for everyone, and tutorials. Everything runs client-side (plain HTML, CSS and JavaScript on GitHub Pages; no frameworks, no tracking).
 
 - **Explore Tools** (`/explore/`): every tool as a card with a live preview, filterable by category and searchable. Cards come from `_data/tools.yml`.
 - **Physics & optics:** calculators (`/tools/`), multilayer TMM and polariton solver (`/tools/tmm/`), double-sided Feynman diagram generator (`/tools/dsfd/`), constants cheat sheet (`/reference/`).
