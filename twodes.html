@@ -7,8 +7,8 @@ crumbs:
     url: /explore/
 short_title: 2DES simulator
 lead: Define a third-order response function R(t₃, T, t₁), from a built-in model, your own formula or measured data, and compute its rephasing, non-rephasing and absorptive 2D spectra with documented conventions.
-description: Browser-based 2D electronic spectroscopy simulator. Built-in two-level, GSB/SE/ESA, excitonic-dimer and vibronic models, custom response functions and CSV import; FFT with zero-padding, apodisation and selectable sign conventions; validated against analytical results.
-version: "1.0"
+description: Browser-based 2D electronic spectroscopy simulator. Brownian-oscillator monomer (Sahu & Tiwari 2023 defaults) with coherence maps, two-level, GSB/SE/ESA, excitonic-dimer and vibronic models, custom response functions and CSV import; FFT with zero-padding, apodisation and selectable sign conventions; validated against analytical results.
+version: "1.1"
 updated: 2026-11-07
 source: assets/js/twodes-core.js
 ---
@@ -22,7 +22,8 @@ source: assets/js/twodes-core.js
   .td-panel > h2, .td-panel h3 { font-size: .72rem; text-transform: uppercase; letter-spacing: .08em; color: var(--text-muted); border: 0; padding: 0; margin: 0 0 .6rem; }
   .td-panel h3 { margin: 1.1rem 0 .5rem; padding-top: .8rem; border-top: 1px solid var(--border-subtle); }
   .td-f { margin: 0 0 .6rem; min-width: 0; }
-  .td-f > label, .td-f > .lbl { display: flex; justify-content: space-between; gap: .5em; font-size: .76rem; font-weight: 500; color: var(--text-secondary); margin-bottom: .25rem; }
+  .td-f > label, .td-f > .lbl { display: block; font-size: .76rem; font-weight: 500; color: var(--text-secondary); margin-bottom: .25rem; }
+  .td-f > label > .unit, .td-f > label > output { float: right; margin-left: .5em; }
   .td-f input[type="number"], .td-f input[type="text"], .td-f select, .td-f textarea { width: 100%; box-sizing: border-box; }
   .td-f input[type="range"] { width: 100%; }
   .td-f .unit { color: var(--text-muted); font-weight: 400; }
@@ -61,6 +62,17 @@ source: assets/js/twodes-core.js
   details.td-more { margin-top: .4rem; } details.td-more summary { cursor: pointer; font-size: .8rem; color: var(--accent); }
   .td-stats { grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); }
   .td-stats .stat dd { font-size: .86rem; }
+  .td-cmrow { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem .8rem; margin: 0 0 .6rem; padding: .6rem .7rem; border: 1px solid var(--accent-border); background: var(--accent-surface); border-radius: var(--radius-sm); }
+  .td-cmrow .td-f { margin: 0; }
+  .td-cmrow input[type="number"] { width: 6.2em; }
+  .td-cmrow .td-trip { display: flex; gap: .3rem; }
+  .td-cmrow .td-trip input { width: 5em; }
+  .td-chips { display: flex; flex-wrap: wrap; gap: .3rem; flex-basis: 100%; font-size: .74rem; color: var(--text-secondary); align-items: center; }
+  .td-chips button { height: 24px; padding: 0 .55em; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--bg-surface); color: var(--text-primary); font: 500 .74rem var(--font-mono); cursor: pointer; }
+  .td-chips button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-contrast); }
+  .td-cmrow .td-note { flex-basis: 100%; margin: 0; }
+  .td-cmp { width: 100%; font-size: .82rem; }
+  .td-cmp td, .td-cmp th { padding: .3rem .45rem; }
 </style>
 
 <div class="howto">
@@ -89,6 +101,7 @@ source: assets/js/twodes-core.js
       <div class="td-f"><label for="td-example">Load example</label>
         <select id="td-example">
           <option value="">Choose an example…</option>
+          <option value="sahu" selected>Sahu &amp; Tiwari 2023: BChl a monomer (Fig. 1)</option>
           <option value="ex1">1. Isolated two-level system</option>
           <option value="ex2">2. Two uncoupled transitions</option>
           <option value="ex3">3. Coupled two-state system (dimer)</option>
@@ -145,6 +158,7 @@ source: assets/js/twodes-core.js
         <button type="button" data-spec="NR" aria-pressed="false">Non-rephasing</button>
         <button type="button" data-spec="abs" aria-pressed="true">Absorptive</button>
         <button type="button" data-spec="total" aria-pressed="false">R + NR</button>
+        <button type="button" data-spec="cm" aria-pressed="false">Coherence map</button>
       </div>
       <div class="segmented" role="group" aria-label="Component" id="td-comp">
         <button type="button" data-comp="re" aria-pressed="true">Real</button>
@@ -152,6 +166,17 @@ source: assets/js/twodes-core.js
         <button type="button" data-comp="abs" aria-pressed="false">Magnitude</button>
         <button type="button" data-comp="phase" aria-pressed="false">Phase</button>
       </div>
+    </div>
+    <div class="td-cmrow" id="td-cmrow" hidden>
+      <div class="td-f"><label for="td-wT">ω<sub>T</sub> <span class="unit" data-unit></span></label><input type="number" id="td-wT" step="any" min="0"></div>
+      <div class="td-f"><span class="lbl" id="td-cmt-l">Map</span>
+        <div class="segmented" role="group" aria-labelledby="td-cmt-l" id="td-cmtype">
+          <button type="button" data-cmt="real" aria-pressed="true">Real rephasing</button><button type="button" data-cmt="neg" aria-pressed="false">−ω<sub>T</sub></button><button type="button" data-cmt="pos" aria-pressed="false">+ω<sub>T</sub></button>
+        </div></div>
+      <div class="td-f"><span class="lbl">T from, to, step (fs)</span><div class="td-trip"><input type="number" id="td-cmT0" aria-label="First waiting time, fs" value="10" min="0"><input type="number" id="td-cmT1" aria-label="Last waiting time, fs" value="1100" min="0"><input type="number" id="td-cmdT" aria-label="Waiting-time step, fs" value="10" min="0.1" step="any"></div></div>
+      <button type="button" class="btn primary" id="td-cmgo">Compute coherence maps</button>
+      <div class="td-chips" id="td-cmchips"></div>
+      <p class="td-note" id="td-cmnote">Rephasing spectra over the T range inside the displayed region; a global two-exponential fit removes the population background and the residual is Fourier transformed along T (Sahu &amp; Tiwari 2023, SI).</p>
     </div>
     <div class="td-Trow"><label for="td-T">Waiting time T</label><input type="range" id="td-T" min="0" max="1000" step="1" value="0"><input type="number" id="td-T-n" min="0" step="1" value="0" aria-label="Waiting time T in fs"></div>
     <canvas id="td-map" tabindex="0" role="img" aria-label="2D spectrum: detection frequency ω3 horizontally, excitation frequency ω1 vertically"></canvas>
@@ -181,6 +206,8 @@ source: assets/js/twodes-core.js
 
     <h3>Display</h3>
     <div class="td-f"><label for="td-unit">Frequency unit</label><select id="td-unit"><option value="cm">cm⁻¹</option><option value="ev">eV</option><option value="thz">THz</option><option value="radfs">rad/fs</option></select></div>
+    <div class="td-f"><label for="td-mapaxis">Map and slice axes</label><select id="td-mapaxis"><option value="freq">Frequency (unit above)</option><option value="nm">Wavelength (nm)</option></select></div>
+    <p class="td-note" id="td-nm-note" hidden>Wavelength axes: λ = 10⁷/ν̃ nm. The spectrum is resampled onto a uniform wavelength grid for display (wavelength increases to the right and upwards, so frequency decreases); the ranges below stay in frequency.</p>
     <div class="td-2">
       <div class="td-f"><label for="td-r3a">ω₃ from</label><input type="number" id="td-r3a" step="any"></div>
       <div class="td-f"><label for="td-r3b">ω₃ to</label><input type="number" id="td-r3b" step="any"></div>
@@ -195,6 +222,7 @@ source: assets/js/twodes-core.js
       <label><input type="checkbox" id="td-diag" checked> Diagonal</label>
       <label><input type="checkbox" id="td-anti"> Anti-diagonal</label>
       <label><input type="checkbox" id="td-marks"> Pathway positions</label>
+      <label><input type="checkbox" id="td-swap"> Excitation ω₁ horizontal (as in many papers)</label>
       <label><input type="checkbox" id="td-auto" checked> Update automatically</label>
     </div>
 
@@ -230,7 +258,7 @@ source: assets/js/twodes-core.js
         <canvas id="td-slice" role="img" aria-label="Slices of the displayed spectrum through the selected point"></canvas>
       </div>
       <div>
-        <div class="td-sub"><h3>Waiting-time trace</h3><button type="button" class="btn" id="td-trace-btn" style="height:28px">Compute</button></div>
+        <div class="td-sub"><h3 id="td-trace-h">Waiting-time trace</h3><button type="button" class="btn" id="td-trace-btn" style="height:28px">Compute</button></div>
         <canvas id="td-trace" role="img" aria-label="Signal at the selected point against waiting time T"></canvas>
         <p class="td-note" id="td-trace-note">Select a point on the map, then compute S(ω₁, T, ω₃) for T from 0 to the slider maximum.</p>
       </div>
@@ -264,6 +292,48 @@ source: assets/js/twodes-core.js
       <li>V. Butkus, D. Zigmantas, L. Valkunas and D. Abramavicius, “Vibrational vs. electronic coherences in 2D spectrum of molecular systems,” <i>Chem. Phys. Lett.</i> <b>545</b>, 40 (2012).</li>
       <li>V. Tiwari, W. K. Peters and D. M. Jonas, “Electronic resonance with anticorrelated pigment vibrations drives photosynthetic energy transfer outside the adiabatic framework,” <i>Proc. Natl. Acad. Sci. USA</i> <b>110</b>, 1203 (2013).</li>
     </ol>
+  </details>
+  <details class="theory-card" open>
+    <summary>Comparison with Sahu &amp; Tiwari, J. Phys. Chem. Lett. 14, 4617 (2023)</summary>
+    <p>The default model is the BChl <i>a</i> monomer of Fig. 1 of the paper, with the parameters of SI section S1 and Table S1:</p>
+    <ul>
+      <li>vertical gap ω<sub>eg</sub> = 12 870 cm⁻¹ at 77 K</li>
+      <li>underdamped Brownian oscillators at 200, 350, 572, 740 and 900 cm⁻¹ (γ = 2.3 cm⁻¹; λ = 4, 6, 5, 20 and 25 cm⁻¹)</li>
+      <li>a critically damped oscillator (30 cm⁻¹, γ = 60 cm⁻¹, λ = 55 cm⁻¹)</li>
+      <li>Gaussian disorder σ = 230 cm⁻¹ and 10 fs time steps</li>
+    </ul>
+    <p>Coherence maps follow the SI procedure: T = 10–1100 fs in 10 fs steps, a global two-exponential background fit, a Fourier transform along T, and the absolute value. The simulator reproduces the paper's numbers as follows; the first rows are checked by the automated tests.</p>
+    <div style="overflow-x:auto"><table class="td-cmp">
+      <thead><tr><th>Quantity</th><th>Paper / SI</th><th>This simulator</th></tr></thead>
+      <tbody>
+        <tr><td>Anti-diagonal FWHM of the absorptive spectrum, T = 0</td><td>≈ 65 cm⁻¹ (set by the critically damped bath)</td><td>64 cm⁻¹</td></tr>
+        <tr><td>Diagonal FWHM, T = 200 fs (σ chosen to match the experiment)</td><td>≈ 580 cm⁻¹</td><td>568 cm⁻¹</td></tr>
+        <tr><td>Absorptive maximum (Fig. 1B)</td><td>near 12.8 × 10³ cm⁻¹</td><td>(12 811, 12 795) cm⁻¹ (ω₁, ω₃) at T = 50 fs</td></tr>
+        <tr><td>Beat frequencies in the coherence maps</td><td>200, 339, 554, 736, 899 cm⁻¹ observed (Fig. 1C, S1), within the ω<sub>T</sub> resolution of the 350, 572, 740, 900 cm⁻¹ inputs</td><td>195–202, 345–352, 573, 736–743, 899 cm⁻¹</td></tr>
+        <tr><td>Quantum-beat phase at the diagonal peak</td><td>GSB at −ω<sub>T</sub>, ESE at +ω<sub>T</sub>, nearly equal (Fig. 1A, eq. 4)</td><td>same; |−ω<sub>T</sub>|/|+ω<sub>T</sub>| = 1.06–1.20 at the diagonal peak</td></tr>
+        <tr><td>Real rephasing CM narrowed across the diagonal; ±ω<sub>T</sub> maps not narrowed</td><td>yes, for the vibrations shown (Fig. 1C, S1)</td><td>yes for 350, 572, 740 and 900 cm⁻¹: anti-diagonal half-width through the diagonal peak 90–120 cm⁻¹ for the real map vs 195–610 cm⁻¹ for the ±ω<sub>T</sub> maps; at 200 cm⁻¹ the real map shows the striped diagonal pattern of Fig. S1, but its half-width through the peak is not reduced</td></tr>
+      </tbody></table></div>
+    <p>Two differences from the paper's procedure:</p>
+    <ul>
+      <li>ω<sub>T</sub> is evaluated by a direct Fourier sum at the chosen frequency, which equals arbitrarily fine zero padding (the resolution is still 2π/ΔT ≈ 30 cm⁻¹ for a 1.1 ps window).</li>
+      <li>The two-exponential fit includes a constant offset.</li>
+    </ul>
+    <p>The paper does not state the convention for the underdamped damping γ. Here it enters the standard Brownian spectral density, so wavepackets decay as e<sup>−γT/2</sup>, about 4.6 ps.</p>
+    <p>The energy-transfer dimer of Figs. 3–5 needs a vibronic-dimer Hamiltonian with population and coherence transfer, which this simulator does not include yet.</p>
+    <p><b>To reproduce Fig. 1B</b>, load the default and set T = 50 fs (the default). <b>To reproduce Fig. 1C and S1</b>, open the <i>Coherence map</i> tab, press <i>Compute coherence maps</i>, then pick ω<sub>T</sub> and Real rephasing, −ω<sub>T</sub> or +ω<sub>T</sub>. Tick <i>Excitation ω₁ horizontal</i> under Display to match the paper's orientation (the paper labels the excitation axis −ω<sub>τ</sub>).</p>
+    <ol class="refs"><li>A. Sahu and V. Tiwari, “Vibrations that do not promote vibronic coupling can dominate observed lineshapes in two-dimensional electronic spectroscopy,” <i>J. Phys. Chem. Lett.</i> <b>14</b>, 4617 (2023), and its Supporting Information.</li><li>V. R. Policht, A. Niedringhaus and J. P. Ogilvie, “Characterization of vibrational coherence in monomeric bacteriochlorophyll a by two-dimensional electronic spectroscopy,” <i>J. Phys. Chem. Lett.</i> <b>9</b>, 6631 (2018).</li><li>M. Rätsep, Z.-L. Cai, J. R. Reimers and A. Freiberg, “Demonstration and interpretation of significant asymmetry in the low-resolution and high-resolution Q<sub>y</sub> fluorescence and absorption spectra of bacteriochlorophyll a,” <i>J. Chem. Phys.</i> <b>134</b>, 024506 (2011).</li><li>S. Mukamel, “Femtosecond optical spectroscopy: a direct look at elementary chemical events,” <i>Annu. Rev. Phys. Chem.</i> <b>41</b>, 647 (1990).</li></ol>
+  </details>
+  <details class="theory-card">
+    <summary>Coherence maps</summary>
+    <p>Vibrational wavepackets make 2D peaks oscillate with the waiting time T. A coherence map (CM) collects these oscillations as a 2D map at one beat frequency ω<sub>T</sub>.</p>
+    <ol>
+      <li>Compute the rephasing spectrum S<sub>R</sub>(ω₁, T, ω₃) for many T.</li>
+      <li>Remove the slowly varying population signal with a global fit, a·e<sup>−T/τ₁</sup> + b·e<sup>−T/τ₂</sup> + c. The time constants are shared by all pixels; the amplitudes are fitted per pixel.</li>
+      <li>Fourier transform the residual along T.</li>
+    </ol>
+    <p>The <i>real rephasing</i> CM transforms Re S<sub>R</sub>, so beats at ±ω<sub>T</sub> are added and can interfere. Transforming the complex S<sub>R</sub> separates the two beat phases. In the rephasing signal, ground-state (GSB) vibrational coherences at the diagonal peak oscillate with the opposite phase to excited-state (ESE) ones (Sahu &amp; Tiwari label them −ω<sub>T</sub> and +ω<sub>T</sub>). Where they overlap with similar amplitude they cancel in the real part above and below the diagonal, giving a narrow, node-like diagonal lineshape that disappears in the separated ±ω<sub>T</sub> maps.</p>
+    <div class="eq">CM<sub>real</sub>(ω₁, ω₃; ω<sub>T</sub>) = |Σ<sub>T</sub> r<sub>Re</sub>(T) e<sup>−iω<sub>T</sub>T</sup> ΔT|, &nbsp; CM<sub>±</sub> = |Σ<sub>T</sub> r(T) e<sup>±iω<sub>T</sub>T</sup> ΔT| &nbsp; (r: residual of the complex S<sub>R</sub>)</div>
+    <p>The beat spectrum under the map (summed over the displayed region) shows which frequencies are present; click it to choose ω<sub>T</sub>.</p>
   </details>
   <details class="theory-card">
     <summary>Conventions and numerical methods</summary>
@@ -312,6 +382,8 @@ source: assets/js/twodes-core.js
   const D = window.TwoDES, PK = window.PlotKit, $ = (id) => document.getElementById(id);
   const cm = D.cm;
   const EXAMPLES = {
+    sahu: { model: "brownian", params: {}, T: 50, num: { dt: 10, n1: 128, n3: 128, pad: 2, autoCarrier: true }, range: [11800, 14200],
+      note: "Sahu & Tiwari, J. Phys. Chem. Lett. 14, 4617 (2023), Fig. 1 and SI Table S1: BChl a at 77 K, ω_eg = 12870 cm⁻¹, five underdamped vibrations (200–900 cm⁻¹) and one critically damped bath mode, Gaussian disorder σ = 230 cm⁻¹, 10 fs steps. Shown: the T = 50 fs absorptive spectrum (Fig. 1B). Open the Coherence map tab and compute to reproduce Fig. 1C and S1: the real rephasing CM narrows across the diagonal; the ±ω_T maps do not." },
     ex1: { model: "tls", params: {}, T: 0, note: "One diagonal peak at ω_eg. Its width on both axes is 2Γ = 2/T₂: change T₂ and watch the peak grow or shrink. The rephasing spectrum alone is phase-twisted; the absorptive sum is a clean, positive peak. Add static disorder to see it stretch along the diagonal." },
     ex2: { model: "dimer", params: { J: 0, bx: 0 }, T: 0, note: "Two transitions with J = 0 and no biexciton shift. Every cross-peak pathway (GSB, SE, ESA) is present but they cancel exactly, leaving two diagonal peaks; the faint signal at the cross positions is only the overlap of the diagonal peaks' tails. Switch off ESA to see the uncancelled cross peaks appear." },
     ex3: { model: "dimer", params: { J: cm(300) }, T: 0, note: "Increase the coupling J: the excitons repel, the dipole strength redistributes, and cross peaks appear because the GSB, SE and ESA pathways no longer cancel. Move T to see the electronic coherence beat at |E₊ − E₋| on the rephasing cross peaks (and on the non-rephasing diagonal peaks); then compute the waiting-time trace." },
@@ -323,9 +395,11 @@ source: assets/js/twodes-core.js
     R: "2*A*exp(i*w*t1 - G*t1)*exp(-i*w*t3 - G*t3)*exp(-T/T1)",
     NR: "2*A*exp(-i*w*t1 - G*t1)*exp(-i*w*t3 - G*t3)*exp(-T/T1)",
   };
-  const DEF_NUM = { dt: 4, n1: 128, n3: 128, pad: 2, window: "none", broaden: 0, halfFirst: true, convention: "standard", carrier: cm(15000), autoCarrier: true, nonuniform: "direct" };
-  const DEF_VIEW = { unit: "cm", spec: "abs", comp: "re", range: null, cmap: "div", clip: 100, contours: true, diag: true, anti: false, marks: false, auto: true, tview: "t1" };
-  const fresh = () => ({ source: "model", model: "tls", params: D.DEFAULT_PARAMS("tls"), comps: { GSB: true, SE: true, ESA: true }, expr: Object.assign({}, DEFAULT_EXPR), T: 0, Tmax: 1000, num: Object.assign({}, DEF_NUM), view: Object.assign({}, DEF_VIEW), sel: null });
+  // defaults: the Sahu & Tiwari (2023) BChl a monomer model (Fig. 1)
+  const DEF_NUM = { dt: 10, n1: 128, n3: 128, pad: 2, window: "none", broaden: 0, halfFirst: true, convention: "standard", carrier: cm(12870), autoCarrier: true, nonuniform: "direct" };
+  const DEF_VIEW = { unit: "cm", mapAxis: "freq", swap: false, spec: "abs", comp: "re", range: { w1: [cm(11800), cm(14200)], w3: [cm(11800), cm(14200)] }, rangeAuto: false, cmap: "div", clip: 100, contours: true, diag: true, anti: false, marks: false, auto: true, tview: "t1" };
+  const DEF_CM = { wT: cm(350), type: "real", T0: 10, T1: 1100, dT: 10, info: null, maps: null, key: null, stale: false };
+  const fresh = () => ({ source: "model", model: "brownian", params: D.DEFAULT_PARAMS("brownian"), comps: { GSB: true, SE: true, ESA: true }, expr: Object.assign({}, DEFAULT_EXPR), T: 50, Tmax: 1100, num: Object.assign({}, DEF_NUM), view: JSON.parse(JSON.stringify(DEF_VIEW)), cmd: Object.assign({}, DEF_CM), sel: null });
   let S = fresh(), data = null, result = null, busy = false, pending = false, reqId = 0, trace = null;
 
   /* ---------- units ---------- */
@@ -348,7 +422,9 @@ source: assets/js/twodes-core.js
     if (worker) return new Promise((res, rej) => { const id = ++reqId; waiting.set(id, { res, rej }); worker.postMessage({ id, kind, job, extra }); })
       .catch((err) => { if (/worker failed/.test(err.message)) return call(kind, job, extra); throw err; });
     return new Promise((res, rej) => setTimeout(() => {
-      try { res(kind === "run" ? strip(D.run(job), job.T) : kind === "trace" ? D.waitingTrace(job, extra.w1, extra.w3, extra.Ts) : D.convergence(job, extra.range)); } catch (err) { rej(err); }
+      try {
+        res(kind === "run" ? strip(D.run(job), job.T) : kind === "trace" ? D.waitingTrace(job, extra.w1, extra.w3, extra.Ts) : kind === "cmPrepare" ? D.cmPrepare(job, extra) : kind === "cmMaps" ? D.cmMaps(extra.wT) : D.convergence(job, extra.range));
+      } catch (err) { rej(err); }
     }, 0));
   }
   function buildJob() {
@@ -363,6 +439,7 @@ source: assets/js/twodes-core.js
   function autoCarrier() {
     const M = D.MODELS[S.model], tr = M.transitions.call(M, S.params);
     if (S.model === "vibronic") return S.params.w + S.params.S * S.params.wv;
+    if (S.model === "brownian") return S.params.w;
     const ok = tr.filter((w) => isFinite(w)), lo = Math.min(...ok), hi = Math.max(...ok);
     return (lo + hi) / 2;
   }
@@ -386,6 +463,7 @@ source: assets/js/twodes-core.js
       const r = await call("run", job);
       result = r; result.ms = performance.now() - t0; result.jobT = job.T;
       if (S.view.range === null || S.view.rangeAuto) autoRange(true);
+      if (S.cmd.info && cmKey() !== S.cmd.key) S.cmd.stale = true;
       exprMsg([]);
       showMsgs(r.warnings.map((m) => ({ t: "warn", m })));
       setStatus(`Computed in ${Math.round(result.ms)} ms${worker ? " (Web Worker)" : ""}.`);
@@ -414,6 +492,16 @@ source: assets/js/twodes-core.js
   function current() {
     if (!result) return null;
     const v = S.view, sg = sigma();
+    if (v.spec === "cm") {
+      const M = S.cmd.maps;
+      if (!M) return { missing: S.source === "data" ? "Coherence maps need a model or a formula." : "Press “Compute coherence maps” above." };
+      const arr = M[S.cmd.type], n = arr.length, mx = (a) => { let m = 0; for (let j = 0; j < a.length; j++) m = Math.max(m, a[j]); return m || 1; };
+      // as in the paper: the real rephasing CM is normalised to itself, the ±ω_T maps to their common maximum
+      const vmax = S.cmd.type === "real" ? mx(arr) : Math.max(mx(M.pos), mx(M.neg));
+      const norm = Float64Array.from(arr, (x) => x / vmax);
+      const lab = { real: "Real rephasing coherence map", neg: "Coherence map at −ω_T (ground-state beats)", pos: "Coherence map at +ω_T (excited-state beats)" }[S.cmd.type];
+      return { S: { re: norm, im: new Float64Array(n), w1: M.w1, w3: M.w3, N1: M.na, N3: M.nb }, val: (j) => norm[j], fromC: (re) => re, kind: "positive", label: `${lab}, ω_T = ${fmtU(S.cmd.wT)} ${U().label}`, sig: [1, 1], comp: "re", cm: true, vmax: 1 };
+    }
     let Sp = null, sig = sg.NR, name = "";
     if (v.spec === "R") { Sp = result.R; sig = sg.R; name = "Rephasing S_R"; }
     else if (v.spec === "NR") { Sp = result.NR; name = "Non-rephasing S_NR"; }
@@ -421,9 +509,10 @@ source: assets/js/twodes-core.js
     if (!Sp) return { missing: v.spec === "R" ? "No rephasing response is defined." : v.spec === "NR" ? "No non-rephasing response is defined." : "The absorptive spectrum needs both the rephasing and the non-rephasing response." };
     const comp = v.spec === "abs" ? "re" : v.comp;
     const val = comp === "re" ? (j) => Sp.re[j] : comp === "im" ? (j) => Sp.im[j] : comp === "abs" ? (j) => Math.hypot(Sp.re[j], Sp.im[j]) : (j) => Math.atan2(Sp.im[j], Sp.re[j]);
+    const fromC = comp === "re" ? (r) => r : comp === "im" ? (r, i) => i : comp === "abs" ? (r, i) => Math.hypot(r, i) : (r, i) => Math.atan2(i, r);
     const kind = comp === "abs" ? "positive" : comp === "phase" ? "phase" : "signed";
     const label = v.spec === "abs" ? name : `${name}, ${{ re: "real part", im: "imaginary part", abs: "magnitude", phase: "phase" }[comp]}`;
-    return { S: Sp, val, kind, label, sig, comp };
+    return { S: Sp, val, fromC, kind, label, sig, comp };
   }
   function autoRange(keepAuto) {
     let lo, hi;
@@ -431,6 +520,7 @@ source: assets/js/twodes-core.js
       const M = D.MODELS[S.model], tr = M.transitions.call(M, S.params).filter(isFinite);
       const lw = 1 / (S.params.tau2 || 60), m = Math.max(cm(700), 8 * lw + (S.params.inh || 0));
       if (S.model === "vibronic") { lo = S.params.w - S.params.wv * 1.5 - m * 0.6; hi = S.params.w + S.params.wv * Math.max(2, 1 + 2 * S.params.S) + m * 0.6; }
+      else if (S.model === "brownian") { lo = S.params.w - cm(1070); hi = S.params.w + cm(1330); } // the window of the paper's Fig. 1C
       else { lo = Math.min(...tr) - m; hi = Math.max(...tr) + m; }
     } else if (result) {
       const c = result.info.carrier, h = 0.6 * result.info.nyquist; lo = c - h; hi = c + h;
@@ -438,7 +528,7 @@ source: assets/js/twodes-core.js
     // clamp to the computed band
     if (result) { const c = result.info.carrier, h = result.info.nyquist * 0.98; lo = Math.max(lo, c - h); hi = Math.min(hi, c + h); }
     // round to a tidy step in the display unit
-    const u = U(), ul = u.to(lo), uh = u.to(hi), st = niceStep((uh - ul) / 5);
+    const u = U(), ul = u.to(lo), uh = u.to(hi), st = niceStep((uh - ul) / 10);
     lo = u.from(Math.floor(ul / st) * st); hi = u.from(Math.ceil(uh / st) * st);
     const sp = current(), sig = sp && sp.sig ? sp.sig : [1, 1];
     const map = (s) => (s > 0 ? [lo, hi] : [-hi, -lo]);
@@ -452,7 +542,14 @@ source: assets/js/twodes-core.js
 
   const niceStep = (x) => { const e = Math.pow(10, Math.floor(Math.log10(x))), f = x / e; return (f < 1.5 ? 1 : f < 3.5 ? 2 : f < 7.5 ? 5 : 10) * e; };
   /** Number of tick intervals that land on round values for the range [x0, x1] (falls back to 5). */
-  const tickCount = (x0, x1, target) => { const st = niceStep(Math.abs(x1 - x0) / target), n = Math.abs(x1 - x0) / st; return Math.abs(n - Math.round(n)) < 1e-6 && n >= 2 && n <= 10 ? Math.round(n) : target; };
+  const tickCount = (x0, x1, target) => {
+    for (const t of [target, target + 1, target - 1, target + 2, target + 3, target - 2]) {
+      if (t < 2) continue;
+      const raw = Math.abs(x1 - x0) / t, e = Math.pow(10, Math.floor(Math.log10(raw))), st = [1, 2, 2.5, 4, 5, 10].map((m) => m * e).find((m) => m >= raw * 0.999) || 10 * e, n = Math.abs(x1 - x0) / st;
+      if (Math.abs(n - Math.round(n)) < 1e-6 && n >= 2 && n <= 10) return Math.round(n);
+    }
+    return target;
+  };
 
   /* ---------- colour maps ---------- */
   const lerp = (a, b, t) => a + (b - a) * t;
@@ -475,69 +572,93 @@ source: assets/js/twodes-core.js
   }
 
   /* ---------- the 2D map ---------- */
+  const NMK = 2 * Math.PI * D.C_CM_FS * 1e7; // λ[nm] = NMK / ω[rad/fs]
+  /** Axis mapping for the map and slices: frequency in the chosen unit, or wavelength in nm. */
+  function axisFns() {
+    const u = U();
+    if (S.view.mapAxis === "nm") return { nm: true, to: (w) => NMK / w, from: (v) => NMK / v, label: "nm", x: "Detection wavelength λ₃", y: "Excitation wavelength λ₁", fmt: (w) => (NMK / w).toFixed(2) };
+    return { nm: false, to: u.to, from: u.from, label: u.label, x: "Detection frequency ω₃", y: "Excitation frequency ω₁", fmt: (w) => fmtU(w) };
+  }
   let mapGeo = null;
   function drawMap() {
-    const cv = $("td-map"), sp = current(), K0 = window.SiteTheme.colors();
+    const cv = $("td-map"), sp = current(), K0 = window.SiteTheme.colors(), A = axisFns();
     const w = cv.getBoundingClientRect().width || 600, h = Math.round(Math.min(620, Math.max(300, w * 0.82)));
-    const rng = S.view.range || { w1: [0, 1], w3: [0, 1] };
-    const u = U();
-    const P = PK.frame(cv, { height: h, x0: u.to(rng.w3[0]), x1: u.to(rng.w3[1]), y0: u.to(rng.w1[0]), y1: u.to(rng.w1[1]), xlabel: `Detection frequency ω₃ (${u.label})`, ylabel: `Excitation frequency ω₁ (${u.label})`, pad: { l: 58, r: 66, t: 12, b: 38 }, xticks: tickCount(u.to(rng.w3[0]), u.to(rng.w3[1]), w < 500 ? 3 : 5), yticks: tickCount(u.to(rng.w1[0]), u.to(rng.w1[1]), 5), xfmt: (v) => (+v.toPrecision(6)).toString(), yfmt: (v) => (+v.toPrecision(6)).toString() });
-    const c = P.ctx; mapGeo = null;
-    if (!sp || sp.missing) {
-      c.fillStyle = P.K.muted; c.font = "13px " + P.font; c.textAlign = "center";
-      c.fillText(sp && sp.missing ? sp.missing : S.source === "data" ? "Load a CSV file" : "Computing…", P.pad.l + P.pw / 2, P.pad.t + P.ph / 2);
-      return;
+    const rng = S.view.range || { w1: [cm(14000), cm(16000)], w3: [cm(14000), cm(16000)] };
+    const badNm = A.nm && Math.min(rng.w1[0], rng.w1[1], rng.w3[0], rng.w3[1]) <= 0;
+    const span = (r) => { const p = A.to(r[0]), q = A.to(r[1]); return [Math.min(p, q), Math.max(p, q)]; };
+    const sw = !!S.view.swap, rx = sw ? rng.w1 : rng.w3, ry = sw ? rng.w3 : rng.w1; // sw: excitation ω1 on the horizontal axis
+    let [x0, x1] = badNm ? [0, 1] : span(rx), [y0, y1] = badNm ? [0, 1] : span(ry);
+    if (A.nm && !badNm) { // round wavelength axes outwards to tidy values so the ticks fall on round numbers
+      const sx = niceStep((x1 - x0) / 6), sy = niceStep((y1 - y0) / 6);
+      x0 = Math.floor(x0 / sx) * sx; x1 = Math.ceil(x1 / sx) * sx; y0 = Math.floor(y0 / sy) * sy; y1 = Math.ceil(y1 / sy) * sy;
     }
-    const Sp = sp.S, N3 = Sp.N3;
+    const fmtTick = (v) => (+v.toPrecision(6)).toString();
+    const P = PK.frame(cv, { height: h, x0, x1, y0, y1, xlabel: `${sw ? A.y : A.x} (${A.label})`, ylabel: `${sw ? A.x : A.y} (${A.label})`, pad: { l: 58, r: 66, t: 12, b: 38 }, xticks: tickCount(x0, x1, w < 500 ? 3 : 5), yticks: tickCount(y0, y1, 5), xfmt: fmtTick, yfmt: fmtTick });
+    const c = P.ctx; mapGeo = null;
+    const say = (msg) => { c.fillStyle = P.K.muted; c.font = "13px " + P.font; c.textAlign = "center"; c.fillText(msg, P.pad.l + P.pw / 2, P.pad.t + P.ph / 2); };
+    if (badNm) return say("Wavelength axes need positive frequencies: use the standard convention");
+    if (!sp || sp.missing) return say(sp && sp.missing ? sp.missing : S.source === "data" ? "Load a CSV file" : "Computing…");
+    const Sp = sp.S, N1 = Sp.N1, N3 = Sp.N3;
     const inR = (ax, r) => { let a0 = -1, a1 = -1; for (let i = 0; i < ax.length; i++) if (ax[i] >= Math.min(r[0], r[1]) && ax[i] <= Math.max(r[0], r[1])) { if (a0 < 0) a0 = i; a1 = i; } return [a0, a1]; };
     const [a0, a1] = inR(Sp.w1, rng.w1), [b0, b1] = inR(Sp.w3, rng.w3);
-    if (a0 < 0 || b0 < 0 || a1 - a0 < 1 || b1 - b0 < 1) { c.fillStyle = P.K.muted; c.font = "13px " + P.font; c.textAlign = "center"; c.fillText("No computed points in this range: press Auto range", P.pad.l + P.pw / 2, P.pad.t + P.ph / 2); return; }
-    const na = a1 - a0 + 1, nb = b1 - b0 + 1;
+    if (a0 < 0 || b0 < 0 || a1 - a0 < 1 || b1 - b0 < 1) return say("No computed points in this range: press Auto range");
     let vmax = 0, magMax = 0;
     for (let a = a0; a <= a1; a++) for (let b = b0; b <= b1; b++) { const j = a * N3 + b, v = sp.val(j); if (sp.kind !== "phase") vmax = Math.max(vmax, Math.abs(v)); magMax = Math.max(magMax, Math.hypot(Sp.re[j], Sp.im[j])); }
-    const L = (vmax || 1) * S.view.clip / 100;
+    if (sp.vmax) vmax = sp.vmax;
+    const L = (vmax || 1) * S.view.clip / 100, Lmag = (magMax || 1) * S.view.clip / 100;
     const K = Object.assign({}, K0, { bgHex: toHex(K0.bg) });
-    const off = document.createElement("canvas"); off.width = nb; off.height = na;
-    const o = off.getContext("2d"), img = o.createImageData(nb, na);
-    for (let y = 0; y < na; y++) for (let x = 0; x < nb; x++) {
-      const a = a1 - y, b = b0 + x, j = a * N3 + b, v = sp.val(j);
-      const col = sp.kind === "phase" ? phaseColour(v, Math.hypot(Sp.re[j], Sp.im[j]) / (magMax * S.view.clip / 100 || 1)) : colour(sp.kind, sp.kind === "signed" ? v / L : v / L, K);
-      img.data.set([col[0], col[1], col[2], 255], (y * nb + x) * 4);
+    // resample onto the plot's device-pixel grid: exact for linear and for wavelength axes
+    const dpr = Math.min(2, window.devicePixelRatio || 1), pw = Math.max(1, Math.round(P.pw * dpr)), ph = Math.max(1, Math.round(P.ph * dpr));
+    const d1 = Sp.w1[1] - Sp.w1[0], d3 = Sp.w3[1] - Sp.w3[0], fxs = new Float64Array(pw), fys = new Float64Array(ph);
+    const axX = sw ? Sp.w1 : Sp.w3, dX = sw ? d1 : d3, axY = sw ? Sp.w3 : Sp.w1, dY = sw ? d3 : d1;
+    for (let x = 0; x < pw; x++) fxs[x] = (A.from(x0 + ((x + 0.5) / pw) * (x1 - x0)) - axX[0]) / dX;
+    for (let y = 0; y < ph; y++) fys[y] = (A.from(y1 - ((y + 0.5) / ph) * (y1 - y0)) - axY[0]) / dY;
+    const off = document.createElement("canvas"); off.width = pw; off.height = ph;
+    const o = off.getContext("2d"), img = o.createImageData(pw, ph), px = img.data;
+    for (let y = 0; y < ph; y++) {
+      const iy = Math.floor(fys[y]), ty = fys[y] - iy; if (iy < 0 || iy + 1 >= (sw ? N3 : N1)) continue;
+      for (let x = 0; x < pw; x++) {
+        const ix = Math.floor(fxs[x]), tx = fxs[x] - ix; if (ix < 0 || ix + 1 >= (sw ? N1 : N3)) continue;
+        const ia = sw ? ix : iy, ta = sw ? tx : ty, ib = sw ? iy : ix, tb = sw ? ty : tx;
+        const j00 = ia * N3 + ib, j01 = j00 + 1, j10 = j00 + N3, j11 = j10 + 1;
+        const w00 = (1 - ta) * (1 - tb), w01 = (1 - ta) * tb, w10 = ta * (1 - tb), w11 = ta * tb;
+        const re = w00 * Sp.re[j00] + w01 * Sp.re[j01] + w10 * Sp.re[j10] + w11 * Sp.re[j11], im = w00 * Sp.im[j00] + w01 * Sp.im[j01] + w10 * Sp.im[j10] + w11 * Sp.im[j11];
+        const v = sp.fromC(re, im), col = sp.kind === "phase" ? phaseColour(v, Math.hypot(re, im) / Lmag) : colour(sp.kind, v / L, K), k = (y * pw + x) * 4;
+        px[k] = col[0]; px[k + 1] = col[1]; px[k + 2] = col[2]; px[k + 3] = 255;
+      }
     }
     o.putImageData(img, 0, 0);
-    const d1 = Sp.w1[1] - Sp.w1[0], d3 = Sp.w3[1] - Sp.w3[0];
-    const X = (wv) => P.X(u.to(wv)), Y = (wv) => P.Y(u.to(wv));
+    const XY = (w1, w3) => (sw ? [P.X(A.to(w1)), P.Y(A.to(w3))] : [P.X(A.to(w3)), P.Y(A.to(w1))]);
     c.save(); c.beginPath(); c.rect(P.pad.l, P.pad.t, P.pw, P.ph); c.clip();
-    c.imageSmoothingEnabled = true;
-    const xl = X(Sp.w3[b0] - d3 / 2), xr = X(Sp.w3[b1] + d3 / 2), yt = Y(Sp.w1[a1] + d1 / 2), yb = Y(Sp.w1[a0] - d1 / 2);
-    c.drawImage(off, Math.min(xl, xr), Math.min(yt, yb), Math.abs(xr - xl), Math.abs(yb - yt));
-    // contours
+    c.imageSmoothingEnabled = false; c.drawImage(off, P.pad.l, P.pad.t, P.pw, P.ph);
+    // contours (coherence maps: 5%, 10–90% in 10% steps and 95% of the maximum, as in the paper)
     if (S.view.contours && sp.kind !== "phase") {
-      const levels = sp.kind === "signed" ? [-0.9, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9] : [0.1, 0.3, 0.5, 0.7, 0.9];
+      const levels = sp.cm ? [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95].map((f) => f * vmax) : (sp.kind === "signed" ? [-0.9, -0.7, -0.5, -0.3, -0.1, 0.1, 0.3, 0.5, 0.7, 0.9] : [0.1, 0.3, 0.5, 0.7, 0.9]).map((f) => f * L);
       const grid = (a, b) => sp.val(a * N3 + b);
-      c.lineWidth = 0.8;
+      c.lineWidth = sp.cm ? 0.6 : 0.8;
       levels.forEach((lv) => {
         c.strokeStyle = K.dark ? "rgba(255,255,255,.55)" : "rgba(15,23,42,.5)"; c.setLineDash(lv < 0 ? [3, 2] : []);
-        c.beginPath(); contour(grid, a0, a1, b0, b1, lv * L, (A1, B1, A2, B2) => { c.moveTo(X(lerpAx(Sp.w3, B1)), Y(lerpAx(Sp.w1, A1))); c.lineTo(X(lerpAx(Sp.w3, B2)), Y(lerpAx(Sp.w1, A2))); }); c.stroke();
+        c.beginPath(); contour(grid, Math.max(0, a0 - 1), Math.min(N1 - 1, a1 + 1), Math.max(0, b0 - 1), Math.min(N3 - 1, b1 + 1), lv, (A1, B1, A2, B2) => { c.moveTo(...XY(lerpAx(Sp.w1, A1), lerpAx(Sp.w3, B1))); c.lineTo(...XY(lerpAx(Sp.w1, A2), lerpAx(Sp.w3, B2))); }); c.stroke();
       });
       c.setLineDash([]);
     }
-    // guides
+    // guides, drawn as sampled curves so they stay correct on wavelength axes
     const ink = K.dark ? "rgba(226,232,240,.75)" : "rgba(15,23,42,.6)", ds = sp.sig[0] * sp.sig[1];
-    if (S.view.diag) { c.strokeStyle = ink; c.lineWidth = 1; c.setLineDash([5, 4]); c.beginPath(); const big = 50; const p0 = Math.min(rng.w3[0], rng.w3[1]) - big, p1 = Math.max(rng.w3[0], rng.w3[1]) + big; c.moveTo(X(p0), Y(ds * p0)); c.lineTo(X(p1), Y(ds * p1)); c.stroke(); c.setLineDash([]); }
-    if (S.view.anti && S.sel) { c.strokeStyle = ink; c.lineWidth = 1; c.setLineDash([2, 3]); const s0 = S.sel.w1 + ds * S.sel.w3, big = 50; c.beginPath(); const p0 = Math.min(rng.w3[0], rng.w3[1]) - big, p1 = Math.max(rng.w3[0], rng.w3[1]) + big; c.moveTo(X(p0), Y(s0 - ds * p0)); c.lineTo(X(p1), Y(s0 - ds * p1)); c.stroke(); c.setLineDash([]); }
-    if (S.view.marks && result.paths) {
+    const curve = (f) => { const lo = Math.min(rng.w3[0], rng.w3[1]), hi = Math.max(rng.w3[0], rng.w3[1]); c.beginPath(); for (let i = 0; i <= 96; i++) { const w3 = lo + ((hi - lo) * i) / 96, q = XY(f(w3), w3); i ? c.lineTo(...q) : c.moveTo(...q); } c.stroke(); };
+    if (S.view.diag) { c.strokeStyle = ink; c.lineWidth = 1; c.setLineDash([5, 4]); curve((w3) => ds * w3); c.setLineDash([]); }
+    if (S.view.anti && S.sel) { c.strokeStyle = ink; c.lineWidth = 1; c.setLineDash([2, 3]); const s0 = S.sel.w1 + ds * S.sel.w3; curve((w3) => s0 - ds * w3); c.setLineDash([]); }
+    if (S.view.marks && result.paths && !sp.cm) {
       const sg = sigma();
       result.paths.forEach((p) => {
         if (S.comps[p.kind] === false) return;
         if ((S.view.spec === "R" && p.path !== "R") || (S.view.spec === "NR" && p.path !== "NR")) return;
         if (Math.abs(p.amp) < 1e-9 || Math.hypot(p.tfT[0], p.tfT[1]) < 1e-6) return;
-        const s1 = S.view.spec === "R" ? sg.R[0] : sg.NR[0], s3 = sg.NR[1], x = X(s3 * p.w3), y = Y(s1 * p.w1);
+        const s1 = S.view.spec === "R" ? sg.R[0] : sg.NR[0], s3 = sg.NR[1], [x, y] = XY(s1 * p.w1, s3 * p.w3);
         c.strokeStyle = p.kind === "ESA" ? (K.dark ? "#fca5a5" : "#7f1d1d") : (K.dark ? "#fff" : "#0f172a"); c.lineWidth = 1.4;
         c.beginPath(); if (p.kind === "ESA") { c.moveTo(x - 4, y - 4); c.lineTo(x + 4, y + 4); c.moveTo(x + 4, y - 4); c.lineTo(x - 4, y + 4); } else c.arc(x, y, 4.5, 0, 2 * Math.PI); c.stroke();
       });
     }
-    if (S.sel) { const x = X(S.sel.w3), y = Y(S.sel.w1); c.strokeStyle = K.dark ? "#fde047" : "#a16207"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x - 9, y); c.lineTo(x - 3, y); c.moveTo(x + 3, y); c.lineTo(x + 9, y); c.moveTo(x, y - 9); c.lineTo(x, y - 3); c.moveTo(x, y + 3); c.lineTo(x, y + 9); c.stroke(); }
+    if (S.sel) { const [x, y] = XY(S.sel.w1, S.sel.w3); c.strokeStyle = K.dark ? "#fde047" : "#a16207"; c.lineWidth = 1.5; c.beginPath(); c.moveTo(x - 9, y); c.lineTo(x - 3, y); c.moveTo(x + 3, y); c.lineTo(x + 9, y); c.moveTo(x, y - 9); c.lineTo(x, y - 3); c.moveTo(x, y + 3); c.lineTo(x, y + 9); c.stroke(); }
     c.restore();
     // colour bar
     const bx = P.W - P.pad.r + 14, bw = 12, by = P.pad.t, bh = P.ph;
@@ -551,8 +672,10 @@ source: assets/js/twodes-core.js
     if (sp.kind === "phase") { c.fillText("+π", bx + bw + 3, by + 8); c.fillText("0", bx + bw + 3, by + bh / 2 + 3); c.fillText("−π", bx + bw + 3, by + bh); }
     else if (sp.kind === "signed") { c.fillText(fmtv(L), bx + bw + 3, by + 8); c.fillText("0", bx + bw + 3, by + bh / 2 + 3); c.fillText(fmtv(-L), bx + bw + 3, by + bh); }
     else { c.fillText(fmtv(L), bx + bw + 3, by + 8); c.fillText("0", bx + bw + 3, by + bh); }
-    mapGeo = { P, u, a0, a1, b0, b1, Sp, sp, L };
-    cv.setAttribute("aria-label", `${sp.label} at T = ${S.T} fs; detection frequency ω3 horizontally from ${fmtU(rng.w3[0])} to ${fmtU(rng.w3[1])} ${u.label}, excitation frequency ω1 vertically from ${fmtU(rng.w1[0])} to ${fmtU(rng.w1[1])} ${u.label}. Positive values red, negative blue.`);
+    mapGeo = { P, A, a0, a1, b0, b1, Sp, sp, L, sw };
+    const hz = sw ? "excitation" : "detection", vt = sw ? "detection" : "excitation";
+    const where = A.nm ? `${hz} wavelength horizontally from ${x0.toFixed(1)} to ${x1.toFixed(1)} nm, ${vt} wavelength vertically from ${y0.toFixed(1)} to ${y1.toFixed(1)} nm` : `${hz} frequency horizontally from ${fmtU(rx[0])} to ${fmtU(rx[1])} ${A.label}, ${vt} frequency vertically from ${fmtU(ry[0])} to ${fmtU(ry[1])} ${A.label}`;
+    cv.setAttribute("aria-label", `${sp.label}${sp.cm ? "" : ` at T = ${S.T} fs`}; ${where}.${sp.kind === "signed" ? " Positive values red, negative blue." : ""}`);
   }
   const toHex = (c) => { if (/^#[0-9a-f]{6}$/i.test(c)) return c; const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c); return m ? "#" + [m[1], m[2], m[3]].map((x) => (+x).toString(16).padStart(2, "0")).join("") : "#ffffff"; };
   const lerpAx = (ax, f) => { const i = Math.floor(f), t = f - i; return i + 1 < ax.length ? ax[i] + t * (ax[i + 1] - ax[i]) : ax[i]; };
@@ -571,9 +694,10 @@ source: assets/js/twodes-core.js
   /* ---------- readout and selection ---------- */
   function pickAt(px, py) {
     if (!mapGeo) return null;
-    const { P, u, Sp } = mapGeo;
+    const { P, A, Sp, sw } = mapGeo;
     if (px < P.pad.l || px > P.pad.l + P.pw || py < P.pad.t || py > P.pad.t + P.ph) return null;
-    const v3 = u.from(P.x0 + ((px - P.pad.l) / P.pw) * (P.x1 - P.x0)), v1 = u.from(P.y0 + ((P.pad.t + P.ph - py) / P.ph) * (P.y1 - P.y0));
+    const vx = A.from(P.x0 + ((px - P.pad.l) / P.pw) * (P.x1 - P.x0)), vy = A.from(P.y0 + ((P.pad.t + P.ph - py) / P.ph) * (P.y1 - P.y0));
+    const v1 = sw ? vx : vy, v3 = sw ? vy : vx;
     const a = D.nearest(Sp.w1, v1), b = D.nearest(Sp.w3, v3);
     return { a, b, w1: Sp.w1[a], w3: Sp.w3[b] };
   }
@@ -581,7 +705,8 @@ source: assets/js/twodes-core.js
     const sp = current();
     if (!pt || !sp || sp.missing) { $("td-readout").textContent = S.sel ? $("td-readout").textContent : "Hover or tap the map to read values; click to select a point."; return; }
     const j = pt.a * sp.S.N3 + pt.b, re = sp.S.re[j], im = sp.S.im[j], u = U();
-    $("td-readout").textContent = `ω₃ = ${fmtU(pt.w3)} ${u.label}, ω₁ = ${fmtU(pt.w1)} ${u.label}: Re = ${re.toPrecision(4)}, Im = ${im.toPrecision(4)}, |S| = ${Math.hypot(re, im).toPrecision(4)}, phase = ${(Math.atan2(im, re) / Math.PI).toFixed(3)}π`;
+    const pos = S.view.mapAxis === "nm" ? `λ₃ = ${(NMK / pt.w3).toFixed(2)} nm, λ₁ = ${(NMK / pt.w1).toFixed(2)} nm (ω₃ = ${fmtU(pt.w3)}, ω₁ = ${fmtU(pt.w1)} ${u.label})` : `ω₃ = ${fmtU(pt.w3)} ${u.label}, ω₁ = ${fmtU(pt.w1)} ${u.label}`;
+    $("td-readout").textContent = sp.cm ? `${pos}: CM amplitude = ${re.toFixed(3)} of the maximum` : `${pos}: Re = ${re.toPrecision(4)}, Im = ${im.toPrecision(4)}, |S| = ${Math.hypot(re, im).toPrecision(4)}, phase = ${(Math.atan2(im, re) / Math.PI).toFixed(3)}π`;
   }
   const map = $("td-map");
   const loc = (e) => { const r = map.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
@@ -591,7 +716,8 @@ source: assets/js/twodes-core.js
   map.addEventListener("keydown", (e) => {
     if (!mapGeo) return;
     const { Sp } = mapGeo; let pt = selPoint() || { a: Math.round((mapGeo.a0 + mapGeo.a1) / 2), b: Math.round((mapGeo.b0 + mapGeo.b1) / 2) };
-    const mv = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [1, 0], ArrowDown: [-1, 0] }[e.key]; if (!mv) return;
+    let mv = { ArrowLeft: [0, -1], ArrowRight: [0, 1], ArrowUp: [1, 0], ArrowDown: [-1, 0] }[e.key]; if (!mv) return;
+    if (mapGeo.sw) mv = [mv[1], mv[0]];
     e.preventDefault(); const step = e.shiftKey ? 5 : 1;
     const a = Math.max(mapGeo.a0, Math.min(mapGeo.a1, pt.a + mv[0] * step)), b = Math.max(mapGeo.b0, Math.min(mapGeo.b1, pt.b + mv[1] * step));
     S.sel = { w1: Sp.w1[a], w3: Sp.w3[b] }; trace = null; readout({ a, b, w1: Sp.w1[a], w3: Sp.w3[b] }); drawMap(); drawSlices(); drawTrace();
@@ -633,19 +759,52 @@ source: assets/js/twodes-core.js
       const P = PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: 0, y1: 1, bare: true });
       P.ctx.fillStyle = P.K.muted; P.ctx.font = "12px " + P.font; P.ctx.textAlign = "center"; P.ctx.fillText("Click the map to choose a point", P.W / 2, P.H / 2); return;
     }
-    const { a0, a1, b0, b1, Sp } = mapGeo, u = U();
+    const { a0, a1, b0, b1, Sp, A } = mapGeo, u = A;
     const hx = [], hy = [], vx = [], vy = [];
     for (let b = b0; b <= b1; b++) { hx.push(u.to(Sp.w3[b])); hy.push(sp.val(pt.a * Sp.N3 + b)); }
     for (let a = a0; a <= a1; a++) { vx.push(u.to(Sp.w1[a])); vy.push(sp.val(a * Sp.N3 + pt.b)); }
     const all = hy.concat(vy), lo = Math.min(0, ...all), hi = Math.max(0, ...all), padY = (hi - lo) * 0.08 || 1;
     const x0 = Math.min(hx[0], vx[0], hx[hx.length - 1], vx[vx.length - 1]), x1 = Math.max(hx[0], vx[0], hx[hx.length - 1], vx[vx.length - 1]);
-    const P = PK.frame(cv, { height: 220, x0, x1, y0: lo - padY, y1: hi + padY, xlabel: `Frequency (${u.label})`, ylabel: sp.kind === "phase" ? "Phase (rad)" : "Signal", xticks: 4, xfmt: (v) => (+v.toPrecision(5)).toString() });
+    const P = PK.frame(cv, { height: 220, x0, x1, y0: lo - padY, y1: hi + padY, xlabel: `${A.nm ? "Wavelength" : "Frequency"} (${u.label})`, ylabel: sp.kind === "phase" ? "Phase (rad)" : "Signal", xticks: 4, xfmt: (v) => (+v.toPrecision(5)).toString() });
     PK.line(P, [x0, x1], [0, 0], { color: P.K.muted, width: 1 });
     PK.line(P, hx, hy, { color: pal.a, width: 1.7 });
     PK.line(P, vx, vy, { color: pal.b, width: 1.7, dash: [5, 3] });
-    PK.legend(P, [{ label: `vs ω₃ at ω₁ = ${fmtU(pt.w1)}`, color: pal.a }, { label: `vs ω₁ at ω₃ = ${fmtU(pt.w3)}`, color: pal.b, dash: [5, 3] }]);
+    PK.legend(P, [{ label: `${A.nm ? "vs λ₃ at λ₁" : "vs ω₃ at ω₁"} = ${A.fmt(pt.w1)}`, color: pal.a }, { label: `${A.nm ? "vs λ₁ at λ₃" : "vs ω₁ at ω₃"} = ${A.fmt(pt.w3)}`, color: pal.b, dash: [5, 3] }]);
   }
+  let beatGeo = null;
+  function drawBeat() {
+    const cv = $("td-trace"), pal = PK.palette(), info = S.cmd.info, u = U();
+    $("td-trace-btn").hidden = true; $("td-trace-h").textContent = "Beat spectrum";
+    $("td-trace-note").textContent = "Fourier power of the background-subtracted rephasing signal along T, summed over the displayed region. Solid: complex signal (−ω_T: ground-state, +ω_T: excited-state beats at the diagonal peak); dashed: real part. Click a peak to show its coherence map.";
+    if (!info) { const P = PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: 0, y1: 1, bare: true }); P.ctx.fillStyle = P.K.muted; P.ctx.font = "12px " + P.font; P.ctx.textAlign = "center"; P.ctx.fillText("Compute coherence maps to see the beat spectrum", P.W / 2, P.H / 2); beatGeo = null; return; }
+    const lim = Math.max(cm(1000), 1.5 * Math.abs(S.cmd.wT)), xs = [], yc = [], yr = [];
+    info.beat.w.forEach((w, k) => { if (Math.abs(w) <= lim) { xs.push(u.to(w)); yc.push(info.beat.complex[k]); yr.push(info.beat.real[k]); } });
+    const order = xs.map((_, i) => i).sort((i, j) => xs[i] - xs[j]), X = order.map((i) => xs[i]), Yc = order.map((i) => yc[i]), Yr = order.map((i) => yr[i]);
+    const top = Math.max(...Yc, ...Yr) || 1;
+    const P = PK.frame(cv, { height: 220, x0: u.to(-lim), x1: u.to(lim), y0: 0, y1: 1.08, xlabel: `ω_T (${u.label}); click to choose`, ylabel: "Beat power (norm.)", xticks: 4, xfmt: (v) => (+v.toPrecision(4)).toString(), yticks: 2 });
+    PK.line(P, X, Yr.map((v) => v / top), { color: pal.b, width: 1.2, dash: [4, 3] });
+    PK.line(P, X, Yc.map((v) => v / top), { color: pal.a, width: 1.6 });
+    for (const sgn of [-1, 1]) PK.line(P, [sgn * u.to(S.cmd.wT), sgn * u.to(S.cmd.wT)], [0, 1.08], { color: P.K.muted, width: 1, dash: [2, 3] });
+    PK.legend(P, [{ label: "complex S_R residual", color: pal.a }, { label: "real part", color: pal.b, dash: [4, 3] }]);
+    P.ctx.fillStyle = P.K.muted; P.ctx.font = "10px " + P.font; P.ctx.textAlign = "left"; P.ctx.fillText("−ω_T: GSB", P.pad.l + 4, P.pad.t + 12); P.ctx.textAlign = "right"; P.ctx.fillText("+ω_T: ESE", P.W - P.pad.r - 4, P.pad.t + P.ph - 6);
+    beatGeo = P;
+  }
+  $("td-trace").addEventListener("click", (e) => {
+    if (S.view.spec !== "cm" || !beatGeo) return;
+    const r = $("td-trace").getBoundingClientRect(), P = beatGeo, x = e.clientX - r.left;
+    if (x < P.pad.l || x > P.pad.l + P.pw) return;
+    const v = U().from(P.x0 + ((x - P.pad.l) / P.pw) * (P.x1 - P.x0));
+    // snap to the strongest beat within ±25 cm⁻¹ of the click
+    const info = S.cmd.info; let best = -1;
+    info.beat.w.forEach((w, k) => { if (Math.abs(w - v) < cm(25) && (best < 0 || info.beat.complex[k] > info.beat.complex[best])) best = k; });
+    const w = best >= 0 ? info.beat.w[best] : v;
+    S.cmd.wT = Math.abs(w); if (S.cmd.type !== "real") S.cmd.type = w < 0 ? "neg" : "pos";
+    syncCM(); updateCMMaps();
+  });
   function drawTrace() {
+    if (S.view.spec === "cm") return drawBeat();
+    if ($("td-trace-h").textContent !== "Waiting-time trace") { $("td-trace-h").textContent = "Waiting-time trace"; $("td-trace-note").textContent = "Select a point on the map, then compute S(ω₁, T, ω₃) for T from 0 to the slider maximum."; }
+    $("td-trace-btn").hidden = false;
     const cv = $("td-trace"), pal = PK.palette();
     if (!trace) { const P = PK.frame(cv, { height: 220, x0: 0, x1: 1, y0: 0, y1: 1, bare: true }); P.ctx.fillStyle = P.K.muted; P.ctx.font = "12px " + P.font; P.ctx.textAlign = "center"; P.ctx.fillText(S.sel ? "Press Compute" : "Select a point first", P.W / 2, P.H / 2); return; }
     const key = S.view.spec === "R" ? "R" : S.view.spec === "NR" ? "NR" : "total", comp = S.view.spec === "abs" ? "re" : S.view.comp;
@@ -692,6 +851,56 @@ source: assets/js/twodes-core.js
   }
   function drawAll() { drawMap(); drawTime(); drawSlices(); drawTrace(); drawStats(); drawPaths(); if (S.sel) readout(selPoint()); else readout(null); }
 
+  /* ---------- coherence maps ---------- */
+  const cmKey = () => JSON.stringify({ src: S.source, model: S.model, params: S.params, comps: S.comps, expr: S.source === "expr" ? S.expr : null, num: buildJob().numerics, range: S.view.range, T: [S.cmd.T0, S.cmd.T1, S.cmd.dT] });
+  function modeFreqs() {
+    if (S.source !== "model") return [];
+    try {
+      if (S.model === "brownian") return D.parseModes(S.params.modes).filter((m) => m.type !== "CD").map((m) => m.w);
+      if (S.model === "vibronic") return [S.params.wv];
+      if (S.model === "dimer") { const X = D.MODELS.dimer.exciton(S.params); return [Math.abs(X.E[1] - X.E[0])]; }
+    } catch (e) { return []; }
+    return [];
+  }
+  function syncCM() {
+    $("td-wT").value = inU(S.cmd.wT); $("td-cmT0").value = S.cmd.T0; $("td-cmT1").value = S.cmd.T1; $("td-cmdT").value = S.cmd.dT;
+    document.querySelectorAll("#td-cmtype [data-cmt]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.cmt === S.cmd.type)));
+    const fs = modeFreqs();
+    $("td-cmchips").innerHTML = fs.length ? `Model frequencies: ${fs.map((w) => `<button type="button" data-w="${w}" aria-pressed="${Math.abs(w - S.cmd.wT) < 1e-9}">${fmtU(w)}</button>`).join("")}` : "";
+  }
+  function cmNote() {
+    const i = S.cmd.info, el = $("td-cmnote");
+    if (!i) return;
+    const res = U().to((2 * Math.PI) / (S.cmd.T1 - S.cmd.T0 + S.cmd.dT));
+    el.textContent = `${S.cmd.stale ? "Settings changed since these maps were computed: press Compute again. " : ""}${i.NT} waiting times (${S.cmd.T0}–${S.cmd.T1} fs); population background removed by a global fit a·e^{−T/τ₁} + b·e^{−T/τ₂} + c with τ₁ = ${Math.round(i.tau[0])} fs, τ₂ = ${Math.round(i.tau[1])} fs; ω_T resolution 2π/ΔT ≈ ${res.toFixed(res < 10 ? 1 : 0)} ${U().label}. ${S.cmd.type === "real" ? "Real rephasing CM, normalised to itself." : "±ω_T maps normalised to their common maximum; −ω_T collects ground-state (GSB) and +ω_T excited-state (ESE) beats at the diagonal peak, as in the paper."} The excitation axis is shown as +ω₁ (the paper labels it −ω_τ).`;
+  }
+  async function updateCMMaps() {
+    if (!S.cmd.info) return;
+    try { S.cmd.maps = await call("cmMaps", null, { wT: S.cmd.wT }); } catch (err) { showMsgs([{ t: "err", m: err.message }]); }
+    cmNote(); drawAll();
+  }
+  async function computeCM() {
+    if (S.source === "data") { showMsgs([{ t: "warn", m: "Coherence maps need a model or a formula (imported data would need many uniformly spaced T slices)." }]); return; }
+    const T0 = +$("td-cmT0").value, T1 = +$("td-cmT1").value, dT = +$("td-cmdT").value;
+    if (!(dT > 0) || !(T1 > T0) || T0 < 0) { showMsgs([{ t: "err", m: "Give 0 ≤ T from < T to and a positive step." }]); return; }
+    const NT = Math.floor((T1 - T0) / dT + 1e-9) + 1;
+    if (NT < 8 || NT > 800) { showMsgs([{ t: "err", m: `This T range gives ${NT} waiting times; use between 8 and 800.` }]); return; }
+    Object.assign(S.cmd, { T0, T1, dT });
+    const job = buildJob(), btn = $("td-cmgo"), t0 = performance.now();
+    btn.disabled = true; setStatus(`Computing ${NT} rephasing spectra and the coherence maps…`);
+    try {
+      S.cmd.info = await call("cmPrepare", job, { T0, T1, dT, region: S.view.range, pad: S.num.pad });
+      S.cmd.key = cmKey(); S.cmd.stale = false;
+      await updateCMMaps();
+      setStatus(`Coherence maps computed in ${((performance.now() - t0) / 1000).toFixed(1)} s${worker ? " (Web Worker)" : ""}.`);
+    } catch (err) { setStatus(""); showMsgs([{ t: "err", m: err.message }]); }
+    btn.disabled = false;
+  }
+  $("td-cmgo").addEventListener("click", computeCM);
+  $("td-wT").addEventListener("change", () => { const v = +$("td-wT").value; if (!(v > 0)) return syncCM(); S.cmd.wT = fromU(v); syncCM(); updateCMMaps(); });
+  document.querySelectorAll("#td-cmtype [data-cmt]").forEach((b) => b.addEventListener("click", () => { S.cmd.type = b.dataset.cmt; syncCM(); cmNote(); drawAll(); }));
+  $("td-cmchips").addEventListener("click", (e) => { const b = e.target.closest("button[data-w]"); if (!b) return; S.cmd.wT = +b.dataset.w; syncCM(); updateCMMaps(); });
+
   /* ---------- model parameter form ---------- */
   const modelSel = $("td-model-sel");
   modelSel.innerHTML = Object.entries(D.MODELS).map(([k, m]) => `<option value="${k}">${m.name}</option>`).join("");
@@ -700,6 +909,7 @@ source: assets/js/twodes-core.js
     $("td-params").innerHTML = M.params.map((q) => {
       const id = `td-p-${q.k}`, v = S.params[q.k];
       if (q.type === "sign") return `<div class="td-f"><label for="${id}">${q.label}</label><select id="${id}" data-k="${q.k}"><option value="-1"${v < 0 ? " selected" : ""}>negative (physical)</option><option value="1"${v > 0 ? " selected" : ""}>positive</option></select></div>`;
+      if (q.type === "modes") return `<div class="td-f"><label for="${id}">${q.label}</label><textarea id="${id}" data-k="${q.k}" class="td-code" rows="6" spellcheck="false">${esc(v)}</textarea><p class="td-note">One oscillator per line: UD (underdamped) or CD (critically damped), frequency ω, damping γ and stabilization (reorganization) energy λ, all in cm⁻¹ as in SI Table S1. Huang–Rhys factor S = λ/ω.</p></div>`;
       if (q.type === "pol") return `<div class="td-f"><label for="${id}">${q.label}</label><select id="${id}" data-k="${q.k}"><option value="zzzz"${v === "zzzz" ? " selected" : ""}>all parallel ⟨ZZZZ⟩</option><option value="zzyy"${v === "zzyy" ? " selected" : ""}>⟨ZZYY⟩ (pulses 1, 2 ⊥ 3, LO)</option></select></div>`;
       const unit = q.type === "energy" ? U().label : q.type === "time" ? "fs" : q.type === "angle" ? "°" : q.type === "temp" ? "K" : "";
       const shown = q.type === "energy" ? inU(v) : v;
@@ -713,7 +923,10 @@ source: assets/js/twodes-core.js
     const el = e.target, k = el.dataset.k; if (!k) return;
     const q = D.MODELS[S.model].params.find((x) => x.k === k);
     if (q.type === "pol") S.params[k] = el.value;
-    else {
+    else if (q.type === "modes") {
+      try { D.parseModes(el.value); S.params[k] = el.value; showMsgs([]); } catch (err) { showMsgs([{ t: "err", m: err.message }]); return; }
+      syncCM();
+    } else {
       let v = +el.value; if (!isFinite(v) || el.value === "") return;
       if (q.type === "energy") v = fromU(v);
       if (q.min !== undefined && q.type !== "energy" && v < q.min) return;
@@ -724,13 +937,16 @@ source: assets/js/twodes-core.js
     trace = null; schedule();
   });
   $("td-params").addEventListener("change", (e) => { if (e.target.tagName === "SELECT") { const k = e.target.dataset.k; S.params[k] = k === "pol" ? e.target.value : +e.target.value; schedule(); } });
-  modelSel.addEventListener("change", () => { S.model = modelSel.value; S.params = D.DEFAULT_PARAMS(S.model); S.view.rangeAuto = true; S.sel = null; trace = null; renderParams(); schedule(true); });
+  modelSel.addEventListener("change", () => { S.model = modelSel.value; S.params = D.DEFAULT_PARAMS(S.model); S.view.rangeAuto = true; S.sel = null; trace = null; renderParams(); syncCM(); schedule(true); });
   $("td-comps").addEventListener("change", (e) => { S.comps[e.target.value] = e.target.checked; trace = null; schedule(); });
   $("td-example").addEventListener("change", () => {
     const ex = EXAMPLES[$("td-example").value]; if (!ex) { $("td-ex-note").textContent = ""; return; }
     setSource("model", true);
     S.model = ex.model; S.params = Object.assign(D.DEFAULT_PARAMS(ex.model), ex.params); S.comps = { GSB: true, SE: true, ESA: true }; S.T = ex.T; S.sel = null; trace = null; S.view.rangeAuto = true;
-    modelSel.value = S.model; document.querySelectorAll("#td-comps input").forEach((c) => (c.checked = true)); renderParams(); syncT();
+    if (ex.num) Object.assign(S.num, ex.num);
+    if (ex.range) { S.view.range = { w1: ex.range.map(cm), w3: ex.range.map(cm) }; S.view.rangeAuto = false; }
+    S.cmd = Object.assign({}, DEF_CM, { wT: (modeFreqs()[1] || modeFreqs()[0] || S.cmd.wT) });
+    modelSel.value = S.model; document.querySelectorAll("#td-comps input").forEach((c) => (c.checked = true)); renderParams(); syncT(); syncProc(); syncCM();
     $("td-ex-note").textContent = ex.note; schedule(true);
   });
 
@@ -810,8 +1026,8 @@ source: assets/js/twodes-core.js
     $("td-broad").value = n.broaden ? inU(n.broaden) : 0; $("td-half").checked = n.halfFirst; $("td-conv-sel").value = n.convention; $("td-nonu").value = n.nonuniform;
     $("td-carrier-auto").checked = n.autoCarrier; $("td-carrier").value = inU(S.source === "model" && n.autoCarrier ? autoCarrier() : n.carrier);
     const v = S.view;
-    $("td-unit").value = v.unit; $("td-cmap").value = v.cmap; $("td-clip").value = v.clip; $("td-clip-o").textContent = v.clip + "%";
-    $("td-contours").checked = v.contours; $("td-diag").checked = v.diag; $("td-anti").checked = v.anti; $("td-marks").checked = v.marks; $("td-auto").checked = v.auto;
+    $("td-unit").value = v.unit; $("td-mapaxis").value = v.mapAxis; $("td-nm-note").hidden = v.mapAxis !== "nm"; $("td-cmap").value = v.cmap; $("td-clip").value = v.clip; $("td-clip-o").textContent = v.clip + "%";
+    $("td-contours").checked = v.contours; $("td-diag").checked = v.diag; $("td-anti").checked = v.anti; $("td-marks").checked = v.marks; $("td-swap").checked = !!v.swap; $("td-auto").checked = v.auto;
     document.querySelectorAll("[data-unit]").forEach((el) => (el.textContent = U().label));
     syncTabs(); syncRange();
   }
@@ -827,19 +1043,23 @@ source: assets/js/twodes-core.js
   $("td-carrier").addEventListener("change", () => { const v = +$("td-carrier").value; if (!isFinite(v)) return syncProc(); S.num.carrier = fromU(v); S.view.rangeAuto = true; schedule(); });
   $("td-conv-sel").addEventListener("change", () => { S.num.convention = $("td-conv-sel").value; S.view.rangeAuto = true; S.sel = null; trace = null; schedule(true); });
   $("td-nonu").addEventListener("change", () => { S.num.nonuniform = $("td-nonu").value; schedule(true); });
-  $("td-unit").addEventListener("change", () => { S.view.unit = $("td-unit").value; renderParams(); syncProc(); if (data) $("td-file-carrier").value = inU(data.carrier); if (S.view.rangeAuto !== false) autoRange(true); drawAll(); });
+  $("td-unit").addEventListener("change", () => { S.view.unit = $("td-unit").value; renderParams(); syncProc(); syncCM(); cmNote(); if (data) $("td-file-carrier").value = inU(data.carrier); if (S.view.rangeAuto !== false) autoRange(true); drawAll(); });
   ["td-r3a", "td-r3b", "td-r1a", "td-r1b"].forEach((id) => $(id).addEventListener("change", () => {
     const r = [+$("td-r1a").value, +$("td-r1b").value, +$("td-r3a").value, +$("td-r3b").value];
     if (!r.every(isFinite) || r[0] === r[1] || r[2] === r[3]) return syncRange();
     S.view.range = { w1: [fromU(Math.min(r[0], r[1])), fromU(Math.max(r[0], r[1]))], w3: [fromU(Math.min(r[2], r[3])), fromU(Math.max(r[2], r[3]))] }; S.view.rangeAuto = false;
     drawAll();
   }));
+  $("td-mapaxis").addEventListener("change", () => { S.view.mapAxis = $("td-mapaxis").value; $("td-nm-note").hidden = S.view.mapAxis !== "nm"; drawAll(); });
   $("td-autorange").addEventListener("click", () => { S.view.rangeAuto = true; autoRange(true); drawAll(); });
   $("td-cmap").addEventListener("change", () => { S.view.cmap = $("td-cmap").value; drawMap(); });
   $("td-clip").addEventListener("input", () => { S.view.clip = +$("td-clip").value; $("td-clip-o").textContent = S.view.clip + "%"; drawMap(); });
-  [["td-contours", "contours"], ["td-diag", "diag"], ["td-anti", "anti"], ["td-marks", "marks"]].forEach(([id, k]) => $(id).addEventListener("change", () => { S.view[k] = $(id).checked; drawMap(); }));
+  [["td-contours", "contours"], ["td-diag", "diag"], ["td-anti", "anti"], ["td-marks", "marks"], ["td-swap", "swap"]].forEach(([id, k]) => $(id).addEventListener("change", () => { S.view[k] = $(id).checked; drawMap(); }));
   $("td-auto").addEventListener("change", () => { S.view.auto = $("td-auto").checked; if (S.view.auto) schedule(true); });
   function syncTabs() {
+    const isCM = S.view.spec === "cm";
+    $("td-cmrow").hidden = !isCM; $("td-comp").hidden = isCM; document.querySelector(".td-Trow").hidden = isCM;
+    if (isCM) { syncCM(); cmNote(); }
     document.querySelectorAll("#td-spec [data-spec]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.spec === S.view.spec)));
     document.querySelectorAll("#td-comp [data-comp]").forEach((b) => { b.setAttribute("aria-pressed", String(S.view.spec === "abs" ? b.dataset.comp === "re" : b.dataset.comp === S.view.comp)); b.disabled = S.view.spec === "abs"; });
     document.querySelectorAll("#td-tview [data-tv]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.tv === S.view.tview)));
@@ -856,9 +1076,9 @@ source: assets/js/twodes-core.js
   $("td-calc").addEventListener("click", () => compute());
   $("td-reset").addEventListener("click", () => {
     S = fresh(); data = null; files[0] = files[1] = null; $("td-file1").value = ""; $("td-file2").value = ""; listMsgs($("td-data-msg"), []); listMsgs($("td-conv-msg"), []);
-    $("td-expr-p").value = S.expr.params; $("td-expr-r").value = S.expr.R; $("td-expr-nr").value = S.expr.NR; $("td-example").value = ""; $("td-ex-note").textContent = "";
+    $("td-expr-p").value = S.expr.params; $("td-expr-r").value = S.expr.R; $("td-expr-nr").value = S.expr.NR; $("td-example").value = "sahu"; $("td-ex-note").textContent = EXAMPLES.sahu.note;
     modelSel.value = S.model; document.querySelectorAll("#td-comps input").forEach((c) => (c.checked = true));
-    renderParams(); setSource("model", true); syncProc(); syncT(); result = null; trace = null; compute();
+    renderParams(); setSource("model", true); S.view.rangeAuto = false; syncProc(); syncT(); syncCM(); result = null; trace = null; compute();
   });
   $("td-conv-check").addEventListener("click", async () => {
     if (S.source === "data") { listMsgs($("td-conv-msg"), [{ t: "warn", m: "The convergence check needs a model or formula: imported data cannot be resampled more finely." }]); return; }
@@ -899,7 +1119,8 @@ source: assets/js/twodes-core.js
 
   window.SiteTheme.onChange(drawAll);
   let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawAll, 150); });
-  renderParams(); syncProc(); syncT(); setSource("model", true); compute();
+  modelSel.value = S.model; $("td-ex-note").textContent = EXAMPLES.sahu.note;
+  renderParams(); syncProc(); syncT(); syncCM(); setSource("model", true); S.view.rangeAuto = false; compute();
 })();
 </script>
 {% endraw %}

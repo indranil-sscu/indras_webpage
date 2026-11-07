@@ -33,9 +33,9 @@
   url: /tools/2des/
   category: physics
   preview: twodes
-  badge: New
   featured: true
-  description: Rephasing, non-rephasing and absorptive 2D spectra from a response function (built-in models, your own formula or CSV data), with documented conventions and validation tests.
+  badge: Updated
+  description: Rephasing, non-rephasing and absorptive 2D spectra and coherence maps from a response function (Brownian-oscillator, exciton and vibronic models, your own formula or CSV data); reproduces Sahu & Tiwari, JPCL 2023.
 - id: reference
   title: Constants & lab cheat sheet
   url: /reference/
