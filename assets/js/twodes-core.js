@@ -291,6 +291,16 @@
       transitions(p) { const X = this.exciton(p); return [X.E[0], X.E[1], X.Ef - X.E[0], X.Ef - X.E[1]]; },
       notes: "Frenkel exciton dimer: two sites with energies ε₁, ε₂ and coupling J form excitons E± by diagonalising [[ε₁, J], [J, ε₂]]; the two-exciton state |12⟩ has energy ε₁ + ε₂ − Δ_b. Transition dipoles are rotated into the exciton basis and averaged over random orientations (all-parallel or ⟨ZZYY⟩ polarization). All GSB, SE and ESA pathways are included. For J = 0 and Δ_b = 0 (with equal dephasing), the cross-peak pathways cancel exactly, as they must for independent transitions. Electronic coherences during T oscillate at |E₊ − E₋| on rephasing cross peaks and non-rephasing diagonal peaks. No population transfer between excitons (secular, uncoupled Bloch model).",
     },
+    brownian: {
+      name: "Brownian-oscillator monomer (Sahu & Tiwari 2023)",
+      params: [P("w", "Electronic gap ω_eg (vertical)", "energy", cm(12870)),
+        P("modes", "Brownian oscillators: type, ω, γ, λ (cm⁻¹)", "modes", "UD 200 2.3 4\nUD 350 2.3 6\nUD 572 2.3 5\nUD 740 2.3 20\nUD 900 2.3 25\nCD 30 60 55"),
+        P("temp", "Temperature", "temp", 77, { min: 0, max: 2000 }), P("sigma", "Static disorder σ (standard deviation)", "energy", cm(230), { min: 0 }),
+        P("tau2", "Extra electronic dephasing T₂ (0 = none)", "time", 0, { min: 0 }), P("T1", "Population lifetime T₁ (0 = none)", "time", 0, { min: 0 })],
+      grid: "brownian",
+      transitions(p) { const m = parseModes(p.modes), lam = m.reduce((s, x) => s + x.lambda, 0), top = Math.max(0, ...m.map((x) => x.w)); return [p.w - 2 * lam - top, p.w + top]; }, // one vibrational quantum either side (higher overtones are weak for these S)
+      notes: "The model of Sahu & Tiwari, J. Phys. Chem. Lett. 14, 4617 (2023), SI section S1 and Table S1 (bacteriochlorophyll a monomer at 77 K): a two-level electronic system (|f⟩ omitted, since ESA is negligible on the diagonal) coupled linearly to underdamped (UD) and critically damped (CD) Brownian oscillators, with spectral density C″(ω) = 2λω_j²ωγ/((ω_j² − ω²)² + ω²γ²) per oscillator. The lineshape function g(t) = ∫dω/π C″(ω)/ω² [coth(ħω/2kT)(1 − cos ωt) + i sin ωt] − iλt is integrated numerically (exact quantum result at temperature T) and inserted in the second-order cumulant response functions R₁–R₄, so ω_eg is the vertical gap (absorption maximum). Gaussian static disorder of the gap with standard deviation σ. Optional extra Bloch dephasing and T₁ (0 = off, as in the paper). Parameters are those of the paper; the critically damped oscillator sets the anti-diagonal width, σ the diagonal width.",
+    },
     vibronic: {
       name: "Vibronic two-level system (displaced oscillator)",
       params: [P("w", "0–0 transition energy ω₀₀", "energy", cm(15000)), P("wv", "Vibrational frequency ω_v", "energy", cm(600)),
@@ -374,10 +384,88 @@
     applyDisorder(R, NR, n1, n3, dt, p.inh);
     return { R, NR };
   }
+  /* ======================= Brownian oscillators ======================= */
+  /** Parse "UD 200 2.3 4" lines (type, ω, γ, λ in cm⁻¹) into oscillators in rad/fs. */
+  function parseModes(text) {
+    const out = [];
+    String(text || "").split(/\r?\n|;/).forEach((line, n) => {
+      const s = line.replace(/#.*/, "").trim(); if (!s) return;
+      const f = s.split(/[\s,]+/);
+      const type = /^[A-Za-z]/.test(f[0]) ? f.shift().toUpperCase() : "UD";
+      const [w, g, l] = f.map(Number);
+      if (![w, g, l].every((v) => isFinite(v)) || w <= 0 || g <= 0 || l < 0) throw new Error(`Oscillator line ${n + 1}: write type ω γ λ in cm⁻¹ with ω, γ > 0 and λ ≥ 0`);
+      out.push({ type, w: cm(w), gamma: cm(g), lambda: cm(l) });
+    });
+    if (!out.length) throw new Error("Give at least one Brownian oscillator");
+    return out;
+  }
+  /** Brownian-oscillator spectral density C″(ω) (rad/fs), summed over oscillators. */
+  const boDensity = (modes, w) => modes.reduce((s, m) => s + (2 * m.lambda * m.w * m.w * w * m.gamma) / ((m.w * m.w - w * w) ** 2 + w * w * m.gamma * m.gamma), 0);
+  const boCache = new Map();
+  /**
+   * Lineshape function g(t0 + k·dt), k = 0 … K, of the oscillators at temperature temp (K):
+   *   g(t) = ∫0^∞ dω/π C″(ω)/ω² [coth(ħω/2kT)(1 − cos ωt) + i sin ωt] − iλt
+   * by the midpoint rule on a uniform frequency grid fine enough to resolve the narrowest oscillator
+   * and cos ωt at the longest time; cos/sin are advanced by rotation along the time grid.
+   */
+  function boGrid(modes, temp, t0, dt, K) {
+    const key = JSON.stringify([modes, temp, dt]), m0 = Math.round(t0 / dt);
+    let base = boCache.get(key);
+    if (Math.abs(t0 - m0 * dt) < 1e-9 && base && base.K >= m0 + K) return { re: base.re.subarray(m0, m0 + K + 1), im: base.im.subarray(m0, m0 + K + 1) };
+    const tmax = t0 + K * dt, minG = Math.min(...modes.map((m) => m.gamma)), maxW = Math.max(...modes.map((m) => m.w + 30 * m.gamma));
+    const wmax = Math.max(maxW, 4 * Math.max(...modes.map((m) => m.w))), dw = Math.min(minG / 6, 0.25 / Math.max(tmax, 100), 2e-4);
+    const N = Math.min(400000, Math.ceil(wmax / dw)), lam = modes.reduce((s, m) => s + m.lambda, 0);
+    const re = new Float64Array(K + 1), im = new Float64Array(K + 1), kT = KB * temp;
+    for (let n = 0; n < N; n++) {
+      const w = (n + 0.5) * (wmax / N), J = (boDensity(modes, w) / (Math.PI * w * w)) * (wmax / N);
+      const ct = kT > 0 ? 1 / Math.tanh((HBAR * w) / (2 * kT)) : 1, a = J * ct;
+      let c = Math.cos(w * t0), sn = Math.sin(w * t0);
+      const cs = Math.cos(w * dt), ss = Math.sin(w * dt);
+      for (let k = 0; k <= K; k++) { re[k] += a * (1 - c); im[k] += J * sn; const c2 = c * cs - sn * ss; sn = sn * cs + c * ss; c = c2; }
+    }
+    for (let k = 0; k <= K; k++) im[k] -= lam * (t0 + k * dt);
+    if (m0 === 0 && Math.abs(t0) < 1e-12) { boCache.set(key, { re, im, K }); if (boCache.size > 4) boCache.delete(boCache.keys().next().value); }
+    return { re, im };
+  }
+  /**
+   * Second-order cumulant response (R1–R4) from tabulated lineshape functions: G0 = g(k·dt), GT = g(T + k·dt),
+   * k = 0 … n1 + n3. Rotating frame with carrier wc; electronic Bloch dephasing Gel and population factor pop.
+   */
+  function cumulantResponse(G0, GT, w, Gel, pop, n1, n3, dt, wc, comps) {
+    const R = { re: new Float64Array(n1 * n3), im: new Float64Array(n1 * n3) }, NR = { re: new Float64Array(n1 * n3), im: new Float64Array(n1 * n3) };
+    const useSE = !comps || comps.SE !== false, useGSB = !comps || comps.GSB !== false, d = w - wc;
+    const b0 = GT.re[0], b1 = GT.im[0];
+    for (let i = 0; i < n1; i++) for (let k = 0; k < n3; k++) {
+      const a0 = G0.re[i], a1 = G0.im[i], c0 = G0.re[k], c1 = G0.im[k], ab0 = GT.re[i], ab1 = GT.im[i], bc0 = GT.re[k], bc1 = GT.im[k], x0 = GT.re[i + k], x1 = GT.im[i + k];
+      let rr = 0, ri = 0, nr = 0, ni = 0, E;
+      if (useSE) {
+        E = cexp(-a0 + b0 - c0 - ab0 - bc0 + x0, a1 + b1 + c1 + ab1 - bc1 - x1); rr += E[0]; ri += E[1]; // R2
+        E = cexp(-a0 - b0 - c0 + ab0 + bc0 - x0, -a1 + b1 + c1 + ab1 - bc1 - x1); nr += E[0]; ni += E[1]; // R1
+      }
+      if (useGSB) {
+        E = cexp(-a0 + b0 - c0 - ab0 - bc0 + x0, a1 - b1 - c1 + ab1 + bc1 - x1); rr += E[0]; ri += E[1]; // R3
+        E = cexp(-a0 - b0 - c0 + ab0 + bc0 - x0, -a1 - b1 - c1 + ab1 + bc1 - x1); nr += E[0]; ni += E[1]; // R4
+      }
+      const t1 = i * dt, t3 = k * dt, el = Math.exp(-Gel * (t1 + t3)) * pop, j = i * n3 + k;
+      const pR = d * (t1 - t3), pN = -d * (t1 + t3), cR = Math.cos(pR), sR = Math.sin(pR), cN = Math.cos(pN), sN = Math.sin(pN);
+      R.re[j] = el * (rr * cR - ri * sR); R.im[j] = el * (rr * sR + ri * cR);
+      NR.re[j] = el * (nr * cN - ni * sN); NR.im[j] = el * (nr * sN + ni * cN);
+    }
+    return { R, NR };
+  }
+  function brownianResponse(p, T, n1, n3, dt, wc, comps) {
+    const modes = parseModes(p.modes), K = n1 + n3;
+    const G0 = boGrid(modes, p.temp, 0, dt, K), GT = boGrid(modes, p.temp, T, dt, K);
+    const out = cumulantResponse(G0, GT, p.w, p.tau2 > 0 ? 1 / p.tau2 : 0, p.T1 > 0 ? Math.exp(-T / p.T1) : 1, n1, n3, dt, wc, comps);
+    applyDisorder(out.R, out.NR, n1, n3, dt, p.sigma * 2 * Math.sqrt(2 * Math.LN2));
+    return out;
+  }
+
   /** Response of a built-in model at waiting time T on an n1 × n3 grid (rotating frame, carrier wc). */
   function modelResponse(key, p, T, n1, n3, dt, wc, comps) {
     const M = MODELS[key];
     if (!M) throw new Error("Unknown model " + key);
+    if (M.grid === "brownian") return Object.assign(brownianResponse(p, T, n1, n3, dt, wc, comps), { paths: null });
     if (M.grid) return Object.assign(vibronicResponse(p, T, n1, n3, dt, wc, comps), { paths: null });
     const paths = M.paths(p);
     return Object.assign(pathwayResponse(paths, T, n1, n3, dt, wc, p.inh, comps), { paths });
@@ -799,6 +887,123 @@
     return { sampling: maxB ? dF / maxB : NaN, window: maxB ? dL / maxB : NaN };
   }
 
+  /* ======================= coherence maps ======================= */
+  /** Solve the 3×3 symmetric system G x = b (Cramer); returns null if singular. */
+  function solve3(G, b) {
+    const [a, d, e] = [G[0][0], G[0][1], G[0][2]], [f, g] = [G[1][1], G[1][2]], h = G[2][2];
+    const A = f * h - g * g, B = -(d * h - g * e), Cc = d * g - f * e, det = a * A + d * B + e * Cc;
+    if (!(Math.abs(det) > 1e-12 * Math.abs(a * f * h))) return null;
+    const inv = [[A, B, Cc], [B, a * h - e * e, -(a * g - d * e)], [Cc, -(a * g - d * e), a * f - d * d]];
+    return inv.map((row) => (row[0] * b[0] + row[1] * b[1] + row[2] * b[2]) / det);
+  }
+  /**
+   * Global fit y_p(T) ≈ a_p e^{−T/τ1} + b_p e^{−T/τ2} + c_p with τ1, τ2 shared by every pixel p (real and imaginary
+   * parts fitted with the same τ). Variable projection: amplitudes by linear least squares, (τ1, τ2) by a
+   * logarithmic grid search refined twice. Y = {re, im} laid out [p·NT + q]. Returns {tau, rre, rim} (residuals).
+   */
+  function globalExpFit(Y, npix, Ts) {
+    const NT = Ts.length, t = Ts.map((T) => T - Ts[0]), span = Math.max(t[NT - 1], 1), dT = t[1] - t[0];
+    const basis = (tau) => (tau === Infinity ? t.map(() => 1) : t.map((x) => Math.exp(-x / tau)));
+    const dots = (e) => { const r = new Float64Array(npix), i = new Float64Array(npix); for (let p = 0; p < npix; p++) { let sr = 0, si = 0; const o = p * NT; for (let q = 0; q < NT; q++) { sr += Y.re[o + q] * e[q]; si += Y.im[o + q] * e[q]; } r[p] = sr; i[p] = si; } return { r, i }; };
+    const dot = (u, v) => u.reduce((s, x, q) => s + x * v[q], 0);
+    const one = basis(Infinity), Done = dots(one);
+    const sse = (ta, tb, cache) => {
+      const get = (tau) => { const k = tau.toPrecision(6); if (!cache.has(k)) { const e = basis(tau); cache.set(k, { e, D: dots(e) }); } return cache.get(k); };
+      const A = get(ta), B = get(tb), G = [[dot(A.e, A.e), dot(A.e, B.e), dot(A.e, one)], [dot(A.e, B.e), dot(B.e, B.e), dot(B.e, one)], [dot(A.e, one), dot(B.e, one), NT]];
+      let proj = 0, ok = true;
+      for (let p = 0; p < npix && ok; p++) for (const part of ["r", "i"]) {
+        const b = [A.D[part][p], B.D[part][p], Done[part][p]], x = solve3(G, b);
+        if (!x) { ok = false; break; } proj += x[0] * b[0] + x[1] * b[1] + x[2] * b[2];
+      }
+      return ok ? -proj : Infinity; // SSE = Σ|y|² − projection; Σ|y|² is constant
+    };
+    const cache = new Map(), lo = Math.max(2 * dT, 5), hi = 20 * span, M = 20;
+    const grid = Array.from({ length: M }, (_, k) => lo * Math.pow(hi / lo, k / (M - 1)));
+    let best = { v: Infinity, a: grid[0], b: grid[M - 1] };
+    for (let i = 0; i < M; i++) for (let j = i + 1; j < M; j++) { const v = sse(grid[i], grid[j], cache); if (v < best.v) best = { v, a: grid[i], b: grid[j] }; }
+    for (const f of [0.35, 0.12]) {
+      const fs = [-1, -0.5, 0, 0.5, 1].map((x) => Math.exp(f * x)), cand = best;
+      for (const fa of fs) for (const fb of fs) { const a = cand.a * fa, b = cand.b * fb; if (a >= b * 0.98) continue; const v = sse(a, b, cache); if (v < best.v) best = { v, a, b }; }
+    }
+    const ea = basis(best.a), eb = basis(best.b), G = [[dot(ea, ea), dot(ea, eb), dot(ea, one)], [dot(ea, eb), dot(eb, eb), dot(eb, one)], [dot(ea, one), dot(eb, one), NT]];
+    const rre = new Float64Array(npix * NT), rim = new Float64Array(npix * NT);
+    for (let p = 0; p < npix; p++) for (const [src, dst] of [[Y.re, rre], [Y.im, rim]]) {
+      const o = p * NT; let s1 = 0, s2 = 0, s3 = 0;
+      for (let q = 0; q < NT; q++) { s1 += src[o + q] * ea[q]; s2 += src[o + q] * eb[q]; s3 += src[o + q]; }
+      const x = solve3(G, [s1, s2, s3]) || [0, 0, 0];
+      for (let q = 0; q < NT; q++) dst[o + q] = src[o + q] - x[0] * ea[q] - x[1] * eb[q] - x[2];
+    }
+    return { tau: [best.a, best.b], rre, rim };
+  }
+  let cmState = null;
+  /**
+   * Coherence maps (Sahu & Tiwari 2023, SI): rephasing spectra S_R(ω1, T, ω3) for T = T0, T0 + dT, …, T1 inside the
+   * region {w1: [lo, hi], w3: [lo, hi]}; a global two-exponential (+ offset) fit along T removes the population
+   * background; the residual is Fourier transformed along T. Keeps the residuals (cmState) so that maps at any
+   * ω_T are cheap (cmMaps). Returns axes, the fitted time constants and the beat spectrum summed over the region.
+   */
+  function cmPrepare(job, o) {
+    const Ts = []; for (let T = o.T0; T <= o.T1 + 1e-9; T += o.dT) Ts.push(+T.toFixed(9));
+    if (Ts.length < 8) throw new Error("Use at least 8 waiting times for a coherence map");
+    if (Ts.length > 800) throw new Error("Use at most 800 waiting times");
+    const nm = Object.assign({}, job.numerics, { pad: o.pad || 1 });
+    // Brownian-oscillator model: tabulate g(t) once over the whole waiting-time range, so every T reuses it
+    if (job.source === "model" && MODELS[job.model] && MODELS[job.model].grid === "brownian") boGrid(parseModes(job.params.modes), job.params.temp, 0, nm.dt, nm.n1 + nm.n3 + Math.ceil(Ts[Ts.length - 1] / nm.dt) + 1);
+    let a0, a1, b0, b1, w1, w3, Y, NT = Ts.length, npix;
+    for (let q = 0; q < NT; q++) {
+      const r = run(Object.assign({}, job, { T: Ts[q], numerics: nm })), S = r.R;
+      if (!S) throw new Error("Coherence maps need the rephasing response");
+      if (q === 0) {
+        const pick = (ax, rg) => { let i0 = -1, i1 = -1; for (let i = 0; i < ax.length; i++) if (ax[i] >= rg[0] && ax[i] <= rg[1]) { if (i0 < 0) i0 = i; i1 = i; } return [i0, i1]; };
+        [a0, a1] = o.region ? pick(S.w1, o.region.w1) : [0, S.N1 - 1]; [b0, b1] = o.region ? pick(S.w3, o.region.w3) : [0, S.N3 - 1];
+        if (a0 < 0 || b0 < 0) throw new Error("The coherence-map region contains no computed points");
+        w1 = Float64Array.from(S.w1.subarray(a0, a1 + 1)); w3 = Float64Array.from(S.w3.subarray(b0, b1 + 1));
+        npix = w1.length * w3.length; Y = { re: new Float64Array(npix * NT), im: new Float64Array(npix * NT) };
+      }
+      let p = 0;
+      for (let a = a0; a <= a1; a++) for (let b = b0; b <= b1; b++, p++) { const j = a * S.N3 + b; Y.re[p * NT + q] = S.re[j]; Y.im[p * NT + q] = S.im[j]; }
+    }
+    const fit = globalExpFit(Y, npix, Ts);
+    cmState = { Ts, w1, w3, na: w1.length, nb: w3.length, rre: fit.rre, rim: fit.rim, tau: fit.tau, sign: o.sign || -1 };
+    // beat spectrum: Σ_p |FT|² of the complex and the real residuals, zero-padded FFT along T
+    const Np = nextPow2(NT) * 4, pc = new Float64Array(Np), pr = new Float64Array(Np), xr = new Float64Array(Np), xi = new Float64Array(Np);
+    for (let p = 0; p < npix; p++) {
+      for (const real of [false, true]) {
+        xr.fill(0); xi.fill(0);
+        for (let q = 0; q < NT; q++) { xr[q] = fit.rre[p * NT + q]; xi[q] = real ? 0 : fit.rim[p * NT + q]; }
+        fft(xr, xi, cmState.sign);
+        const acc = real ? pr : pc;
+        for (let k = 0; k < Np; k++) acc[(k + Np / 2) % Np] += (xr[k] * xr[k] + xi[k] * xi[k]) * o.dT * o.dT;
+      }
+    }
+    // FFT with kernel e^{−iωT} (sign −1) puts exp(+iΩT) beats at +Ω; flip so that, as in cmMaps, they are labelled −ω_T
+    const wAx = Float64Array.from({ length: Np }, (_, k) => cmState.sign * (TAU * (k - Np / 2)) / (Np * o.dT));
+    return { Ts, w1, w3, tau: fit.tau, beat: { w: wAx, complex: pc, real: pr }, NT, npix };
+  }
+  /**
+   * Coherence maps at ω_T from the stored residuals: real (|FT of Re S_R residual|), pos (+ω_T) and neg (−ω_T) of the
+   * complex residual. The ±ω_T labels follow Sahu & Tiwari (2023): at the rephasing diagonal peak, ground-state (GSB)
+   * vibrational coherences appear at −ω_T and excited-state (ESE) ones at +ω_T. In the Mukamel response functions used
+   * here those beats evolve as exp(+iω_v T) and exp(−iω_v T) respectively, so −ω_T collects exp(+iω_v T).
+   */
+  function cmMaps(wT) {
+    const st = cmState; if (!st) throw new Error("Compute the coherence maps first");
+    const NT = st.Ts.length, n = st.na * st.nb, real = new Float64Array(n), pos = new Float64Array(n), neg = new Float64Array(n);
+    const cr = new Float64Array(NT), ci = new Float64Array(NT), dT = NT > 1 ? st.Ts[1] - st.Ts[0] : 1;
+    for (let q = 0; q < NT; q++) { cr[q] = Math.cos(wT * st.Ts[q]) * dT; ci[q] = Math.sin(wT * st.Ts[q]) * dT; }
+    for (let p = 0; p < n; p++) {
+      let Rr = 0, Ri = 0, Pr = 0, Pi = 0, Nr = 0, Ni = 0; const o = p * NT;
+      for (let q = 0; q < NT; q++) {
+        const yr = st.rre[o + q], yi = st.rim[o + q], c = cr[q], s = ci[q];
+        Rr += yr * c; Ri -= yr * s;                       // ∫ Re r e^{−iωT}
+        Nr += yr * c + yi * s; Ni += yi * c - yr * s;      // ∫ r e^{−iωT}: picks exp(+iω_v T) beats (GSB at the diagonal peak) → −ω_T
+        Pr += yr * c - yi * s; Pi += yi * c + yr * s;      // ∫ r e^{+iωT}: picks exp(−iω_v T) beats (ESE at the diagonal peak) → +ω_T
+      }
+      real[p] = Math.hypot(Rr, Ri); pos[p] = Math.hypot(Pr, Pi); neg[p] = Math.hypot(Nr, Ni);
+    }
+    return { real, pos, neg, w1: st.w1, w3: st.w3, na: st.na, nb: st.nb, tau: st.tau };
+  }
+
   /* ======================= small helpers for analysis and tests ======================= */
   /** Full width at half maximum of a sampled peak (linear interpolation of the half-maximum crossings). */
   function fwhm(xs, ys) {
@@ -817,5 +1022,6 @@
     TAU, HBAR, C_CM_FS, UNITS, cm, fft, dft, nextPow2, CONVENTIONS, STD, WINDOWS, taper, spectrum2D, spectrum2DDirect, freqAxis, trapezoid,
     mirror1, combine, orient, MODELS, DEFAULT_PARAMS, modelResponse, pathwayResponse, vibronicResponse, applyDisorder, fwhmToSigma,
     tokenize, parseExpr, compile, parseParams, exprResponse, parseCSV, buildDataset, resampleSlice, responseCSV, run, waitingTrace, convergence, fwhm, nearest,
+    parseModes, boDensity, boGrid, cumulantResponse, globalExpFit, cmPrepare, cmMaps,
   };
 });

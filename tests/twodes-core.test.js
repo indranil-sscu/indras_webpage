@@ -267,3 +267,87 @@ test("CSV import: round trip, validation and nonuniform grids", () => {
   const rs = D.run({ source: "data", data: dn.data, Tindex: 0, numerics: Object.assign({}, NUM, { nonuniform: "resample" }) });
   assert.ok(rs.warnings.some((w) => /resampled/.test(w)));
 });
+
+/* ---------- Brownian oscillators and the Sahu & Tiwari (2023) BChl a monomer model ---------- */
+const PAPER = { dt: 10, n1: 128, n3: 128, pad: 4, window: "none", broaden: 0, halfFirst: true, convention: "standard", carrier: D.cm(12870) };
+const paperJob = (over, T, num) => ({ source: "model", model: "brownian", params: Object.assign(D.DEFAULT_PARAMS("brownian"), over || {}), T: T || 0, numerics: Object.assign({}, PAPER, num || {}) });
+/** Diagonal and anti-diagonal FWHM through the absorptive maximum, projected on one frequency axis (cm⁻¹). */
+function widthsCm(r) {
+  const S = r.total, A = S.re; let m = 0; for (let j = 1; j < A.length; j++) if (A[j] > A[m]) m = j;
+  const a0 = Math.floor(m / S.N3), b0 = m % S.N3, d = S.w3[1] - S.w3[0], dg = [], an = [], x = [];
+  for (let k = -60; k <= 60; k++) { x.push(k * d); dg.push(A[(a0 + k) * S.N3 + b0 + k]); an.push(A[(a0 + k) * S.N3 + b0 - k]); }
+  return { peak3: D.UNITS.cm.to(S.w3[b0]), diag: D.UNITS.cm.to(D.fwhm(x, dg)), anti: D.UNITS.cm.to(D.fwhm(x, an)) };
+}
+
+test("Brownian-oscillator lineshape: reorganization energy and the underdamped limit", () => {
+  // critically damped oscillator alone: at long times Im g(t) → −λt + const, so the slope is −λ
+  const cd = D.parseModes("CD 30 60 55"), dt = 10, K = 400, g = D.boGrid(cd, 77, 0, dt, K);
+  near((g.im[K] - g.im[K - 50]) / (50 * dt), -D.cm(55), 0.01 * D.cm(55));
+  assert.strictEqual(g.re[0], 0); assert.strictEqual(g.im[0], 0);
+  // a weakly damped oscillator is a damped harmonic mode, g ≈ S[coth(βħω/2)(1 − e^{−γt/2}cos ωt) + i e^{−γt/2} sin ωt] − iλt,
+  // plus the slow pure dephasing (2λγkT/ħω²)·t from the ohmic low-frequency tail of the Brownian spectral density
+  const ud = D.parseModes("UD 572 2.3 5"), m = ud[0], S = m.lambda / m.w, gu = D.boGrid(ud, 77, 0, 10, 200);
+  const kT = (8.617333262e-5 * 77) / D.HBAR, nb = 1 / (Math.exp(m.w / kT) - 1), Gpd = (2 * m.lambda * m.gamma * kT) / (m.w * m.w);
+  for (const k of [3, 17, 60, 140, 200]) {
+    const t = k * 10, e = Math.exp(-m.gamma * t / 2);
+    near(gu.re[k], S * (2 * nb + 1) * (1 - e * Math.cos(m.w * t)) + Gpd * t, 0.02 * S);
+    near(gu.im[k], S * e * Math.sin(m.w * t) - m.lambda * t, 0.02 * S);
+  }
+  assert.throws(() => D.parseModes("UD 0 2 3"), /ω, γ > 0/);
+});
+
+test("one underdamped oscillator reproduces the displaced-oscillator (vibronic) model", () => {
+  const w = 700, gam = 2, lam = 70, S = lam / w; // S = 0.1
+  const b = D.run({ source: "model", model: "brownian", params: Object.assign(D.DEFAULT_PARAMS("brownian"), { modes: `UD ${w} ${gam} ${lam}`, temp: 0.0001, sigma: 0, tau2: 60, w: D.cm(15000) }), T: 30, numerics: Object.assign({}, NUM) });
+  const v = D.run(Object.assign(job("vibronic", { w: D.cm(15000 - lam), wv: D.cm(w), S, tauV: 2 / D.cm(gam), tau2: 60, T1: 1e12, temp: 0 }), { T: 30 }));
+  let worst = 0, top = 0;
+  for (let j = 0; j < b.total.re.length; j++) { worst = Math.max(worst, Math.abs(b.total.re[j] - v.total.re[j])); top = Math.max(top, Math.abs(v.total.re[j])); }
+  assert.ok(worst / top < 0.02, `max difference ${(100 * worst / top).toFixed(2)}% of the peak`);
+});
+
+test("Sahu & Tiwari 2023 (SI Table S1): anti-diagonal width ≈ 65 cm⁻¹ at T = 0, diagonal width ≈ 580 cm⁻¹ at T = 200 fs", () => {
+  const w0 = widthsCm(D.run(paperJob({}, 0))), w200 = widthsCm(D.run(paperJob({}, 200)));
+  near(w0.anti, 65, 6.5, "anti-diagonal FWHM at T = 0");
+  near(w200.diag, 580, 58, "diagonal FWHM at T = 200 fs");
+  // the absorptive maximum sits below the vertical gap ω_eg = 12870 cm⁻¹ by about the reorganization energy (λ = 115 cm⁻¹)
+  assert.ok(w0.peak3 < 12870 && w0.peak3 > 12870 - 150, `peak at ${w0.peak3}`);
+  // and the static disorder sets the diagonal width: σ = 0 makes it far narrower
+  assert.ok(widthsCm(D.run(paperJob({ sigma: 0 }, 200))).diag < 0.5 * w200.diag);
+});
+
+test("global two-exponential fit recovers the decay and isolates the beat", () => {
+  const Ts = Array.from({ length: 110 }, (_, q) => 10 + 10 * q), npix = 3, NT = Ts.length, w = D.cm(350);
+  const Y = { re: new Float64Array(npix * NT), im: new Float64Array(npix * NT) };
+  for (let p = 0; p < npix; p++) Ts.forEach((T, q) => { Y.re[p * NT + q] = (p + 1) * (2 * Math.exp(-T / 90) + Math.exp(-T / 600)) + 0.1 * Math.cos(w * T); Y.im[p * NT + q] = 0.5 * Math.exp(-T / 90) + 0.1 * Math.sin(w * T); });
+  const f = D.globalExpFit(Y, npix, Ts);
+  near(f.tau[0], 90, 9); near(f.tau[1], 600, 90);
+  // the beat survives background removal: its Fourier amplitude at ω is within 10% of that of the pure beat 0.1 e^{iωT}
+  let sr = 0, si = 0; Ts.forEach((T, q) => { sr += f.rre[q] * Math.cos(w * T) + f.rim[q] * Math.sin(w * T); si += f.rim[q] * Math.cos(w * T) - f.rre[q] * Math.sin(w * T); });
+  near(Math.hypot(sr, si), 0.1 * NT, 0.01 * NT);
+});
+
+test("coherence maps of the BChl a model: beat frequencies, ±ω_T assignment and the diagonal narrowing", () => {
+  const num = Object.assign({}, PAPER, { pad: 2 }), region = { w1: [D.cm(12300), D.cm(13300)], w3: [D.cm(12300), D.cm(13300)] };
+  const prep = (comps) => D.cmPrepare({ source: "model", model: "brownian", params: D.DEFAULT_PARAMS("brownian"), comps, numerics: num }, { T0: 10, T1: 1100, dT: 10, region, pad: 2 });
+  const info = prep(null), b = info.beat, cmv = (x) => D.UNITS.cm.to(x);
+  // every Table S1 frequency appears in the beat spectrum of the complex residual (within the 15 cm⁻¹ resolution)
+  for (const f of [200, 350, 572, 740, 900]) {
+    let best = 0; for (let k = 0; k < b.w.length; k++) if (Math.abs(Math.abs(cmv(b.w[k])) - f) < 25 && b.complex[k] > best) best = b.complex[k];
+    let floor = 0, n = 0; for (let k = 0; k < b.w.length; k++) { const x = Math.abs(cmv(b.w[k])); if (x > 1050 && x < 1400) { floor += b.complex[k]; n++; } }
+    assert.ok(best > 20 * (floor / n), `${f} cm⁻¹ beat not resolved`);
+  }
+  const dp = (M) => D.nearest(M.w1, D.cm(12805)) * M.nb + D.nearest(M.w3, D.cm(12795));
+  // ground-state (GSB) beats at the diagonal peak appear at −ω_T, excited-state (ESE) beats at +ω_T, as in the paper
+  prep({ SE: false }); let M = D.cmMaps(D.cm(350)); assert.ok(M.neg[dp(M)] > 5 * M.pos[dp(M)], "GSB → −ω_T");
+  prep({ GSB: false }); M = D.cmMaps(D.cm(350)); assert.ok(M.pos[dp(M)] > 5 * M.neg[dp(M)], "ESE → +ω_T");
+  // interference of the two narrows the real rephasing CM across the diagonal; the ±ω_T maps are not narrowed
+  prep(null);
+  for (const f of [350, 572]) {
+    M = D.cmMaps(D.cm(f));
+    // width across the diagonal through the diagonal peak: walk outwards until the amplitude halves
+    const a0 = D.nearest(M.w1, D.cm(12805)), b0 = D.nearest(M.w3, D.cm(12795));
+    const width = (arr) => { const c = arr[a0 * M.nb + b0], at = (k) => arr[(a0 + k) * M.nb + b0 - k]; let l = 0, r = 0; while (l < 30 && at(-l - 1) > c / 2) l++; while (r < 30 && at(r + 1) > c / 2) r++; return l + r + 1; };
+    const wr = width(M.real), wp = width(M.pos), wn = width(M.neg);
+    assert.ok(wr < 0.75 * Math.min(wp, wn), `${f} cm⁻¹: real CM anti-diagonal width ${wr} vs ±ω_T ${wp}, ${wn}`);
+  }
+});

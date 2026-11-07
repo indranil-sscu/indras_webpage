@@ -22,6 +22,12 @@ self.onmessage = (e) => {
       self.postMessage({ id, ok: true, result: r }, transfer);
     } else if (kind === "trace") {
       self.postMessage({ id, ok: true, result: TwoDES.waitingTrace(job, extra.w1, extra.w3, extra.Ts) });
+    } else if (kind === "cmPrepare") {
+      const info = TwoDES.cmPrepare(job, extra);
+      self.postMessage({ id, ok: true, result: info });
+    } else if (kind === "cmMaps") {
+      const m = TwoDES.cmMaps(extra.wT);
+      self.postMessage({ id, ok: true, result: { real: m.real, pos: m.pos, neg: m.neg, w1: m.w1.slice(), w3: m.w3.slice(), na: m.na, nb: m.nb, tau: m.tau } }, [m.real.buffer, m.pos.buffer, m.neg.buffer]);
     } else if (kind === "convergence") {
       self.postMessage({ id, ok: true, result: TwoDES.convergence(job, extra.range) });
     }
