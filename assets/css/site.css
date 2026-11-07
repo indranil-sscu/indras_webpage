@@ -170,7 +170,8 @@ table td code { white-space: nowrap; }
 :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
 @media (max-width: 767px) {
   .menu-button { display: inline-flex; }
-  .site-nav { position: relative; }
+  /* minima offsets its mobile nav (top: 9px; right: 15px); cancel that so the menu button lines up with the theme toggle */
+  .site-nav { position: relative; top: auto; right: auto; display: flex; align-items: center; }
   .site-nav .menu { display: none; }
   .site-nav.open .menu {
     display: flex; flex-direction: column; position: absolute; right: 0; top: 2.6em; z-index: 60; gap: .2em; min-width: 14em;
