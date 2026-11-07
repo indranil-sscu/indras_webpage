@@ -11,24 +11,26 @@ permalink: /tools/dsfd/
     .fd-layout { grid-template-columns: 300px minmax(0, 1fr); }
     .fd-side { position: sticky; top: 1em; align-self: start; max-height: calc(100vh - 2em); overflow: auto; }
   }
-  .fd-card { border: 1px solid var(--border-color); border-radius: var(--radius); padding: .8em 1em; background: var(--bg-surface); font-size: .9em; margin-bottom: .9em; }
+  .fd-card { padding: .9em 1em; font-size: .9em; margin-bottom: .9em; }
   .fd-card h3 { margin: 0 0 .45em; font-size: .78em; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); font-weight: 600; }
   .fd-card label { display: block; font-size: .85em; color: var(--text-secondary); margin: .4em 0 .15em; }
   .fd-card label.inl { display: inline-flex; align-items: center; gap: .3em; margin: .2em .8em .2em 0; color: var(--text-primary); }
-  .fd-card select, .fd-card input[type=text], .fd-card input[type=number] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-input); }
+  .fd-card select, .fd-card input[type=text], .fd-card input[type=number] { width: 100%; }
   .fd-signs { display: flex; gap: .35em; flex-wrap: wrap; }
-  .fd-signs select { width: auto; }
+  .fd-signs select { width: auto !important; }
   .fd-seg { display: inline-flex; border: 1px solid var(--border-strong); border-radius: 4px; overflow: hidden; margin-top: .2em; }
   .fd-seg label { margin: 0; padding: .2em .6em; cursor: pointer; font-size: .85em; color: var(--text-secondary); }
   .fd-seg input { display: none; }
-  .fd-seg label:has(input:checked) { background: var(--accent-primary); color: var(--accent-contrast); }
-  .fd-summary { margin: 0 0 1em; padding: .6em .85em; background: var(--bg-accent-soft); border-left: 3px solid var(--accent-primary); font-size: .92em; border-radius: 0 var(--radius) var(--radius) 0; }
+  .fd-seg label:has(input:checked) { background: var(--accent); color: var(--accent-contrast); }
+  .fd-summary { margin: 0 0 1em; padding: .6em .85em; background: var(--accent-surface); border: 1px solid var(--accent-border); font-size: .9em; border-radius: var(--radius-md); }
   .fd-summary.warn { background: var(--warn-bg); border-color: var(--warn-border); }
   .fd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1em; }
-  .fd-diagram { border: 1px solid var(--border-color); border-radius: var(--radius); padding: .6em .7em .7em; background: var(--bg-surface); }
+  .fd-diagram { padding: .7em .8em .8em; }
   .fd-diagram svg { display: block; width: 100%; max-width: 270px; height: auto; margin: .2em auto 0; }
   .fd-diagram h4 { margin: 0 0 .2em; font-size: .92em; display: flex; justify-content: space-between; align-items: center; }
-  .fd-tag { font-size: .76em; padding: .08em .5em; border-radius: 10px; color: #fff; letter-spacing: .02em; }
+  .fd-tag { font: 600 .68rem/1.5 var(--font-sans); padding: 0 .5em; border-radius: var(--radius-sm); letter-spacing: .04em; color: var(--bg-surface); }
+  .fd-tag.GSB, .fd-tag.SFG { background: var(--badge-gsb); } .fd-tag.SE, .fd-tag.DFG { background: var(--badge-se); }
+  .fd-tag.ESA { background: var(--badge-esa); } .fd-tag.DQC { background: var(--badge-dqc); } .fd-tag.Linear { background: var(--text-secondary); }
   .fd-tag.mono { background: transparent !important; color: var(--text-primary); border: 1.5px solid var(--text-primary); }
   .fd-tag.mono.SE { border-style: dashed; } .fd-tag.mono.ESA { border-style: dotted; border-width: 2px; } .fd-tag.mono.DQC { border-style: double; border-width: 3px; }
   .fd-term { font-size: .82em; color: var(--text-primary); margin-top: .35em; line-height: 1.55; }
@@ -95,7 +97,8 @@ permalink: /tools/dsfd/
   </div>
   <div class="fd-card">
     <h3>4 · Export all</h3>
-    <button class="btn primary" id="fd-tikz-all">TikZ / LaTeX (.tex)</button>
+    <button class="btn primary" id="fd-copy-all">Copy TikZ / LaTeX</button>
+    <button class="btn" id="fd-tikz-all">Download .tex</button>
     <button class="btn" id="fd-svg-all">SVG sheet</button>
     <button class="btn" id="fd-png-all">PNG sheet, 300 dpi</button>
     <div class="fd-note" style="margin-top:.4em">Exports always use a white background. The TikZ file is a <code>standalone</code> document with one diagram per page; it needs <code>arrows.meta</code> and <code>decorations.pathmorphing</code>.</div>
@@ -235,11 +238,11 @@ permalink: /tools/dsfd/
     });
     $("fd-grid").innerHTML = last.map(({ d, svg, i }) => `
       <div class="fd-diagram">
-        <h4><span>(${letter(i)}) &nbsp;<span class="fd-tag ${mono ? "mono " : ""}${esc(d.type)}" style="background:${F.PATHWAY_COLORS[d.type] || "#4A5568"}">${esc(d.type)}</span>${d.rephasing === true ? ' <span class="fd-note">rephasing</span>' : d.rephasing === false ? ' <span class="fd-note">non-rephasing</span>' : ""}</span><span>sign ${d.sign > 0 ? "+" : "−"} <span class="fd-note">(n<sub>bra</sub> = ${d.nBra})</span></span></h4>
+        <h4><span>(${letter(i)}) &nbsp;<span class="fd-tag ${mono ? "mono " : ""}${esc(d.type)}">${esc(d.type)}</span>${d.rephasing === true ? ' <span class="fd-note">rephasing</span>' : d.rephasing === false ? ' <span class="fd-note">non-rephasing</span>' : ""}</span><span>sign ${d.sign > 0 ? "+" : "−"} <span class="fd-note">(n<sub>bra</sub> = ${d.nBra})</span></span></h4>
         ${svg}
         <div class="fd-path">${esc(d.label)}</div>
         <div class="fd-term"><span class="k">k-sum</span> ${kSum(d, fl)}<br>${termHTML(d, scheme, names)}</div>
-        <div class="fd-btns"><button class="btn" data-svg="${i}">SVG</button><button class="btn" data-png="${i}">PNG 300 dpi</button><button class="btn" data-tex="${i}">TikZ</button></div>
+        <div class="fd-btns"><button class="btn" data-svg="${i}">SVG</button><button class="btn" data-png="${i}">PNG 300 dpi</button><button class="btn" data-tex="${i}">TikZ .tex</button><button class="btn" data-copy="${i}" title="Copy compilable TikZ code">Copy TikZ</button></div>
       </div>`).join("");
   }
 
@@ -266,7 +269,8 @@ permalink: /tools/dsfd/
   const tikzOf = (items) => F.toTikZ(items.map((it) => ({ lay: it.layH, type: it.d.type, sign: it.d.sign })), { mono: radio("fd-col") === "mono", wavy: radio("fd-arrow") === "wavy" });
   $("fd-grid").addEventListener("click", (e) => {
     const b = e.target.closest("button"); if (!b) return;
-    const k = +(b.dataset.svg ?? b.dataset.png ?? b.dataset.tex), it = last[k]; if (!it) return;
+    const k = +(b.dataset.svg ?? b.dataset.png ?? b.dataset.tex ?? b.dataset.copy), it = last[k]; if (!it) return;
+    if (b.dataset.copy !== undefined) { copyText(tikzOf([it]), b); return; }
     const base = `dsfd-${k + 1}-${it.d.type}`;
     if (b.dataset.svg !== undefined) saveText(exportSVG(it), base + ".svg", "image/svg+xml");
     else if (b.dataset.png !== undefined) svgToPNG(exportSVG(it), base + ".png", 300);
@@ -274,6 +278,22 @@ permalink: /tools/dsfd/
   });
   $("fd-svg-all").addEventListener("click", () => { if (last.length) saveText(sheet(last), "dsfd-all.svg", "image/svg+xml"); });
   $("fd-png-all").addEventListener("click", () => { if (last.length) svgToPNG(sheet(last), "dsfd-all.png", 300); });
+  /** Copy to the clipboard and show a short "Copied!" tooltip above the button. */
+  function copyText(text, btn) {
+    const done = (ok) => {
+      const r = btn.getBoundingClientRect(), tip = document.createElement("span");
+      tip.className = "tooltip-copied"; tip.textContent = ok ? "Copied!" : "Copy failed";
+      tip.style.left = r.left + r.width / 2 + window.scrollX + "px"; tip.style.top = r.top + window.scrollY + "px";
+      document.body.appendChild(tip); setTimeout(() => tip.remove(), 1500);
+    };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(() => done(true), () => done(fallback()));
+    else done(fallback());
+    function fallback() {
+      const ta = document.createElement("textarea"); ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); let ok = false; try { ok = document.execCommand("copy"); } catch (e) {} ta.remove(); return ok;
+    }
+  }
+  $("fd-copy-all").addEventListener("click", (e) => { if (last.length) copyText(tikzOf(last), e.currentTarget); });
   $("fd-tikz-all").addEventListener("click", () => { if (last.length) saveText(tikzOf(last), "dsfd-diagrams.tex", "application/x-tex"); });
 
   applyPreset("rephasing");

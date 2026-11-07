@@ -7,32 +7,31 @@ permalink: /tools/digitizer/
 <style>
   .dz-intro { color: var(--text-secondary); }
   .dz-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1em; margin: 1.2em 0; }
-  .dz-card { border: 1px solid var(--border-color); border-radius: 8px; padding: .9em 1em; background: var(--bg-surface); font-size: .92em; }
-  .dz-card h3 { margin: 0 0 .5em; font-size: 1.02em; }
-  .dz-card.active { border-color: var(--accent-primary); box-shadow: 0 0 0 2px rgba(42,122,226,.15); }
+  .dz-card { padding: .9em 1em; font-size: .92em; }
+  .dz-card h3 { margin: 0 0 .6em; font-size: .72rem; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); font-weight: 600; }
+  .dz-card.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-surface), var(--shadow-card); }
   .dz-card label { font-size: .85em; color: var(--text-secondary); }
-  .dz-card input[type=number], .dz-card input[type=text] { width: 100%; box-sizing: border-box; padding: .3em .45em; font: inherit; border: 1px solid var(--border-strong); border-radius: 4px; }
+  .dz-card input[type=number], .dz-card input[type=text] { width: 100%; }
   .dz-cal { display: grid; grid-template-columns: auto 1fr; gap: .35em .5em; align-items: center; }
-  .dz-btn { font: inherit; font-size: .88em; padding: .35em .75em; margin: .2em .2em .2em 0; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-subtle); cursor: pointer; }
-  .dz-btn.primary { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--accent-contrast); }
-  .dz-btn.on { background: var(--bg-accent-soft); border-color: var(--accent-primary); }
+  .dz-btn { margin: .2em .2em .2em 0; }
+  .dz-btn.on { background: var(--accent-surface); border-color: var(--accent); }
   .dz-btn:disabled { opacity: .45; cursor: default; }
-  .dz-status { margin: .5em 0; padding: .55em .8em; background: var(--bg-accent-soft); border-left: 3px solid var(--accent-primary); font-size: .92em; }
+  .dz-status { margin: .5em 0; padding: .55em .8em; background: var(--accent-surface); border: 1px solid var(--accent-border); border-radius: var(--radius-md); font-size: .9em; }
   .dz-status.warn { background: var(--warn-bg); border-color: var(--warn-border); }
   .dz-work { display: flex; gap: 1em; align-items: flex-start; flex-wrap: wrap; }
-  .dz-canvas-wrap { position: relative; flex: 1 1 520px; max-height: 75vh; overflow: auto; border: 1px dashed var(--border-strong); border-radius: 6px; background: var(--bg-subtle); min-height: 260px; }
-  .dz-canvas-wrap.drag { border-color: var(--accent-primary); background: var(--bg-accent-soft); }
+  .dz-canvas-wrap { position: relative; flex: 1 1 520px; max-height: 75vh; overflow: auto; border: 1px dashed var(--border-strong); border-radius: 6px; background: var(--bg-muted); min-height: 260px; }
+  .dz-canvas-wrap.drag { border-color: var(--accent); background: var(--accent-surface); }
   #dz-canvas { display: block; cursor: crosshair; }
   .dz-drop { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--text-muted); text-align: center; padding: 1em; pointer-events: none; }
   .dz-side { flex: 0 0 210px; }
   #dz-loupe { width: 200px; height: 200px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg-surface); display: block; }
-  .dz-readout { font-family: ui-monospace, Menlo, monospace; font-size: .85em; margin-top: .4em; min-height: 2.6em; color: var(--text-primary); }
+  .dz-readout { font-family: var(--font-mono); font-size: .85em; margin-top: .4em; min-height: 2.6em; color: var(--text-primary); }
   .dz-table { width: 100%; border-collapse: collapse; font-size: .85em; margin-top: .6em; }
-  .dz-table th, .dz-table td { border-bottom: 1px solid var(--border-color); padding: .25em .4em; text-align: right; }
+  .dz-table th, .dz-table td { border-bottom: 1px solid var(--border-subtle); padding: .25em .4em; text-align: right; }
   .dz-table th:first-child, .dz-table td:first-child { text-align: left; }
   .dz-table-wrap { max-height: 320px; overflow: auto; }
   .dz-note { color: var(--text-muted); font-size: .85em; }
-  kbd { font-size: .85em; padding: 0 .3em; border: 1px solid var(--border-strong); border-radius: 3px; background: var(--bg-subtle); }
+  kbd { font-size: .85em; padding: 0 .3em; border: 1px solid var(--border-strong); border-radius: 3px; background: var(--bg-muted); }
 </style>
 
 <p class="dz-intro">

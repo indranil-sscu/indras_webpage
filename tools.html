@@ -5,23 +5,15 @@ permalink: /tools/
 ---
 {% raw %}
 <style>
-  .tools-intro { color: var(--text-secondary); margin-bottom: 1.5em; }
-  .tool { border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1.2em 1.4em; margin: 0 0 1.8em; background: var(--bg-surface); }
-  .tool h2 { margin-top: 0; font-size: 1.3em; }
-  .tool p.note { color: var(--text-muted); font-size: .85em; margin: .8em 0 0; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: .7em 1.2em; }
-  .field label { display: block; font-size: .8em; color: var(--text-secondary); margin-bottom: .2em; }
-  .field .row { display: flex; align-items: stretch; }
-  .field input, .field select { width: 100%; box-sizing: border-box; padding: .45em .55em; font: inherit; font-size: .95em;
-    border: 1px solid var(--border-strong); border-radius: 4px 0 0 4px; background: var(--bg-surface); }
-  .field select { border-radius: 4px; }
-  .field .unit { padding: .45em .55em; background: var(--bg-subtle); border: 1px solid var(--border-strong); border-left: 0; border-radius: 0 4px 4px 0;
-    font-size: .85em; color: var(--text-secondary); white-space: nowrap; min-width: 4.2em; text-align: center; }
-  .field input:focus { outline: 2px solid var(--accent-primary); outline-offset: -1px; }
-  .field input.out { background: var(--bg-subtle); }
-  .field input.src { background: var(--bg-accent-soft); }
-  .err { color: var(--danger); font-size: .85em; min-height: 1.2em; margin-top: .4em; }
-  .sub { font-size: 1em; margin: 1.2em 0 .6em; color: var(--text-primary); }
+  .tools-intro { color: var(--text-secondary); margin-bottom: 1.5em; max-width: 72ch; }
+  .tool h2 { font-size: 1.05rem; }
+  .tool p.note { color: var(--text-muted); font-size: .85em; margin: .9em 0 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: .75em 1em; }
+  .field { min-width: 0; }
+  .field label { display: block; font-size: .74rem; font-weight: 500; color: var(--text-secondary); margin-bottom: .3em; letter-spacing: .01em; }
+  .field select { width: 100%; }
+  .err { color: var(--danger); font-size: .8rem; min-height: 1.2em; margin-top: .4em; }
+  .sub { font-size: .78rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 1.3em 0 .6em; border: 0; padding: 0; }
 </style>
 
 <p class="tools-intro">
@@ -389,7 +381,7 @@ permalink: /tools/
   <div class="grid">
     <div class="field"><label>Conversion</label><select id="jc-dir"><option value="nm2cm">I(λ) in nm → I(ν̃) in cm⁻¹</option><option value="cm2nm">I(ν̃) in cm⁻¹ → I(λ) in nm</option></select></div>
     <div class="field"><label>Spectrum file (2 columns: x, intensity)</label><input id="jc-file" type="file" accept=".txt,.csv,.dat,.tsv,text/*"></div>
-    <div class="field"><label><input type="checkbox" id="jc-norm" checked> normalise peak to 1</label></div>
+    <div class="field" style="align-self:end"><label style="display:flex;align-items:center;gap:.4em;font-size:.82rem;color:var(--text-primary)"><input type="checkbox" id="jc-norm" checked> normalise peak to 1</label></div>
   </div>
   <div class="field" style="margin-top:.6em"><label>…or paste data</label><textarea id="jc-text" rows="4" style="width:100%;box-sizing:border-box;font-family:ui-monospace,monospace;font-size:.85em" placeholder="700, 0.01&#10;701, 0.02&#10;…"></textarea></div>
   <canvas class="plot" id="jc-plot" width="760" height="260" style="width:100%;max-width:760px;margin-top:.6em;display:block"></canvas>
