@@ -49,7 +49,7 @@
       muted: css("--canvas-muted", "#888"),
       grid: css("--canvas-grid", "#e6e8ec"),
       frame: css("--canvas-frame", "#ccc"),
-      accent: css("--accent-primary", "#1f63c6"),
+      accent: css("--accent", "#1f63c6"),
       accent2: css("--accent-accent", "#c2410c"),
       surface: css("--bg-surface", "#fff"),
       text: css("--text-primary", "#111"),

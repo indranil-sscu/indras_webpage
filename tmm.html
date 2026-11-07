@@ -6,30 +6,28 @@ permalink: /tools/tmm/
 {% raw %}
 <style>
   .tm-intro { color: var(--text-secondary); }
-  .tm-sec { border: 1px solid var(--border-color); border-radius: var(--radius); padding: 1em 1.2em; margin: 0 0 1.6em; background: var(--bg-surface); }
-  .tm-sec h2 { margin: 0 0 .3em; font-size: 1.25em; }
-  .tm-why { background: var(--bg-accent-soft); border-left: 3px solid var(--accent-primary); padding: .5em .8em; font-size: .88em; color: var(--text-primary); margin: .3em 0 .9em; border-radius: 0 var(--radius) var(--radius) 0; }
+  .tm-sec h2 { font-size: 1.05rem; }
+  .tm-why { background: var(--accent-surface); border: 1px solid var(--accent-border); padding: .6em .85em; font-size: .86em; color: var(--text-primary); margin: .2em 0 1em; border-radius: var(--radius-md); line-height: 1.55; }
   .tm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .55em .9em; align-items: end; }
-  .tm-f label { display: block; font-size: .78em; color: var(--text-secondary); margin-bottom: .15em; }
-  .tm-f input, .tm-f select { width: 100%; box-sizing: border-box; padding: .32em .45em; font: inherit; font-size: .9em; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-input); }
-  .tm-f input[type=range] { padding: 0; border: 0; background: transparent; accent-color: var(--accent-primary); }
+  .tm-f label { display: block; font-size: .74rem; font-weight: 500; color: var(--text-secondary); margin-bottom: .3em; }
+  .tm-f input, .tm-f select { width: 100%; }
+  .tm-f input[type=range] { height: 32px; padding: 0; border: 0; background: transparent; }
   .tm-f .pair { display: flex; gap: .4em; align-items: center; }
   .tm-f .pair input[type=number] { width: 5.5em; flex: none; }
-  .tm-btn { font: inherit; font-size: .86em; padding: .35em .75em; border: 1px solid var(--border-strong); border-radius: 4px; background: var(--bg-subtle); color: var(--text-primary); cursor: pointer; margin: .3em .3em 0 0; }
-  .tm-btn:hover { border-color: var(--accent-primary); }
-  .tm-btn.primary { background: var(--accent-primary); border-color: var(--accent-primary); color: var(--accent-contrast); }
+  .tm-btn { margin: .4em .3em 0 0; }
   .tm-btn.ghost { background: transparent; }
   .tm-layers { width: 100%; border-collapse: collapse; font-size: .85em; margin-top: .6em; border: 0; }
   .tm-layers tr:nth-child(even) { background: transparent; }
-  .tm-layers th { text-align: left; font-weight: 600; color: var(--text-secondary); border: 0; border-bottom: 1px solid var(--border-color); padding: .3em; background: transparent; }
-  .tm-layers td { border: 0; border-bottom: 1px solid var(--border-color); padding: .25em .3em; vertical-align: middle; }
-  .tm-layers input, .tm-layers select { font: inherit; font-size: .92em; padding: .2em .3em; border: 1px solid var(--border-strong); border-radius: 3px; box-sizing: border-box; background: var(--bg-input); }
+  .tm-layers th { text-align: left; font-weight: 600; color: var(--text-secondary); border: 0; border-bottom: 1px solid var(--border-subtle); padding: .3em; background: transparent; }
+  .tm-layers td { border: 0; border-bottom: 1px solid var(--border-subtle); padding: .25em .3em; vertical-align: middle; }
+  .tm-layers input, .tm-layers select { height: 28px !important; font-size: .8rem; }
   .tm-layers .params input { width: 4.6em; margin-right: .2em; }
   .tm-layers .params input.wide { width: 13em; }
-  .tm-mini { font-size: .8em; padding: .1em .4em; border: 1px solid var(--border-strong); background: var(--bg-subtle); color: var(--text-primary); border-radius: 3px; cursor: pointer; }
-  .tm-stackbar { display: flex; height: 26px; border: 1px solid var(--border-color); border-radius: 4px; overflow: hidden; margin-top: .7em; font-size: .7em; }
+  .tm-mini { font-size: .78em; height: 24px; min-width: 24px; padding: 0 .35em; border: 1px solid var(--border-strong); background: var(--bg-surface); color: var(--text-secondary); border-radius: var(--radius-sm); cursor: pointer; }
+  .tm-mini:hover { border-color: var(--accent); color: var(--text-primary); }
+  .tm-stackbar { display: flex; height: 26px; border: 1px solid var(--border-subtle); border-radius: 4px; overflow: hidden; margin-top: .7em; font-size: .7em; }
   .tm-stackbar div { display: flex; align-items: center; justify-content: center; color: #fff; white-space: nowrap; overflow: hidden; text-shadow: 0 0 2px rgba(0,0,0,.5); }
-  .tm-osc { margin-top: .9em; padding: .7em .9em; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--bg-subtle); }
+  .tm-osc { margin-top: 1em; padding: .8em 1em; border: 1px solid var(--border-subtle); border-radius: var(--radius-md); background: var(--bg-muted); }
   .tm-osc h3 { font-size: .95em; margin: 0 0 .4em; }
   canvas.tm-plot { width: 100%; max-width: 820px; margin-top: .7em; display: block; }
   .tm-err { color: var(--danger); font-size: .85em; min-height: 1.1em; margin-top: .3em; }
@@ -134,6 +132,7 @@ permalink: /tools/tmm/
     <div class="tm-f"><label>to (deg, ≤ 85)</label><input id="am-th" type="number" value="60" min="1" max="85"></div>
     <div class="tm-f"><label>Energy from</label><input id="am-min" type="number" step="any"></div>
     <div class="tm-f"><label>Energy to</label><input id="am-max" type="number" step="any"></div>
+    <div class="tm-f"><label>y-axis</label><select id="am-yaxis"><option value="E">energy</option><option value="nm">wavelength (nm)</option></select></div>
     <div class="tm-f"><label>Resolution</label><select id="am-res"><option value="1">fast</option><option value="2" selected>normal</option><option value="3">fine</option></select></div>
   </div>
   <div class="tm-actions">
@@ -263,8 +262,9 @@ permalink: /tools/tmm/
   const uLabel = () => (unit() === "eV" ? "eV" : "cm⁻¹");
   const fmt = (v, p) => (isFinite(v) ? String(+v.toPrecision(p || 5)) : "–");
   const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-  const GLASSES = ["fused_silica", "bk7", "tio2", "ta2o5", "pmma", "caf2", "sapphire_o", "znse", "sf10", "yag"];
-  const ALIAS = { sio2: "fused_silica", silica: "fused_silica", glass: "bk7", tio2: "tio2", ta2o5: "ta2o5", pmma: "pmma" };
+  const MAT = { ...O.MATERIALS, air: { name: "Air (n = 1)", n: () => 1, range: [0.2, 20] } };
+  const GLASSES = ["air", "fused_silica", "bk7", "tio2", "ta2o5", "pmma", "caf2", "sapphire_o", "znse", "sf10", "yag"];
+  const ALIAS = { sio2: "fused_silica", silica: "fused_silica", glass: "bk7", tio2: "tio2", ta2o5: "ta2o5", pmma: "pmma", air: "air" };
   const COLORS = { constant: "#8fa3b8", lorentz: "#d9480f", drude: "#b8a46a", glass: "#5f9ccf" };
   const download = (text, name, type) => ST.download(new Blob([text], { type: type || "text/csv" }), name);
 
@@ -350,7 +350,7 @@ permalink: /tools/tmm/
   function buildMaterial(L) {
     switch (L.type) {
       case "constant": return T.material.constant(+L.n, +L.k || 0);
-      case "glass": return T.material.fromFunction(O.MATERIALS[L.key].n);
+      case "glass": return T.material.fromFunction(MAT[L.key].n);
       case "drude": return T.material.drude(+L.eInf, +L.Ep, +L.g);
       case "lorentz": {
         const osc = parseOsc(L.osc).map(([e, g, f]) => ({ nu0: e * EV_TO_CM1, gamma: g * EV_TO_CM1, f }));
@@ -360,7 +360,7 @@ permalink: /tools/tmm/
   }
   function buildStack(overrides) {
     const sub = $("tm-sub").value;
-    const substrate = sub === "air" ? T.material.constant(1) : sub === "n1.33" ? T.material.constant(1.333) : sub === "n1.43" ? T.material.constant(1.43) : T.material.fromFunction(O.MATERIALS[sub].n);
+    const substrate = sub === "air" ? T.material.constant(1) : sub === "n1.33" ? T.material.constant(1.333) : sub === "n1.43" ? T.material.constant(1.43) : T.material.fromFunction(MAT[sub].n);
     return {
       incident: T.material.constant(parseFloat($("tm-n0").value) || 1),
       layers: S.layers.map((L, i) => ({ material: buildMaterial(overrides && overrides[i] ? overrides[i] : L), d_nm: +L.d })),
@@ -375,7 +375,7 @@ permalink: /tools/tmm/
     const inp = (k, v, title, cls) => `<input data-i="${i}" data-k="${k}" value="${esc(v)}" title="${title}" ${cls ? `class="${cls}"` : 'type="number" step="any"'}>`;
     switch (L.type) {
       case "constant": return `n ${inp("n", L.n, "refractive index")} k ${inp("k", L.k, "extinction coefficient")}`;
-      case "glass": return `<select data-i="${i}" data-k="key">${GLASSES.map((g) => `<option value="${g}"${g === L.key ? " selected" : ""}>${O.MATERIALS[g].name}</option>`).join("")}</select>`;
+      case "glass": return `<select data-i="${i}" data-k="key">${GLASSES.map((g) => `<option value="${g}"${g === L.key ? " selected" : ""}>${MAT[g].name}</option>`).join("")}</select>`;
       case "drude": return `ε∞ ${inp("eInf", L.eInf, "background permittivity")} E<sub>p</sub> ${inp("Ep", L.Ep, "plasma energy ħω_p (eV)")} γ ${inp("g", L.g, "damping ħγ_p (eV)")}
         <select data-i="${i}" data-k="metal" title="preset"><option value="">preset…</option><option value="ag">Ag</option><option value="au">Au</option></select>`;
       case "lorentz": return `ε∞ ${inp("epsInf", L.epsInf, "background permittivity")} ν₀, γ, f: ${inp("oscDisp", oscToDisplay(L.osc), "centre, FWHM (in the spectral unit), strength; separate oscillators with ;", "wide")}`;
@@ -437,9 +437,9 @@ permalink: /tools/tmm/
   const matSpec = (tok) => {
     const t = tok.trim().toLowerCase(), n = parseFloat(t);
     if (isFinite(n) && /^[\d.]+$/.test(t)) return { type: "constant", n, k: 0, label: "n=" + n, nAt: () => n };
-    const key = ALIAS[t] || (O.MATERIALS[t] ? t : null);
+    const key = ALIAS[t] || (MAT[t] ? t : null);
     if (!key) return null;
-    return { type: "glass", key, label: O.MATERIALS[key].name.split(" ")[0], nAt: (lam) => O.MATERIALS[key].n(lam / 1000) };
+    return { type: "glass", key, label: MAT[key].name.split(" ")[0], nAt: (lam) => MAT[key].n(lam / 1000) };
   };
   $("tm-adddbr").addEventListener("click", () => {
     const r0 = resonances()[0];
@@ -463,7 +463,7 @@ permalink: /tools/tmm/
     S.layers.splice(a - 1, b - a + 1, ...T.repeatBlock(blk, c));
     renderRows(); syncOscPanel(true); structureChanged();
   });
-  $("tm-sub").innerHTML = `<option value="air">air (n = 1)</option><option value="n1.33">water (n = 1.333)</option><option value="n1.43">liquid / polymer (n = 1.43)</option>` + GLASSES.map((g) => `<option value="${g}">${O.MATERIALS[g].name}</option>`).join("");
+  $("tm-sub").innerHTML = `<option value="air">air (n = 1)</option><option value="n1.33">water (n = 1.333)</option><option value="n1.43">liquid / polymer (n = 1.43)</option>` + GLASSES.filter((g) => g !== "air").map((g) => `<option value="${g}">${MAT[g].name}</option>`).join("");
   $("tm-preset").addEventListener("change", () => loadPreset($("tm-preset").value));
   ["tm-n0", "tm-sub"].forEach((id) => $(id).addEventListener("change", structureChanged));
   $("tm-unit").addEventListener("change", () => {
@@ -550,9 +550,11 @@ permalink: /tools/tmm/
   const cmap = (t) => { t = Math.min(1, Math.max(0, t)) * 4; const i = Math.min(3, Math.floor(t)), f = t - i; return VIRIDIS[i].map((c, k) => Math.round(c + f * (VIRIDIS[i + 1][k] - c))); };
   function heatmap(canvas, map, xl, overlays) {
     const pad = { l: 56, r: 72, t: 12, b: 34 };
-    const xs = map.x, Es = map.E.map(fromEV);
+    const nm = map.ymode === "nm", disp = (e) => (nm ? T.HC_EV_NM / e : fromEV(e));
+    const xs = map.x, Es = map.E.map(disp);
+    if (Es[0] > Es[Es.length - 1]) throw new Error("map rows must increase upwards");
     const x0 = xs[0], x1 = xs[xs.length - 1], y0 = Math.min(...Es), y1 = Math.max(...Es);
-    const { ctx, W, H, K } = axes(canvas, pad, x0, x1, y0, y1, xl, `Energy (${uLabel()})`);
+    const { ctx, W, H, K } = axes(canvas, pad, x0, x1, y0, y1, xl, nm ? "Wavelength (nm)" : `Energy (${uLabel()})`);
     const pw = W - pad.l - pad.r, ph = H - pad.t - pad.b;
     // render the map at its own resolution on an offscreen canvas, then scale it in (crisp on any DPR)
     const off = document.createElement("canvas"); off.width = xs.length; off.height = Es.length;
@@ -570,7 +572,7 @@ permalink: /tools/tmm/
     ctx.fillStyle = K.fg; ctx.textAlign = "left"; ctx.font = "11px " + FONT;
     ctx.fillText(fmt(zmax, 3), W - pad.r + 28, pad.t + 9); ctx.fillText(fmt(zmin, 3), W - pad.r + 28, H - pad.b);
     ctx.save(); ctx.translate(W - 8, (H + pad.t - pad.b) / 2); ctx.rotate(Math.PI / 2); ctx.textAlign = "center"; ctx.fillText(map.q || "", 0, 0); ctx.restore();
-    const X = (x) => pad.l + ((x - x0) / (x1 - x0)) * pw, Y = (e) => pad.t + ph - ((fromEV(e) - y0) / (y1 - y0)) * ph;
+    const X = (x) => pad.l + ((x - x0) / (x1 - x0)) * pw, Y = (e) => pad.t + ph - ((disp(e) - y0) / (y1 - y0)) * ph;
     ctx.save(); ctx.beginPath(); ctx.rect(pad.l, pad.t, pw, ph); ctx.clip();
     (overlays || []).forEach((o) => {
       if (o.points) { ctx.fillStyle = o.color; o.points.forEach((p) => { ctx.beginPath(); ctx.arc(X(p.x), Y(p.E), 2.4, 0, 2 * Math.PI); ctx.fill(); }); return; }
@@ -677,7 +679,11 @@ permalink: /tools/tmm/
     const nTh = [31, 61, 91][res - 1], nE = [200, 350, 600][res - 1];
     const a = toEV(parseFloat($("am-min").value)), b = toEV(parseFloat($("am-max").value));
     const th = Array.from({ length: nTh }, (_, i) => thMin + ((thMax - thMin) * i) / (nTh - 1));
-    const E = Array.from({ length: nE }, (_, i) => a + ((b - a) * i) / (nE - 1));
+    // energy axis uniform in E, or (wavelength axis) uniform in λ so the displayed rows are evenly spaced
+    const nmAxis = $("am-yaxis").value === "nm";
+    const E = nmAxis
+      ? Array.from({ length: nE }, (_, i) => { const l1 = T.HC_EV_NM / b, l2 = T.HC_EV_NM / a; return T.HC_EV_NM / (l1 + ((l2 - l1) * i) / (nE - 1)); })
+      : Array.from({ length: nE }, (_, i) => a + ((b - a) * i) / (nE - 1));
     return { th, E, ok: a > 0 && b > a, thMin, thMax };
   }
   function runAngle() {
@@ -686,11 +692,11 @@ permalink: /tools/tmm/
     setTimeout(() => {
       const st = buildStack(), pol = $("am-pol").value, q = $("am-q").value;
       if ($("am-axis").value === "k") {
-        const n0 = n0v(), kmin = T.kParallel(g.E[0], g.thMin, n0), kmax = T.kParallel(g.E[g.E.length - 1], g.thMax, n0);
+        const n0 = n0v(), kmin = T.kParallel(Math.min(...g.E), g.thMin, n0), kmax = T.kParallel(Math.max(...g.E), g.thMax, n0);
         const ks = Array.from({ length: g.th.length }, (_, i) => kmin + ((kmax - kmin) * i) / (g.th.length - 1));
         lastMap = T.kMap(st, pol, q, ks, g.E);
       } else lastMap = { ...T.angleMap(st, pol, q, g.th, g.E), axis: "deg" };
-      lastMap.q = q;
+      lastMap.q = q; lastMap.ymode = $("am-yaxis").value;
       lastFit = null; drawAngle();
       $("am-run").textContent = "Compute map"; $("am-run").disabled = false; $("am-stale").hidden = true;
       $("am-out").innerHTML = ""; $("am-hop").style.display = "none";
@@ -786,13 +792,14 @@ permalink: /tools/tmm/
   $("am-run").addEventListener("click", runAngle);
   $("am-fit").addEventListener("click", fitAngle);
   $("am-axis").addEventListener("change", () => { if (lastMap) runAngle(); });
+  $("am-yaxis").addEventListener("change", () => { if (lastMap) { const hadFit = !!lastFit; runAngle(); if (hadFit) setTimeout(fitAngle, 80); } if (lastThick) runThick(); });
   $("am-png").addEventListener("click", () => ST.savePNG($("am-plot"), "tmm-dispersion-map.png"));
   $("am-csv").addEventListener("click", () => {
     if (!lastMap) return;
     const xl = lastMap.axis === "k" ? "k_parallel_um-1" : "angle_deg";
     const rows = [];
-    lastMap.x.forEach((x, i) => lastMap.E.forEach((e, j) => rows.push(`${+x.toPrecision(8)},${+fromEV(e).toPrecision(8)},${isFinite(lastMap.Z[i][j]) ? lastMap.Z[i][j].toPrecision(6) : ""}`)));
-    download(`${xl},energy_${unit()},${lastMap.q}\n` + rows.join("\n") + "\n", "tmm-dispersion-map.csv");
+    lastMap.x.forEach((x, i) => lastMap.E.forEach((e, j) => rows.push(`${+x.toPrecision(8)},${+fromEV(e).toPrecision(8)},${+(T.HC_EV_NM / e).toPrecision(8)},${isFinite(lastMap.Z[i][j]) ? lastMap.Z[i][j].toPrecision(6) : ""}`)));
+    download(`${xl},energy_${unit()},wavelength_nm,${lastMap.q}\n` + rows.join("\n") + "\n", "tmm-dispersion-map.csv");
   });
 
   /* ---------------- 4 · thickness map ---------------- */
@@ -805,7 +812,7 @@ permalink: /tools/tmm/
     $("tk-run").textContent = "Computing…";
     setTimeout(() => {
       const map = T.thicknessMap(buildStack(), li, ds, parseFloat($("tk-th").value) || 0, "s", $("tk-q").value, g.E);
-      lastThick = { map: { ...map, q: $("tk-q").value }, li, a, b };
+      lastThick = { map: { ...map, q: $("tk-q").value, ymode: $("am-yaxis").value }, li, a, b };
       drawThick();
       $("tk-run").textContent = "Compute map";
     }, 20);

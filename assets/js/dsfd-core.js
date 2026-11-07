@@ -263,11 +263,12 @@
   const texState = (s) => String(s).replace(/[^A-Za-z0-9']/g, "");
 
   /* ---------------- palettes ---------------- */
-  const PATHWAY_COLORS = { GSB: "#2B6CB0", SE: "#2C7A7B", ESA: "#C53030", DQC: "#6B46C1", SFG: "#2B6CB0", DFG: "#2C7A7B", Linear: "#4A5568", "—": "#4A5568" };
+  // colour-blind-safe pathway colours (steel blue, emerald, crimson)
+  const PATHWAY_COLORS = { GSB: "#0369A1", SE: "#047857", ESA: "#B91C1C", DQC: "#6D28D9", SFG: "#0369A1", DFG: "#047857", Linear: "#475569", "—": "#475569" };
   /** palette: {ink, bg, muted, accent(type)} — "mono" is pure black on white. */
   function palette(kind, dark) {
     if (kind === "mono") return { ink: "#000000", bg: "#ffffff", muted: "#000000", accent: () => "#000000", mono: true };
-    if (dark) return { ink: "#E6E8EB", bg: "#161A20", muted: "#8A919C", accent: (t) => ({ GSB: "#63B3ED", SE: "#4FD1C5", ESA: "#FC8181", DQC: "#B794F4" }[t] || "#CBD5E0") };
+    if (dark) return { ink: "#F8FAFC", bg: "#0F172A", muted: "#94A3B8", accent: (t) => ({ GSB: "#38BDF8", SE: "#34D399", ESA: "#F87171", DQC: "#C4B5FD", SFG: "#38BDF8", DFG: "#34D399" }[t] || "#CBD5E1") };
     return { ink: "#111111", bg: "#ffffff", muted: "#666666", accent: (t) => PATHWAY_COLORS[t] || "#4A5568" };
   }
 
@@ -292,7 +293,7 @@
     const uid = "m" + Math.random().toString(36).slice(2, 8);
     out.push(`<defs>${mk(uid + "i", P.ink)}${mk(uid + "s", accent)}</defs>`);
     out.push(`<rect width="${lay.W}" height="${lay.H}" fill="${P.bg}"/>`);
-    lay.rails.forEach((r) => out.push(`<line x1="${r.x}" y1="${r.y1}" x2="${r.x}" y2="${r.y2}" stroke="${P.ink}" stroke-width="1.6"/>`));
+    lay.rails.forEach((r) => out.push(`<line x1="${r.x}" y1="${r.y1}" x2="${r.x}" y2="${r.y2}" stroke="${P.ink}" stroke-width="1.67"/>`)); // 1.25 pt
     lay.rows.forEach((r) => {
       out.push(`<text x="${r.kx}" y="${r.y}" dominant-baseline="central" text-anchor="middle" font-family="${font}" font-size="16" font-style="${/^\d+$/.test(r.ket) ? "normal" : "italic"}" fill="${P.ink}">${svgText(r.ket)}</text>`);
       out.push(`<text x="${r.bx}" y="${r.y}" dominant-baseline="central" text-anchor="middle" font-family="${font}" font-size="16" font-style="${/^\d+$/.test(r.bra) ? "normal" : "italic"}" fill="${P.ink}">${svgText(r.bra)}</text>`);
@@ -325,7 +326,7 @@
       "\\usetikzlibrary{arrows.meta, decorations.pathmorphing}",
       ...used.map((t) => `\\definecolor{${cname(t)}}{HTML}{${(mono ? "000000" : (PATHWAY_COLORS[t] || "#4A5568").slice(1))}}`),
       "\\tikzset{",
-      "  rail/.style={line width=1.2pt},",
+      "  rail/.style={line width=1.25pt},",
       "  field/.style={-{Stealth[length=6pt,width=4.5pt,inset=1.5pt]}, line width=0.9pt" + (wavy ? ", decorate, decoration={snake, amplitude=1.5pt, segment length=5pt, post length=6pt}" : "") + "},",
       "  signal/.style={-{Stealth[length=6pt,width=4.5pt,inset=1.5pt]}, line width=0.9pt, dashed},",
       "  idx/.style={font=\\large},",

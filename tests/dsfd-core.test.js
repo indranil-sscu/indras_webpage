@@ -139,12 +139,12 @@ test("SVG and TikZ export are well formed", () => {
   assert.ok(svg.includes(">R<tspan") || svg.includes("R</tspan><tspan")); // caption R with subscript
   const wavy = F.toSVG(items[0].lay, { pal: F.palette("mono"), type: items[0].type, wavy: true });
   assert.strictEqual((wavy.match(/<path d="M[^"]*( L[^"]*){5,}"/g) || []).length, 3); // three wavy field arrows (signal stays dashed)
-  assert.ok(!/#2B6CB0|#2C7A7B|#C53030/i.test(wavy)); // print mode is black and white
+  assert.ok(!/#0369A1|#047857|#B91C1C/i.test(wavy)); // print mode is black and white
   const tex = F.toTikZ(items, { wavy: true });
   assert.ok(tex.includes("\\usetikzlibrary{arrows.meta, decorations.pathmorphing}"));
   assert.strictEqual((tex.match(/\\begin\{tikzpicture\}/g) || []).length, 3);
   assert.strictEqual((tex.match(/\{/g) || []).length, (tex.match(/\}/g) || []).length);
-  assert.ok(tex.includes("\\definecolor{pathESA}{HTML}{C53030}"));
+  assert.ok(tex.includes("\\definecolor{pathESA}{HTML}{B91C1C}"));
   assert.ok(tex.includes("{$f$}") && tex.includes("{$0$}"));
   assert.ok(/\(a\) \$R_\{\d\}\$/.test(tex));
   assert.ok(!/[^\x00-\x7F]/.test(tex.split("\n").slice(2).join("\n")), "TikZ body must be pure ASCII for pdflatex");
