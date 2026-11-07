@@ -3,7 +3,7 @@ layout: page
 title: Tutorials & Notes
 permalink: /posts/
 lead: Practical scientific-computing workflows, theory notes behind the tools, and references for the optics lab.
-description: Tutorials, scientific-computing workflows, theory notes and lab references from Indra's Lab.
+description: Tutorials, scientific-computing workflows, theory notes and lab references from Indra's Webpage.
 ---
 
 <div class="card-grid">

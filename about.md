@@ -2,7 +2,7 @@
 layout: page
 title: About
 permalink: /about/
-lead: Indra's Lab is a personal project to make useful scientific tools, and the ideas behind them, freely available and easy to explore.
+lead: Indra's Webpage is a personal project to make useful scientific tools, and the ideas behind them, freely available and easy to explore.
 description: About Indranil Roy, PhD candidate at the Indian Institute of Science, Bengaluru, working on ultrafast spectroscopy, vibronic coupling and molecular polaritons, and about this site.
 ---
 
@@ -52,7 +52,7 @@ Bengaluru 560012, India
 
 ## About this site
 
-Indra's Lab is separate from my academic homepage: it is where I build tools I need in the lab, and experiments that I hope make mathematics and physics more approachable.
+Indra's Webpage is separate from my academic homepage: it is where I build tools I need in the lab, and experiments that I hope make mathematics and physics more approachable.
 
 - **Everything runs in your browser.** There is no server and no tracking; your data and images never leave your device.
 - **The science is checked.** Each tool shows its equations, units and assumptions, and the calculations are covered by automated tests against analytical results and published benchmarks.
