@@ -3,7 +3,7 @@ layout: page
 title: Science for the Curious
 permalink: /curious/
 lead: No background needed. Change a number, press a button and watch what happens. Each experiment comes with a short explanation of the mathematics behind it.
-description: Interactive experiments for everyone, including a probability playground with dice and coins, the Monty Hall problem and Fourier series built from circles.
+description: Interactive experiments for everyone, including dice and coins, the Monty Hall problem, the birthday and Simpson's paradoxes, Fourier series, pendulums and chaos, and the Mandelbrot set.
 ---
 <div class="card-grid">
 {%- assign items = site.data.tools | where: "category", "math" -%}
@@ -12,8 +12,8 @@ description: Interactive experiments for everyone, including a probability playg
 
 <section class="section">
   <h2>How these work</h2>
-  <p>Every experiment runs a real simulation or calculation in your browser, and puts the result next to what theory predicts. The more you run, the closer the two get. That idea, the law of large numbers, connects all three.</p>
-  <p class="muted">More experiments are being built: pendulums, wave interference and fractals. Ideas are welcome on <a href="https://github.com/{{ site.github_username }}/indras_webpage/issues/new?title=Experiment%20idea">GitHub</a>.</p>
+  <p>Every experiment runs a real simulation or calculation in your browser, and puts the result next to what theory predicts. In the probability experiments, the more you run, the closer the two get: the law of large numbers. In the pendulum and fractal explorers the computer solves the equations step by step, and the page shows how far that numerical answer can be trusted.</p>
+  <p class="muted">Ideas for new experiments are welcome on <a href="https://github.com/{{ site.github_username }}/indras_webpage/issues/new?title=Experiment%20idea">GitHub</a>.</p>
 </section>
 
 {% include preview-scripts.html %}

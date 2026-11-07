@@ -1,0 +1,335 @@
+---
+layout: page
+title: Probability Paradoxes
+permalink: /curious/paradoxes/
+crumbs:
+  - title: Science for the Curious
+    url: /curious/
+short_title: Paradoxes
+lead: Two results that feel wrong but are not. In a room of just 23 people, two probably share a birthday. And a treatment can be better for every kind of patient, yet worse overall.
+description: Simulate rooms of people to test the birthday paradox against the exact formula, and edit a two-group table to watch Simpson's paradox reverse a trend.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/curious-core.js
+---
+{% raw %}
+<section class="app-part" aria-labelledby="bp-title">
+<h2 id="bp-title">1. The birthday paradox</h2>
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li>Set the <b>number of people</b> in the room. Press <b>New room</b> to give everyone a random birthday; people who share a day are highlighted on the year wheel.</li>
+    <li>Press <b>Simulate rooms</b> to fill thousands of rooms of that size and count how often at least two people share a birthday.</li>
+    <li><b>Simulate every size</b> runs rooms of every size at once. The dots (simulation) should sit on the curve (exact formula).</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="bp-ctl">
+    <h2 id="bp-ctl">Controls</h2>
+    <div class="ctl"><label for="bp-n">People in the room <output id="bp-n-o">23</output></label><input type="range" id="bp-n" min="2" max="100" value="23"></div>
+    <div class="ctl"><label for="bp-d">Share a…</label>
+      <select id="bp-d"><option value="365" selected>birthday (365 days)</option><option value="12">birth month (12 months)</option><option value="7">day of the week (7 days)</option></select></div>
+    <div class="ctl"><label for="bp-rooms">Rooms per simulation</label>
+      <select id="bp-rooms"><option value="100">100</option><option value="1000" selected>1 000</option><option value="10000">10 000</option></select></div>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="bp-room">New room</button>
+      <button type="button" class="btn" id="bp-sim">Simulate rooms</button>
+      <button type="button" class="btn" id="bp-sweep">Simulate every size</button>
+      <button type="button" class="btn" id="bp-reset">Reset</button>
+    </div>
+    <dl class="stats" id="bp-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="bp-stage">
+    <h2 id="bp-stage">One room</h2>
+    <canvas id="bp-wheel" role="img" aria-label="Year wheel with a dot for each person's birthday; shared birthdays highlighted"></canvas>
+    <p class="live" id="bp-msg" aria-live="polite"></p>
+    <canvas id="bp-plot" role="img" aria-label="Probability of a shared birthday against the number of people: exact curve and simulated fractions"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>Why so few people are enough</h2>
+  <p>It feels as if you would need about 183 people (half of 365) for a shared birthday to be likely. But the question is not whether someone shares <i>your</i> birthday; it is whether <i>any two</i> people share one. With 23 people there are 23 × 22 / 2 = <b>253 pairs</b>, and every pair is a chance for a match.</p>
+  <p>It is easiest to count the opposite. The second person avoids the first person's birthday with probability 364/365, the third avoids both with 363/365, and so on. Multiply these together for everyone in the room and subtract from 1. With 23 people the chance that all birthdays differ has dropped to 49.3%, so a shared birthday is slightly more likely than not. With 57 people it is 99%.</p>
+  <p>The same mathematics tells computer scientists how many random identifiers can be issued before two collide (a <i>birthday attack</i> on a hash function needs about the square root of the number of possible values).</p>
+  <details class="theory-card">
+    <summary>The mathematics</summary>
+    <div class="eq"><i>P</i>(shared) = 1 − ∏<sub><i>k</i>=0</sub><sup><i>n</i>−1</sup> (<i>d</i> − <i>k</i>)/<i>d</i> = 1 − <i>d</i>! / ((<i>d</i> − <i>n</i>)! <i>d</i><sup><i>n</i></sup>), &nbsp; <i>d</i> = 365</div>
+    <div class="eq"><i>P</i>(shared) ≈ 1 − exp(−<i>n</i>(<i>n</i> − 1)/2<i>d</i>), &nbsp; so <i>P</i> = ½ near <i>n</i> ≈ √(2<i>d</i> ln 2) ≈ 22.5</div>
+    <div class="eq">expected number of matching pairs = C(<i>n</i>, 2)/<i>d</i> = 253/365 ≈ 0.69 for <i>n</i> = 23</div>
+    <p><b>Assumptions:</b> birthdays are independent and equally likely, and 29 February is ignored. Real birthdays are slightly uneven through the year, which only makes a match more likely. The simulation draws each birthday from a seeded pseudo-random generator; automated tests check the exact values (<i>P</i>(23) = 0.507297…) and that simulated rooms agree with them within the statistical error.</p>
+    <ol class="refs"><li>R. von Mises, “Über Aufteilungs- und Besetzungswahrscheinlichkeiten,” <i>Revue de la Faculté des Sciences de l'Université d'Istanbul</i> <b>4</b>, 145 (1939).</li><li>W. Feller, <i>An Introduction to Probability Theory and Its Applications</i>, vol. 1, 3rd ed. (Wiley, 1968), ch. II.3.</li><li>G. Berresford, “The uniformity assumption in the birthday problem,” <i>Mathematics Magazine</i> <b>53</b>, 286 (1980).</li></ol>
+  </details>
+</section>
+</section>
+
+<section class="app-part" aria-labelledby="sp-title">
+<h2 id="sp-title">2. Simpson's paradox</h2>
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li>Pick a data set. Each treatment's success rate is shown for each group and overall; the higher rate in each column is highlighted.</li>
+    <li>Edit any number in the table (successes and cases), or drag the <b>mix</b> slider to move one treatment's cases between the groups while keeping its success rate in each group.</li>
+    <li>Watch the chart: each treatment's overall rate is a point on the line joining its two group rates, placed according to its mix of cases.</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="sp-ctl">
+    <h2 id="sp-ctl">Controls</h2>
+    <div class="ctl"><label for="sp-preset">Data set</label>
+      <select id="sp-preset"><option value="kidney" selected>Kidney-stone treatments (1986)</option><option value="batting">Batting averages, 1995–96</option><option value="none">Balanced groups (no paradox)</option></select></div>
+    <div class="ctl"><label for="sp-mix"><span id="sp-mix-l">Mix</span> <output id="sp-mix-o">75%</output></label><input type="range" id="sp-mix" min="0" max="100" value="75"></div>
+    <div class="btn-row">
+      <button type="button" class="btn" id="sp-reset">Reset</button>
+    </div>
+    <dl class="stats" id="sp-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="sp-stage">
+    <h2 id="sp-stage">The table</h2>
+    <table class="sp-table" id="sp-table"></table>
+    <p class="verdict" id="sp-msg" aria-live="polite"></p>
+    <canvas id="sp-plot" role="img" aria-label="Success rate against the share of cases in the second group, one line per treatment, with each treatment's overall rate marked"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>How a trend can reverse</h2>
+  <p>In the kidney-stone study, open surgery did better than keyhole surgery for small stones <i>and</i> for large stones, yet keyhole surgery had the better overall record. Nothing is miscounted. The overall rate is an <b>average of the group rates, weighted by how many cases fell in each group</b>, and the two treatments had very different mixes: open surgery was mostly given to the hard, large-stone cases.</p>
+  <p>In the chart, each line runs from a treatment's rate in the first group (left) to its rate in the second group (right). Its overall rate must lie on its own line, at the position set by its share of second-group cases. If one line is higher everywhere but its point sits far to the low side, the points can swap order. Drag the mix slider until both treatments have the same mix and the paradox disappears.</p>
+  <p>Which answer should you trust? It depends on <i>why</i> the groups differ. Here stone size affected both the choice of treatment and the outcome (a <b>confounder</b>), so the within-group comparison is the fair one. With other causal structures the aggregate can be the right answer, which is why the paradox is a lesson about causes, not arithmetic.</p>
+  <details class="theory-card">
+    <summary>The mathematics</summary>
+    <div class="eq"><i>p</i><sub>A</sub> = (1 − <i>w</i><sub>A</sub>) <i>p</i><sub>A1</sub> + <i>w</i><sub>A</sub> <i>p</i><sub>A2</sub>, &nbsp; <i>w</i><sub>A</sub> = <i>n</i><sub>A2</sub>/(<i>n</i><sub>A1</sub> + <i>n</i><sub>A2</sub>), and likewise for B</div>
+    <div class="eq">reversal: <i>p</i><sub>A1</sub> &gt; <i>p</i><sub>B1</sub> and <i>p</i><sub>A2</sub> &gt; <i>p</i><sub>B2</sub>, yet <i>p</i><sub>A</sub> &lt; <i>p</i><sub>B</sub> &nbsp;(possible only if <i>w</i><sub>A</sub> ≠ <i>w</i><sub>B</sub>)</div>
+    <p>If both treatments have the same mix (<i>w</i><sub>A</sub> = <i>w</i><sub>B</sub>), the overall comparison always agrees with the group comparisons. The chart is the construction of Baker and Kramer. Automated tests check the published data sets and the weighted-average identity.</p>
+    <ol class="refs"><li>E. H. Simpson, “The interpretation of interaction in contingency tables,” <i>J. R. Stat. Soc. B</i> <b>13</b>, 238 (1951).</li><li>C. R. Charig, D. R. Webb, S. R. Payne and J. E. A. Wickham, “Comparison of treatment of renal calculi by open surgery, percutaneous nephrolithotomy, and extracorporeal shockwave lithotripsy,” <i>Br. Med. J.</i> <b>292</b>, 879 (1986).</li><li>S. G. Baker and B. S. Kramer, “Good for women, good for men, bad for people: Simpson's paradox and the importance of sex-specific analysis in observational studies,” <i>J. Women's Health Gend. Based Med.</i> <b>10</b>, 867 (2001).</li><li>K. Ross, <i>A Mathematician at the Ballpark</i> (Pi Press, 2004), for the batting averages.</li><li>J. Pearl, “Comment: understanding Simpson's paradox,” <i>The American Statistician</i> <b>68</b>, 8 (2014).</li></ol>
+  </details>
+</section>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/curious-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const C = window.Curious, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const pct = (x, k) => (isFinite(x) ? (100 * x).toFixed(k === undefined ? 1 : k) + "%" : "–");
+
+  /* ======================= birthday paradox ======================= */
+  const r = C.rng(), seen = new Uint8Array(366);
+  const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const MLEN = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+  const WEEK = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const MAXN = { 365: 100, 12: 30, 7: 12 };
+  let n = 23, d = 365, room = null, sims = new Map(), totalRooms = 0;
+
+  function dayName(x) {
+    if (d === 12) return ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"][x];
+    if (d === 7) return ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"][x];
+    let m = 0; while (x >= MLEN[m]) { x -= MLEN[m]; m++; }
+    return `${x + 1} ${MONTHS[m]}`;
+  }
+  function newRoom() {
+    room = C.birthdayRoom(n, d, r);
+    const sh = [...room.sharedDays].sort((a, b) => a - b);
+    let msg;
+    if (!sh.length) msg = `No two of these ${n} people share a ${d === 365 ? "birthday" : d === 12 ? "birth month" : "weekday"}.`;
+    else {
+      const desc = sh.slice(0, 3).map((x) => { const who = room.days.map((v, i) => (v === x ? i + 1 : 0)).filter(Boolean); return `${dayName(x)} (people ${who.join(", ")})`; });
+      msg = `<b>${room.pairs} matching pair${room.pairs === 1 ? "" : "s"}.</b> Shared: ${desc.join("; ")}${sh.length > 3 ? ` and ${sh.length - 3} more day${sh.length - 3 === 1 ? "" : "s"}` : ""}.`;
+    }
+    $("bp-msg").innerHTML = msg;
+    drawWheel();
+  }
+  function record(size, hits, N) { const s = sims.get(size) || { hits: 0, N: 0 }; s.hits += hits; s.N += N; sims.set(size, s); totalRooms += N; }
+  function simulate(size, N) { let h = 0; for (let i = 0; i < N; i++) h += C.birthdayHasMatch(size, d, r, seen); record(size, h, N); }
+
+  function drawWheel() {
+    const pal = PK.palette(), cv = $("bp-wheel");
+    const P = PK.frame(cv, { height: 300, x0: 0, x1: 1, y0: 0, y1: 1, bare: true }), c = P.ctx;
+    const cx = P.W / 2, cy = P.H / 2, R = Math.min(P.W, P.H) / 2 - 46;
+    c.strokeStyle = P.K.frame; c.lineWidth = 1.2; c.beginPath(); c.arc(cx, cy, R, 0, 2 * Math.PI); c.stroke();
+    const ang = (x) => (2 * Math.PI * x) / d - Math.PI / 2;
+    // sector ticks and labels
+    const marks = d === 365 ? MLEN.reduce((a, L, i) => (a.push(i ? a[i - 1] + MLEN[i - 1] : 0), a), []) : Array.from({ length: d }, (_, i) => i);
+    const names = d === 365 ? MONTHS : d === 12 ? MONTHS : WEEK;
+    c.font = "11px " + P.font; c.textAlign = "center"; c.textBaseline = "middle";
+    marks.forEach((m, i) => {
+      const a = ang(m); c.strokeStyle = P.K.grid; c.beginPath(); c.moveTo(cx + (R - 6) * Math.cos(a), cy + (R - 6) * Math.sin(a)); c.lineTo(cx + (R + 6) * Math.cos(a), cy + (R + 6) * Math.sin(a)); c.stroke();
+      const len = d === 365 ? MLEN[i] : 1, am = ang(m + len / 2);
+      c.fillStyle = P.K.muted; c.fillText(names[i], cx + (R - 18) * Math.cos(am), cy + (R - 18) * Math.sin(am));
+    });
+    c.textBaseline = "alphabetic";
+    if (!room) return;
+    const stack = new Map(), dot = d === 365 ? 3.4 : 4.2;
+    room.days.forEach((x) => {
+      const k = stack.get(x) || 0; stack.set(x, k + 1);
+      const a = ang(x + 0.5), rr = R + 9 + k * (2 * dot + 1.5), shared = room.sharedDays.has(x);
+      if (shared && k === 1) { c.strokeStyle = pal.b; c.lineWidth = 1.5; c.beginPath(); c.moveTo(cx + R * Math.cos(a), cy + R * Math.sin(a)); c.lineTo(cx + (R - 26) * Math.cos(a), cy + (R - 26) * Math.sin(a)); c.stroke(); }
+      c.fillStyle = shared ? pal.b : pal.a; c.globalAlpha = shared ? 1 : 0.75;
+      c.beginPath(); c.arc(cx + rr * Math.cos(a), cy + rr * Math.sin(a), shared ? dot + 0.8 : dot, 0, 2 * Math.PI); c.fill(); c.globalAlpha = 1;
+    });
+    c.fillStyle = P.K.fg; c.textAlign = "center"; c.font = "600 22px " + P.font;
+    c.fillText(String(n), cx, cy - 4); c.font = "11px " + P.font; c.fillStyle = P.K.muted;
+    c.fillText(room.shared ? `${room.pairs} shared pair${room.pairs === 1 ? "" : "s"}` : "no match", cx, cy + 14);
+  }
+  function drawPlot() {
+    const pal = PK.palette(), xmax = MAXN[d];
+    const P = PK.frame($("bp-plot"), { height: 250, x0: 0, x1: xmax, y0: 0, y1: 1, xlabel: "People in the room", ylabel: "P(at least one match)", xints: true, yfmt: (v) => (100 * v).toFixed(0) + "%" });
+    const xs = Array.from({ length: xmax }, (_, i) => i + 1);
+    PK.line(P, [0, xmax], [0.5, 0.5], { color: P.K.muted, width: 1, dash: [3, 4] });
+    PK.line(P, [n, n], [0, 1], { color: P.K.muted, width: 1, dash: [3, 4] });
+    PK.line(P, xs, xs.map((k) => C.birthdayExact(k, d)), { color: pal.a, width: 2 });
+    // simulated fractions with ±2σ bars
+    const c = P.ctx; c.strokeStyle = pal.b; c.lineWidth = 1.2;
+    const sx = [], sy = [];
+    sims.forEach((s, k) => {
+      const f = s.hits / s.N, p = C.birthdayExact(k, d), e = 2 * Math.sqrt(Math.max(p * (1 - p), 1e-9) / s.N);
+      c.beginPath(); c.moveTo(P.X(k), P.Y(Math.max(0, f - e))); c.lineTo(P.X(k), P.Y(Math.min(1, f + e))); c.stroke();
+      sx.push(k); sy.push(f);
+    });
+    PK.dots(P, sx, sy, { color: pal.b, r: 2.8 });
+    const t = C.birthdayThreshold(0.5, d);
+    c.fillStyle = P.K.muted; c.font = "11px " + P.font; c.textAlign = "left";
+    c.fillText(`50% reached at ${t}`, P.X(t) + 4, P.Y(0.5) + 14);
+    PK.legend(P, [{ label: "exact formula", color: pal.a }, { label: "simulated (±2σ)", color: pal.b, dot: true }], P.W - P.pad.r - 132, P.pad.t + P.ph - 40);
+  }
+  function drawStats() {
+    const s = sims.get(n), p = C.birthdayExact(n, d), pairs = (n * (n - 1)) / 2;
+    $("bp-stats").innerHTML = [
+      ["Exact probability", pct(p, p > 0.9995 ? 4 : 1)],
+      [`Simulated, n = ${n}`, s ? `${pct(s.hits / s.N)} <small>(${s.hits.toLocaleString("en")}/${s.N.toLocaleString("en")})</small>` : "–"],
+      ["Pairs of people", pairs.toLocaleString("en")],
+      ["Expected matches", (pairs / d).toFixed(2)],
+      ["Rooms simulated", totalRooms.toLocaleString("en")],
+    ].map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+  function refresh() { drawPlot(); drawStats(); }
+  function setN(v) { n = Math.max(2, Math.min(MAXN[d], v)); $("bp-n").value = n; $("bp-n-o").textContent = n; newRoom(); refresh(); }
+  function bpReset(keepDays) {
+    if (!keepDays) { d = 365; $("bp-d").value = "365"; $("bp-rooms").value = "1000"; }
+    $("bp-n").max = MAXN[d]; sims = new Map(); totalRooms = 0;
+    setN(d === 365 ? 23 : d === 12 ? 5 : 4);
+  }
+  $("bp-n").addEventListener("input", () => setN(+$("bp-n").value));
+  $("bp-d").addEventListener("change", () => { d = +$("bp-d").value; bpReset(true); });
+  $("bp-room").addEventListener("click", () => { newRoom(); simulateShown(); });
+  function simulateShown() { record(n, room.shared ? 1 : 0, 1); refresh(); }
+  $("bp-sim").addEventListener("click", () => { simulate(n, +$("bp-rooms").value); refresh(); });
+  $("bp-sweep").addEventListener("click", () => { const N = Math.max(200, +$("bp-rooms").value / 10); for (let k = 2; k <= MAXN[d]; k++) simulate(k, N); refresh(); });
+  $("bp-reset").addEventListener("click", () => bpReset(false));
+
+  /* ======================= Simpson's paradox ======================= */
+  let preset, data, base, labels;
+  const clone = (t) => t.map((g) => g.slice());
+  function loadPreset(key) {
+    preset = C.SIMPSON_PRESETS[key];
+    data = { A: clone(preset.A), B: clone(preset.B) }; base = clone(preset.A); labels = preset;
+    buildTable(); syncMix(); update();
+  }
+  function buildTable() {
+    const g = labels.groups, L = labels.labels;
+    const cell = (t, gi) => `<td data-t="${t}" data-g="${gi}"><div class="sp-in">
+        <input type="number" min="0" step="1" inputmode="numeric" data-t="${t}" data-g="${gi}" data-k="0" aria-label="${L[t === "A" ? 0 : 1]}, ${g[gi]}: successes">
+        <span>out of</span>
+        <input type="number" min="0" step="1" inputmode="numeric" data-t="${t}" data-g="${gi}" data-k="1" aria-label="${L[t === "A" ? 0 : 1]}, ${g[gi]}: cases"></div>
+        <span class="sp-rate" data-rate="${t}${gi}"></span></td>`;
+    const row = (t, i) => `<tr><th scope="row">${L[i]}</th>${cell(t, 0)}${cell(t, 1)}<td data-t="${t}" data-g="all"><span class="sp-sum" data-sum="${t}"></span><span class="sp-rate" data-rate="${t}all"></span></td></tr>`;
+    $("sp-table").innerHTML = `<caption class="muted" style="caption-side:bottom;text-align:left;padding-top:.4rem;font-size:.8rem">Outcome: ${labels.outcome}.</caption>
+      <thead><tr><th scope="col"></th><th scope="col">${g[0]}</th><th scope="col">${g[1]}</th><th scope="col">Overall</th></tr></thead>
+      <tbody>${row("A", 0)}${row("B", 1)}</tbody>`;
+    fillInputs();
+    $("sp-mix-l").textContent = `${L[0]}: share of cases in “${g[1].toLowerCase()}”`;
+  }
+  function fillInputs() {
+    $("sp-table").querySelectorAll("input").forEach((el) => { el.value = data[el.dataset.t][+el.dataset.g][+el.dataset.k]; el.removeAttribute("aria-invalid"); });
+  }
+  function syncMix() {
+    const [[, n1], [, n2]] = data.A, w = n1 + n2 ? n2 / (n1 + n2) : 0;
+    $("sp-mix").value = Math.round(100 * w); $("sp-mix-o").textContent = pct(w, 0);
+  }
+  $("sp-table").addEventListener("input", (e) => {
+    const el = e.target; if (el.tagName !== "INPUT") return;
+    const t = el.dataset.t, gi = +el.dataset.g, k = +el.dataset.k;
+    let v = Math.floor(+el.value); if (!isFinite(v) || v < 0) v = 0;
+    data[t][gi][k] = v;
+    const [s, m] = data[t][gi], bad = s > m;
+    $("sp-table").querySelectorAll(`input[data-t="${t}"][data-g="${gi}"]`).forEach((x) => (bad ? x.setAttribute("aria-invalid", "true") : x.removeAttribute("aria-invalid")));
+    if (t === "A") { base = clone(data.A); syncMix(); }
+    update();
+  });
+  $("sp-mix").addEventListener("input", () => {
+    const w = +$("sp-mix").value / 100; $("sp-mix-o").textContent = pct(w, 0);
+    data.A = C.reallocate(base, w); fillInputs(); update();
+  });
+  $("sp-preset").addEventListener("change", () => loadPreset($("sp-preset").value));
+  $("sp-reset").addEventListener("click", () => { $("sp-preset").value = "kidney"; loadPreset("kidney"); });
+
+  // a row with more successes than cases is treated as all successes
+  const safe = (t) => t.map(([s, m]) => [Math.min(s, m), m]);
+  function update() {
+    const S = C.simpson({ A: safe(data.A), B: safe(data.B) }), L = labels.labels, g = labels.groups;
+    ["A", "B"].forEach((t) => {
+      const q = (sel) => $("sp-table").querySelector(sel);
+      q(`[data-rate="${t}0"]`).textContent = pct(S[t].g1); q(`[data-rate="${t}1"]`).textContent = pct(S[t].g2); q(`[data-rate="${t}all"]`).textContent = pct(S[t].all);
+      q(`[data-sum="${t}"]`).textContent = `${S[t].s} / ${S[t].n}`;
+      const sign = t === "A" ? 1 : -1;
+      q(`td[data-t="${t}"][data-g="0"]`).classList.toggle("win", S.winner.g1 === sign);
+      q(`td[data-t="${t}"][data-g="1"]`).classList.toggle("win", S.winner.g2 === sign);
+      q(`td[data-t="${t}"][data-g="all"]`).classList.toggle("win", S.winner.all === sign);
+    });
+    const name = (w) => (w > 0 ? L[0] : L[1]), other = (w) => (w > 0 ? L[1] : L[0]);
+    const rates = (k, w) => (w > 0 ? `${pct(S.A[k])} vs ${pct(S.B[k])}` : `${pct(S.B[k])} vs ${pct(S.A[k])}`);
+    const msg = $("sp-msg");
+    if (S.reversal) {
+      const w = S.winner.g1, hi = w > 0 ? S.A : S.B, lo = w > 0 ? S.B : S.A;
+      msg.innerHTML = `<b>Simpson's paradox.</b> ${name(w)} is better in <i>${g[0].toLowerCase()}</i> (${rates("g1", w)}) and in <i>${g[1].toLowerCase()}</i> (${rates("g2", w)}), yet ${other(w)} is better overall (${rates("all", -w)}). The two were tried on very different mixes: ${pct(hi.share2, 0)} of ${name(w)}'s cases are in “${g[1].toLowerCase()}”, against ${pct(lo.share2, 0)} for ${other(w)}.`;
+      msg.classList.add("flip");
+    } else {
+      const parts = [];
+      parts.push(S.winner.g1 ? `${name(S.winner.g1)} is better in ${g[0].toLowerCase()}` : `the two tie in ${g[0].toLowerCase()}`);
+      parts.push(S.winner.g2 ? `${name(S.winner.g2)} in ${g[1].toLowerCase()}` : `tie in ${g[1].toLowerCase()}`);
+      parts.push(S.winner.all ? `${name(S.winner.all)} overall` : "they tie overall");
+      msg.innerHTML = `<b>No reversal.</b> ${parts.join(", ")}.${S.winner.g1 && S.winner.g1 === S.winner.g2 ? " Try moving the mix slider towards the far ends." : ""}`;
+      msg.classList.remove("flip");
+    }
+    drawSimpson(S);
+    $("sp-stats").innerHTML = [[`${L[0]}, overall`, pct(S.A.all)], [`${L[1]}, overall`, pct(S.B.all)], [`${L[0]}: in ${g[1].toLowerCase()}`, pct(S.A.share2, 0)], [`${L[1]}: in ${g[1].toLowerCase()}`, pct(S.B.share2, 0)]]
+      .map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+  let lastS = null;
+  function drawSimpson(S) {
+    S = S || lastS; lastS = S; if (!S) return;
+    const pal = PK.palette(), L = labels.labels, g = labels.groups;
+    const vals = [S.A.g1, S.A.g2, S.B.g1, S.B.g2].filter(isFinite);
+    let lo = Math.max(0, Math.floor((Math.min(...vals) - 0.03) * 20) / 20), hi = Math.min(1, Math.ceil((Math.max(...vals) + 0.03) * 20) / 20);
+    if (!(hi > lo)) { lo = 0; hi = 1; }
+    const nt = Math.round((hi - lo) / 0.05);
+    const P = PK.frame($("sp-plot"), { height: 260, x0: 0, x1: 1, y0: lo, y1: hi, yticks: nt <= 8 ? nt : Math.round(nt / 2) === nt / 2 && nt <= 16 ? nt / 2 : 5, xlabel: `Share of cases in “${g[1].toLowerCase()}”`, ylabel: "Success rate", xfmt: (v) => (100 * v).toFixed(0) + "%", yfmt: (v) => (100 * v).toFixed(0) + "%" });
+    const c = P.ctx;
+    [["A", pal.a], ["B", pal.b]].forEach(([t, col], i) => {
+      const s = S[t]; if (!isFinite(s.g1) || !isFinite(s.g2)) return;
+      PK.line(P, [0, 1], [s.g1, s.g2], { color: col, width: 2 });
+      if (!isFinite(s.all)) return;
+      PK.line(P, [s.share2, s.share2], [lo, s.all], { color: col, width: 1, dash: [3, 3] });
+      c.fillStyle = col; c.strokeStyle = P.K.bg; c.lineWidth = 2;
+      c.beginPath(); c.arc(P.X(s.share2), P.Y(s.all), 6, 0, 2 * Math.PI); c.fill(); c.stroke();
+      c.font = "600 11px " + P.font; c.textAlign = s.share2 > 0.7 ? "right" : "left";
+      const dx = s.share2 > 0.7 ? -10 : 10, above = (t === "A") === (S.A.all >= S.B.all);
+      const lab = `${pct(s.all)} overall`, ly = P.Y(s.all) + (above ? -10 : 19);
+      c.strokeStyle = P.K.bg; c.lineWidth = 4; c.lineJoin = "round"; c.strokeText(lab, P.X(s.share2) + dx, ly); c.fillText(lab, P.X(s.share2) + dx, ly);
+    });
+    PK.legend(P, [{ label: L[0], color: pal.a }, { label: L[1], color: pal.b }]);
+  }
+
+  window.SiteTheme.onChange(() => { drawWheel(); drawPlot(); drawSimpson(); });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { drawWheel(); drawPlot(); drawSimpson(); }, 150); });
+  bpReset(false); loadPreset("kidney");
+})();
+</script>
+{% endraw %}

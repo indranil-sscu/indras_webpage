@@ -84,3 +84,57 @@ test("partial sums converge, with the Gibbs overshoot at a jump", () => {
   near(C.powerFraction("square", 1), 8 / Math.PI ** 2, 1e-3);
   assert.ok(C.powerFraction("square", 99) > 0.99);
 });
+
+test("birthday paradox: exact probabilities", () => {
+  near(C.birthdayExact(1), 0, 0);
+  near(C.birthdayExact(2), 1 / 365, 1e-15);
+  near(C.birthdayExact(23), 0.5072972343, 1e-9); // the famous 23
+  near(C.birthdayExact(22), 0.4756953077, 1e-9);
+  near(C.birthdayExact(57), 0.9901224593, 1e-9);
+  assert.strictEqual(C.birthdayExact(366), 1);
+  assert.strictEqual(C.birthdayThreshold(0.5), 23);
+  assert.strictEqual(C.birthdayThreshold(0.99), 57);
+  assert.strictEqual(C.birthdayThreshold(0.5, 12), 5); // birth months: 1 − (12·11·10·9·8)/12⁵ = 0.618
+  near(C.birthdayExact(3, 3), 1 - 2 / 9, 1e-15); // 3 people, 3 days: all different with probability 3!/3³
+  near(C.birthdayExpectedPairs(23), 253 / 365, 1e-15);
+});
+
+test("birthday paradox: simulated rooms agree with the exact formula", () => {
+  const r = C.rng(11), N = 40000, seen = new Uint8Array(365);
+  for (const n of [10, 23, 40]) {
+    let hits = 0;
+    for (let i = 0; i < N; i++) hits += C.birthdayHasMatch(n, 365, r, seen);
+    const p = C.birthdayExact(n);
+    near(hits / N, p, 4 * Math.sqrt(p * (1 - p) / N));
+  }
+  // full rooms: match flag, pair count and expected pairs C(n,2)/d
+  let pairs = 0, hits = 0; const M = 20000;
+  for (let i = 0; i < M; i++) { const room = C.birthdayRoom(30, 365, r); pairs += room.pairs; hits += room.shared; assert.strictEqual(room.shared, room.sharedDays.size > 0); }
+  near(hits / M, C.birthdayExact(30), 0.015);
+  near(pairs / M, C.birthdayExpectedPairs(30), 0.05);
+  const room = C.birthdayRoom(5, 365, () => 0.5); // everyone on the same day: C(5,2) = 10 pairs
+  assert.strictEqual(room.pairs, 10);
+});
+
+test("Simpson's paradox: kidney stones and batting averages reverse, balanced data do not", () => {
+  const k = C.simpson(C.SIMPSON_PRESETS.kidney);
+  near(k.A.g1, 81 / 87, 1e-15); near(k.B.g1, 234 / 270, 1e-15);
+  near(k.A.all, 273 / 350, 1e-15); near(k.B.all, 289 / 350, 1e-15);
+  assert.deepStrictEqual(k.winner, { g1: 1, g2: 1, all: -1 });
+  assert.ok(k.reversal);
+  const b = C.simpson(C.SIMPSON_PRESETS.batting);
+  assert.deepStrictEqual(b.winner, { g1: -1, g2: -1, all: 1 });
+  assert.ok(b.reversal);
+  assert.ok(!C.simpson(C.SIMPSON_PRESETS.none).reversal);
+  // the aggregate rate is the weighted mean of the group rates, weighted by the share in each group
+  for (const t of ["A", "B"]) near(k[t].all, (1 - k[t].share2) * k[t].g1 + k[t].share2 * k[t].g2, 1e-15);
+});
+
+test("Simpson's paradox: moving cases between groups keeps rates and totals", () => {
+  const row = C.SIMPSON_PRESETS.kidney.A;
+  const even = C.reallocate(row, 80 / 350); // give A the same mix as B: the paradox disappears
+  assert.strictEqual(even[0][1] + even[1][1], 350);
+  near(even[0][0] / even[0][1], 81 / 87, 0.01); near(even[1][0] / even[1][1], 192 / 263, 0.01);
+  assert.ok(!C.simpson({ A: even, B: C.SIMPSON_PRESETS.kidney.B }).reversal);
+  assert.deepStrictEqual(C.reallocate(row, 263 / 350), row); // same mix: unchanged
+});

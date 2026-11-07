@@ -144,6 +144,50 @@
       PK().legend(P, [{ label: "1 harmonic", color: pal.c }, { label: "3", color: pal.b }, { label: "15", color: pal.a }]);
       el.setAttribute("aria-label", "A square wave built from 1, 3 and 15 Fourier harmonics");
     },
+    /* birthday paradox: exact curve with simulated rooms of each size */
+    birthday(el) {
+      const C = window.Curious; if (!C) return;
+      const r = C.rng(23), pal = PK().palette(), xs = Array.from({ length: 70 }, (_, i) => i + 1);
+      const P = PK().frame(canvasIn(el), { x0: 0, x1: 70, y0: -0.04, y1: 1.06, bare: true });
+      PK().line(P, [0, 70], [0.5, 0.5], { color: P.K.muted, width: 1, dash: [3, 4] });
+      PK().line(P, [23, 23], [-0.04, 1.06], { color: P.K.muted, width: 1, dash: [3, 4] });
+      PK().line(P, xs, xs.map((n) => C.birthdayExact(n)), { color: pal.a, width: 2 });
+      const sx = xs.filter((n) => n % 3 === 2), seen = new Uint8Array(365);
+      PK().dots(P, sx, sx.map((n) => { let h = 0; for (let i = 0; i < 300; i++) h += C.birthdayHasMatch(n, 365, r, seen); return h / 300; }), { color: pal.b, r: 2.6 });
+      P.ctx.fillStyle = P.K.fg; P.ctx.font = "11px " + P.font; P.ctx.textAlign = "left";
+      P.ctx.fillText("23 people → 50.7%", P.X(23) + 6, P.Y(0.5) + 15);
+      el.setAttribute("aria-label", "Probability of a shared birthday against group size: exact curve and simulated rooms, crossing 50% at 23 people");
+    },
+    /* double pendulum: 6 s of the lower bob's path, integrated with RK4 */
+    pendulum(el) {
+      const Ph = window.Physics; if (!Ph) return;
+      const p = { m1: 1, m2: 1, L1: 1, L2: 1, g: 9.81 }, pal = PK().palette();
+      const P = PK().frame(canvasIn(el), { x0: -1, x1: 1, y0: -1, y1: 1, bare: true }), c = P.ctx;
+      const sc = (P.H / 2 - 10) / 2, ox = P.W / 2, oy = P.H / 2, px = (x, y) => [ox + x * sc, oy - y * sc];
+      let y = [2.2, 2.6, 0, 0], z = [2.2 + 1e-4, 2.6, 0, 0];
+      const pa = [], pb = [];
+      for (let i = 0; i < 3000; i++) { y = Ph.doubleStep(y, p, 0.002); z = Ph.doubleStep(z, p, 0.002); if (i % 4 === 0) { const q = Ph.doublePositions(y, p), u = Ph.doublePositions(z, p); pa.push(px(q.x2, q.y2)); pb.push(px(u.x2, u.y2)); } }
+      [[pb, pal.b], [pa, pal.a]].forEach(([pts, col]) => { c.strokeStyle = col; c.lineWidth = 1.3; c.globalAlpha = 0.8; c.beginPath(); pts.forEach((q, i) => (i ? c.lineTo(...q) : c.moveTo(...q))); c.stroke(); });
+      c.globalAlpha = 1;
+      const q = Ph.doublePositions(y, p), b1 = px(q.x1, q.y1), b2 = px(q.x2, q.y2);
+      c.strokeStyle = P.K.fg; c.lineWidth = 1.6; c.beginPath(); c.moveTo(ox, oy); c.lineTo(...b1); c.lineTo(...b2); c.stroke();
+      c.fillStyle = pal.a; [b1, b2].forEach((b) => { c.beginPath(); c.arc(b[0], b[1], 4.5, 0, 2 * Math.PI); c.fill(); });
+      c.fillStyle = P.K.fg; c.beginPath(); c.arc(ox, oy, 2.5, 0, 2 * Math.PI); c.fill();
+      el.setAttribute("aria-label", "Paths of two double pendulums started almost identically, diverging chaotically");
+    },
+    /* the Mandelbrot set, coloured by smooth escape time */
+    fractal(el) {
+      const Fr = window.Fractal; if (!Fr) return;
+      const cv = canvasIn(el), P = PK().frame(cv, { x0: 0, x1: 1, y0: 0, y1: 1, bare: true });
+      const dpr = Math.min(2, window.devicePixelRatio || 1), w = Math.round(P.W * dpr), h = Math.round(P.H * dpr);
+      const buf = new Float32Array(w * h), view = { cx: -0.75, cy: 0, scale: Math.max(2.9 / w, 2.5 / h) };
+      Fr.renderRows(buf, w, h, view, { mode: "mandelbrot", maxIter: 120, R: 256, smooth: true }, 0, h);
+      const off = document.createElement("canvas"); off.width = w; off.height = h;
+      const o = off.getContext("2d"), img = o.createImageData(w, h), ins = window.SiteTheme.get() === "dark" ? [6, 9, 18] : [15, 23, 42];
+      for (let k = 0; k < w * h; k++) img.data.set([...Fr.colorOf(buf[k], "ocean", 24, ins), 255], 4 * k);
+      o.putImageData(img, 0, 0); P.ctx.drawImage(off, 0, 0, P.W, P.H);
+      el.setAttribute("aria-label", "The Mandelbrot set coloured by escape time");
+    },
     reference(el) {
       const ink = css("--text-primary"), mut = css("--text-muted"), acc = css("--accent");
       const rows = [["c", "299 792 458 m/s", "exact"], ["h", "6.626 070 15e−34 J s", "exact"], ["1 eV", "8065.544 cm⁻¹", ""], ["800 nm", "12 500 cm⁻¹", "1.55 eV"]];

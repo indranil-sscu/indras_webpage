@@ -1,0 +1,297 @@
+---
+layout: page
+title: Mandelbrot & Julia Set Explorer
+permalink: /curious/fractals/
+crumbs:
+  - title: Science for the Curious
+    url: /curious/
+short_title: Fractals
+lead: Take a number, square it, add a constant, and repeat. Whether the result stays small or flies off to infinity draws the most famous shape in mathematics. Zoom in as far as you like; the detail never ends.
+description: Explore the Mandelbrot set and Julia sets with zoom and pan, colour by escape time, and follow the orbit of any point under z → z² + c.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/fractal-core.js
+---
+{% raw %}
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li><b>Drag</b> to pan. <b>Scroll</b>, <b>pinch</b> or <b>double-click</b> (double-tap) to zoom in, or use the zoom buttons. Keyboard: focus the picture, arrows pan, + and − zoom.</li>
+    <li><b>Click</b> (tap) a point to see its orbit: the sequence z₀, z₁, z₂, … drawn on the picture and charted below.</li>
+    <li>In the Mandelbrot set, press <b>Julia set at this point</b> to see the Julia set for the c you picked. Raise the <b>iterations</b> when you zoom deep and the edges turn blurry.</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="fr-ctl">
+    <h2 id="fr-ctl">Controls</h2>
+    <div class="ctl">
+      <span class="ctl-label" id="fr-mode-l">Set</span>
+      <div class="segmented" role="group" aria-labelledby="fr-mode-l">
+        <button type="button" data-mode="mandelbrot" aria-pressed="true">Mandelbrot</button>
+        <button type="button" data-mode="julia" aria-pressed="false">Julia</button>
+      </div>
+    </div>
+    <div class="ctl" data-for="julia" hidden><label for="fr-preset">Julia parameter c</label>
+      <select id="fr-preset"></select></div>
+    <div class="ctl ctl-pair" data-for="julia" hidden>
+      <div><label class="ctl-label" for="fr-cre">Re c</label><input type="number" id="fr-cre" step="0.001" min="-2" max="2" value="-0.123"></div>
+      <div><label class="ctl-label" for="fr-cim">Im c</label><input type="number" id="fr-cim" step="0.001" min="-2" max="2" value="0.745"></div>
+    </div>
+    <div class="ctl"><label for="fr-it">Maximum iterations</label>
+      <select id="fr-it"><option value="100">100</option><option value="250">250</option><option value="500" selected>500</option><option value="1000">1 000</option><option value="2500">2 500</option><option value="5000">5 000</option></select></div>
+    <div class="ctl"><label for="fr-pal">Colours</label><select id="fr-pal"></select></div>
+    <div class="ctl"><label for="fr-cyc">Colour bands <output id="fr-cyc-o">24</output></label><input type="range" id="fr-cyc" min="4" max="120" step="1" value="24"></div>
+    <label class="ctl-check"><input type="checkbox" id="fr-smooth" checked> Smooth colouring</label>
+    <div class="btn-row">
+      <button type="button" class="btn" id="fr-in" aria-label="Zoom in">＋ Zoom</button>
+      <button type="button" class="btn" id="fr-out" aria-label="Zoom out">－ Zoom</button>
+      <button type="button" class="btn" id="fr-png">Save PNG</button>
+      <button type="button" class="btn" id="fr-reset">Reset</button>
+    </div>
+    <div class="btn-row" style="margin-top:.4em" data-for="mandelbrot"><button type="button" class="btn primary" id="fr-tojulia" disabled>Julia set at this point</button></div>
+    <dl class="stats" id="fr-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="fr-stage">
+    <h2 id="fr-stage">The Mandelbrot set</h2>
+    <canvas id="fr-cv" class="drag" tabindex="0" role="img" aria-label="Fractal image. Drag to pan, scroll or pinch to zoom, click a point to see its orbit; with the image focused, arrow keys pan and plus and minus zoom."></canvas>
+    <p class="live" id="fr-msg" aria-live="polite"></p>
+    <canvas id="fr-orbit" role="img" aria-label="Distance from zero of each step of the picked point's orbit, with the escape radius 2"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>What is going on?</h2>
+  <p>Pick a complex number <i>c</i> (a point on the picture) and start from <i>z</i> = 0. Repeat one rule: <b><i>z</i> → <i>z</i>² + <i>c</i></b>. For some <i>c</i> the numbers stay bounded forever; for others they eventually grow without limit. The <b>Mandelbrot set</b> is the set of all <i>c</i> that stay bounded, drawn here in the darkest colour. Once |<i>z</i>| passes 2 it is certain to escape, so each point outside is coloured by <b>how many steps it took to pass 2</b>: its escape time.</p>
+  <p>A <b>Julia set</b> uses the same rule the other way round: keep <i>c</i> fixed and vary the starting point <i>z</i>₀. Every point <i>c</i> has its own Julia set. If <i>c</i> lies inside the Mandelbrot set its Julia set is one connected piece; if <i>c</i> lies outside, the Julia set shatters into dust. That is in fact how the Mandelbrot set is defined in the mathematical literature: the map of which Julia sets are connected.</p>
+  <p>Click around and watch the orbits. Inside the large heart-shaped region (the main cardioid) the orbit spirals into a single fixed point; in the big disc to its left it settles into a cycle of two; in each smaller bulb, a longer cycle. Near the edge, orbits wander for a long time before deciding, which is why the boundary needs more iterations to draw sharply. Zoom into the boundary and you will find small copies of the whole set, the hallmark of a <b>fractal</b>.</p>
+  <details class="theory-card">
+    <summary>The mathematics</summary>
+    <div class="eq"><i>z</i><sub><i>n</i>+1</sub> = <i>z<sub>n</sub></i>² + <i>c</i>; &nbsp; Mandelbrot set <i>M</i> = { <i>c</i> : <i>z</i>₀ = 0 stays bounded }; &nbsp; filled Julia set <i>K<sub>c</sub></i> = { <i>z</i>₀ : orbit stays bounded }</div>
+    <div class="eq">escape criterion: if |<i>z<sub>n</sub></i>| &gt; max(2, |<i>c</i>|) the orbit tends to ∞; &nbsp; smooth count ν = <i>n</i> − log₂( ln|<i>z<sub>n</sub></i>| / ln <i>R</i> ), bail-out <i>R</i> = 256</div>
+    <div class="eq">main cardioid: <i>q</i>(<i>q</i> + <i>x</i> − ¼) ≤ ¼<i>y</i>², <i>q</i> = (<i>x</i> − ¼)² + <i>y</i>²; &nbsp; period-2 disc: (<i>x</i> + 1)² + <i>y</i>² ≤ 1/16</div>
+    <div class="eq">area of <i>M</i> ≈ 1.50659; &nbsp; for <i>c</i> = 0, <i>K</i>₀ is the unit disc and ν = log₂(ln <i>R</i> / ln|<i>z</i>₀|) exactly</div>
+    <p>The picture is computed point by point in double-precision arithmetic, a quick preview first and then at full screen resolution. Below a view width of about 10⁻¹³ the numbers run out of precision and the image turns blocky. Automated tests check escape times against exact values (for <i>c</i> = 1 the orbit 0, 1, 2, 5 escapes at step 3; the Julia set of <i>c</i> = 0 is the unit disc), the interior shortcut against brute force, the symmetry of the images, and the area of the set.</p>
+    <ol class="refs"><li>B. B. Mandelbrot, “Fractal aspects of the iteration of z → λz(1 − z) for complex λ and z,” <i>Ann. N.Y. Acad. Sci.</i> <b>357</b>, 249 (1980).</li><li>A. Douady and J. H. Hubbard, “Itération des polynômes quadratiques complexes,” <i>C. R. Acad. Sci. Paris</i> <b>294</b>, 123 (1982).</li><li>H.-O. Peitgen and P. H. Richter, <i>The Beauty of Fractals</i> (Springer, 1986).</li><li>T. Förstemann, “Numerical estimation of the area of the Mandelbrot set” (2012), area 1.5065918849 ± 2.8 × 10⁻¹⁰.</li></ol>
+  </details>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/fractal-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const F = window.Fractal, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const HOME = { mandelbrot: { cx: -0.65, cy: 0, w: 3.6 }, julia: { cx: 0, cy: 0, w: 3.6 } };
+  const DEF = { mode: "mandelbrot", maxIter: 500, pal: "ocean", cycle: 24, smooth: true, preset: "rabbit", c: F.JULIA_PRESETS.rabbit.c.slice() };
+  let S = JSON.parse(JSON.stringify(DEF)), view = Object.assign({}, HOME.mandelbrot), picked = null;
+  const cv = $("fr-cv"), off = document.createElement("canvas");
+  let W = 0, H = 0, dpr = 1, buf = null, img = null, job = 0, lastMs = 0, escaped = 0, ready = false;
+
+  // fill the selects from the core module
+  $("fr-pal").innerHTML = Object.entries(F.PALETTES).map(([k, p]) => `<option value="${k}">${p.name}</option>`).join("");
+  $("fr-preset").innerHTML = Object.entries(F.JULIA_PRESETS).map(([k, p]) => `<option value="${k}">${p.name}</option>`).join("") + `<option value="custom">Custom (type below)</option>`;
+
+  /* ---------- rendering ---------- */
+  function size() {
+    const box = cv.getBoundingClientRect(), w = Math.max(200, Math.round(box.width || 600)), h = Math.round(Math.min(560, Math.max(240, w * 0.66)));
+    cv.style.height = h + "px";
+    const f = window.SiteTheme.fit(cv, w, h); W = f.W; H = f.H; dpr = Math.min(2, f.dpr);
+    off.width = Math.round(W * dpr); off.height = Math.round(H * dpr);
+    buf = new Float32Array(off.width * off.height); img = off.getContext("2d").createImageData(off.width, off.height);
+  }
+  const opts = () => ({ mode: S.mode, c: S.c, maxIter: S.maxIter, R: S.smooth ? 256 : 2, smooth: S.smooth });
+  const inside = () => (window.SiteTheme.get() === "dark" ? [6, 9, 18] : [15, 23, 42]);
+  function paint(j0, j1, w, block) {
+    const d = img.data, ins = inside();
+    for (let j = j0; j < j1; j++) for (let i = 0; i < w; i++) {
+      const v = buf[j * w + i], [r, g, b] = F.colorOf(v, S.pal, S.cycle, ins);
+      for (let bj = 0; bj < block; bj++) for (let bi = 0; bi < block; bi++) {
+        const X = i * block + bi, Y = j * block + bj; if (X >= img.width || Y >= img.height) continue;
+        const k = (Y * img.width + X) * 4; d[k] = r; d[k + 1] = g; d[k + 2] = b; d[k + 3] = 255;
+      }
+    }
+  }
+  // a coarse preview (blocks of 8 device pixels), then full resolution in time slices
+  function render() {
+    const my = ++job, t0 = performance.now(), wd = off.width, hd = off.height, sc = view.w / wd;
+    const block = 8, bw = Math.ceil(wd / block), bh = Math.ceil(hd / block);
+    const coarse = new Float32Array(bw * bh);
+    F.renderRows(coarse, bw, bh, { cx: view.cx, cy: view.cy, scale: sc * block }, opts(), 0, bh);
+    const save = buf; buf = coarse; paint(0, bh, bw, block); buf = save;
+    off.getContext("2d").putImageData(img, 0, 0); composite();
+    let row = 0; escaped = 0;
+    const v = { cx: view.cx, cy: view.cy, scale: sc };
+    function slice() {
+      if (my !== job) return;
+      const until = performance.now() + 14, r0 = row;
+      while (row < hd && performance.now() < until) { const r1 = Math.min(hd, row + 4); escaped += F.renderRows(buf, wd, hd, v, opts(), row, r1); row = r1; }
+      paint(r0, row, wd, 1);
+      off.getContext("2d").putImageData(img, 0, 0, 0, r0, wd, row - r0);
+      composite();
+      if (row < hd) requestAnimationFrame(slice);
+      else { lastMs = performance.now() - t0; ready = true; drawStats(); }
+    }
+    ready = false; requestAnimationFrame(slice); drawStats();
+  }
+  function recolour() { if (!ready) return render(); paint(0, off.height, off.width, 1); off.getContext("2d").putImageData(img, 0, 0); composite(); }
+
+  // map between canvas CSS pixels and the complex plane
+  const toZ = (x, y) => [view.cx + (x - W / 2) * (view.w / W), view.cy - (y - H / 2) * (view.w / W)];
+  const toPx = (zx, zy) => [W / 2 + (zx - view.cx) * (W / view.w), H / 2 - (zy - view.cy) * (W / view.w)];
+  let shift = null; // live pan/zoom preview: {dx, dy, k, ox, oy}
+  function composite() {
+    const c = cv.getContext("2d"), K = window.SiteTheme.colors();
+    c.setTransform(cv.width / W, 0, 0, cv.height / H, 0, 0);
+    c.fillStyle = K.bg; c.fillRect(0, 0, W, H);
+    c.imageSmoothingEnabled = !!shift;
+    if (shift) { c.save(); c.translate(shift.ox + shift.dx, shift.oy + shift.dy); c.scale(shift.k, shift.k); c.translate(-shift.ox, -shift.oy); c.drawImage(off, 0, 0, W, H); c.restore(); }
+    else c.drawImage(off, 0, 0, W, H);
+    if (picked && !shift) drawOrbitOverlay(c);
+  }
+  function orbitOf(p) { return S.mode === "julia" ? F.orbit(p[0], p[1], S.c[0], S.c[1], 200) : F.orbit(0, 0, p[0], p[1], 200); }
+  function drawOrbitOverlay(c) {
+    const pts = orbitOf(picked), pal = PK.palette();
+    c.strokeStyle = "rgba(255,255,255,.85)"; c.lineWidth = 1.2; c.beginPath();
+    pts.forEach((p, i) => { const q = toPx(p[0], p[1]); i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]); }); c.stroke();
+    pts.forEach((p, i) => { const q = toPx(p[0], p[1]); c.fillStyle = i === 0 ? pal.b : "#fff"; c.beginPath(); c.arc(q[0], q[1], i === 0 ? 4 : 2.2, 0, 2 * Math.PI); c.fill(); });
+    const q = toPx(picked[0], picked[1]);
+    c.strokeStyle = pal.b; c.lineWidth = 2; c.beginPath(); c.arc(q[0], q[1], 7, 0, 2 * Math.PI); c.stroke();
+  }
+
+  /* ---------- picked point: message and orbit chart ---------- */
+  const fmtC = (x, y, k) => `${x < 0 ? "−" : ""}${Math.abs(x).toFixed(k)} ${y < 0 ? "−" : "+"} ${Math.abs(y).toFixed(k)}i`;
+  function describe() {
+    const btn = $("fr-tojulia");
+    btn.disabled = !picked || S.mode !== "mandelbrot";
+    if (!picked) { $("fr-msg").textContent = S.mode === "mandelbrot" ? "Click a point to see its orbit." : `Julia set for c = ${fmtC(S.c[0], S.c[1], 4)}. Click a starting point to see its orbit.`; drawOrbitChart(); return; }
+    const k = Math.max(4, Math.min(12, Math.ceil(-Math.log10(view.w / W)) + 1));
+    const n = S.mode === "julia" ? F.julia(picked[0], picked[1], S.c[0], S.c[1], S.maxIter) : F.mandelbrot(picked[0], picked[1], S.maxIter);
+    const who = S.mode === "julia" ? `z₀ = ${fmtC(picked[0], picked[1], k)}` : `c = ${fmtC(picked[0], picked[1], k)}`;
+    $("fr-msg").innerHTML = n < 0 ? `${who}: still bounded after ${S.maxIter.toLocaleString("en")} steps, so it is drawn as <b>inside</b> the set.` : `${who}: |z| passes 2 after <b>${n}</b> step${n === 1 ? "" : "s"}, so the point is <b>outside</b>.`;
+    drawOrbitChart();
+  }
+  function drawOrbitChart() {
+    const pal = PK.palette(), pts = picked ? orbitOf(picked).slice(0, 61) : [];
+    const N = Math.max(10, pts.length - 1), mags = pts.map((p) => Math.hypot(p[0], p[1]));
+    const top = Math.ceil(2 * Math.max(2.5, Math.min(6, Math.max(...mags, 0) * 1.1))) / 2;
+    const P = PK.frame($("fr-orbit"), { height: 180, x0: 0, x1: N, y0: 0, y1: top, xlabel: "Step n", ylabel: "|zₙ|", xints: true, yticks: top * 2 <= 8 ? top * 2 : top, yfmt: (v) => String(+v.toFixed(1)) });
+    PK.line(P, [0, N], [2, 2], { color: pal.e, width: 1.2, dash: [5, 4] });
+    P.ctx.fillStyle = pal.e; P.ctx.font = "11px " + P.font; P.ctx.textAlign = "left"; P.ctx.fillText("escape radius 2", P.pad.l + 6, P.Y(2) - 5);
+    if (!pts.length) { P.ctx.fillStyle = P.K.muted; P.ctx.textAlign = "center"; P.ctx.fillText("Click the picture to pick a point", P.pad.l + P.pw / 2, P.pad.t + P.ph / 2 + 14); return; }
+    const xs = pts.map((_, i) => i);
+    PK.line(P, xs, mags.map((m) => Math.min(m, top * 1.5)), { color: pal.a, width: 1.4 });
+    PK.dots(P, xs, mags.map((m) => Math.min(m, top * 1.5)), { color: pal.a, r: 2.4 });
+  }
+  function drawStats() {
+    const mag = HOME[S.mode].w / view.w;
+    $("fr-stats").innerHTML = [["Centre", `<small>${fmtC(view.cx, view.cy, Math.max(3, Math.ceil(-Math.log10(view.w)) + 3))}</small>`], ["Magnification", mag < 1e4 ? mag.toFixed(mag < 10 ? 1 : 0) + "×" : mag.toExponential(1) + "×"],
+      ["View width", view.w.toExponential(2)], ["Render time", ready ? Math.round(lastMs) + " ms" : "…"]]
+      .map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+
+  /* ---------- view changes ---------- */
+  const MINW = 2e-13;
+  function zoomAt(k, x, y) { // k > 1 zooms in, keeping the point under (x, y) fixed
+    const before = toZ(x, y);
+    view.w = Math.min(8, Math.max(MINW, view.w / k));
+    const after = toZ(x, y); view.cx += before[0] - after[0]; view.cy += before[1] - after[1];
+  }
+  function commit() { shift = null; render(); describe(); }
+  function pan(dx, dy) { view.cx -= dx * (view.w / W); view.cy += dy * (view.w / W); }
+
+  // pointer gestures: drag pans, two fingers pinch, a tap picks, a double tap zooms
+  const ptrs = new Map(); let gesture = null, lastTap = 0;
+  const loc = (e) => { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+  cv.addEventListener("pointerdown", (e) => {
+    cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, loc(e));
+    if (ptrs.size === 1) gesture = { kind: "pan", start: loc(e), moved: false };
+    else if (ptrs.size === 2) { const [a, b] = [...ptrs.values()]; gesture = { kind: "pinch", d0: Math.hypot(a[0] - b[0], a[1] - b[1]), m0: [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2], moved: true }; }
+    e.preventDefault();
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!ptrs.has(e.pointerId) || !gesture) return;
+    ptrs.set(e.pointerId, loc(e));
+    if (gesture.kind === "pan") {
+      const p = loc(e), dx = p[0] - gesture.start[0], dy = p[1] - gesture.start[1];
+      if (Math.hypot(dx, dy) > 4) gesture.moved = true;
+      if (gesture.moved) { shift = { dx, dy, k: 1, ox: 0, oy: 0 }; composite(); }
+    } else if (ptrs.size >= 2) {
+      const [a, b] = [...ptrs.values()], d = Math.hypot(a[0] - b[0], a[1] - b[1]), m = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      shift = { dx: m[0] - gesture.m0[0], dy: m[1] - gesture.m0[1], k: d / gesture.d0, ox: gesture.m0[0], oy: gesture.m0[1] }; composite();
+    }
+  });
+  function endPointer(e) {
+    if (!ptrs.has(e.pointerId)) return;
+    const p = loc(e); ptrs.delete(e.pointerId);
+    if (!gesture) return;
+    if (gesture.kind === "pinch") {
+      if (ptrs.size === 0) { const s = shift; gesture = null; if (s) { zoomAt(s.k, s.ox, s.oy); pan(s.dx, s.dy); } commit(); }
+      return;
+    }
+    const g = gesture; gesture = null;
+    if (g.moved) { pan(p[0] - g.start[0], p[1] - g.start[1]); commit(); return; }
+    const now = performance.now();
+    if (now - lastTap < 320) { lastTap = 0; zoomAt(2, p[0], p[1]); commit(); return; }
+    lastTap = now; picked = toZ(p[0], p[1]); composite(); describe();
+  }
+  cv.addEventListener("pointerup", endPointer); cv.addEventListener("pointercancel", (e) => { ptrs.delete(e.pointerId); gesture = null; shift = null; composite(); });
+  let wheelT = null, wheelK = 1, wheelAt = null;
+  cv.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    const p = loc(e), k = Math.exp(-e.deltaY * (e.deltaMode === 1 ? 0.05 : 0.0018));
+    wheelK *= k; wheelAt = p;
+    shift = { dx: 0, dy: 0, k: wheelK, ox: p[0], oy: p[1] }; composite();
+    clearTimeout(wheelT); wheelT = setTimeout(() => { zoomAt(wheelK, wheelAt[0], wheelAt[1]); wheelK = 1; commit(); }, 180);
+  }, { passive: false });
+  cv.addEventListener("keydown", (e) => {
+    const step = W / 8;
+    const act = { ArrowLeft: () => pan(step, 0), ArrowRight: () => pan(-step, 0), ArrowUp: () => pan(0, step), ArrowDown: () => pan(0, -step), "+": () => zoomAt(2, W / 2, H / 2), "=": () => zoomAt(2, W / 2, H / 2), "-": () => zoomAt(0.5, W / 2, H / 2) }[e.key];
+    if (act) { act(); commit(); e.preventDefault(); }
+  });
+
+  /* ---------- controls ---------- */
+  function showFor() {
+    document.querySelectorAll(".app-controls [data-for]").forEach((el) => (el.hidden = el.dataset.for !== S.mode));
+    document.querySelectorAll(".segmented [data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === S.mode)));
+    $("fr-stage").textContent = S.mode === "julia" ? "A Julia set" : "The Mandelbrot set";
+  }
+  function syncControls() {
+    $("fr-it").value = S.maxIter; $("fr-pal").value = S.pal; $("fr-cyc").value = S.cycle; $("fr-cyc-o").textContent = S.cycle; $("fr-smooth").checked = S.smooth;
+    $("fr-preset").value = S.preset; $("fr-cre").value = S.c[0]; $("fr-cim").value = S.c[1];
+  }
+  function setMode(m, keepPick) {
+    S.mode = m; view = Object.assign({}, HOME[m]); if (!keepPick) picked = null;
+    showFor(); commit();
+  }
+  document.querySelectorAll(".segmented [data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  $("fr-preset").addEventListener("change", () => {
+    S.preset = $("fr-preset").value; if (S.preset === "custom") return;
+    S.c = F.JULIA_PRESETS[S.preset].c.slice(); syncControls(); picked = null; commit();
+  });
+  ["fr-cre", "fr-cim"].forEach((id, i) => $(id).addEventListener("change", () => {
+    const v = +$(id).value; if (!isFinite(v)) return syncControls();
+    S.c[i] = Math.max(-2, Math.min(2, v)); S.preset = "custom"; syncControls(); picked = null; commit();
+  }));
+  $("fr-tojulia").addEventListener("click", () => {
+    if (!picked) return;
+    S.c = [+picked[0].toFixed(6), +picked[1].toFixed(6)]; S.preset = "custom"; syncControls(); setMode("julia");
+  });
+  $("fr-it").addEventListener("change", () => { S.maxIter = +$("fr-it").value; commit(); });
+  $("fr-pal").addEventListener("change", () => { S.pal = $("fr-pal").value; recolour(); });
+  $("fr-cyc").addEventListener("input", () => { S.cycle = +$("fr-cyc").value; $("fr-cyc-o").textContent = S.cycle; recolour(); });
+  $("fr-smooth").addEventListener("change", () => { S.smooth = $("fr-smooth").checked; commit(); });
+  $("fr-in").addEventListener("click", () => { zoomAt(2, W / 2, H / 2); commit(); });
+  $("fr-out").addEventListener("click", () => { zoomAt(0.5, W / 2, H / 2); commit(); });
+  $("fr-png").addEventListener("click", () => window.SiteTheme.savePNG(off, S.mode === "julia" ? "julia-set.png" : "mandelbrot-set.png"));
+  $("fr-reset").addEventListener("click", () => { S = JSON.parse(JSON.stringify(DEF)); syncControls(); setMode("mandelbrot"); });
+
+  window.SiteTheme.onChange(() => { recolour(); drawOrbitChart(); });
+  let rt, lastW = 0;
+  window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { const w = Math.round(cv.parentElement.getBoundingClientRect().width); if (w !== lastW) { lastW = w; size(); commit(); } else drawOrbitChart(); }, 200); });
+  syncControls(); showFor(); size(); lastW = Math.round(cv.parentElement.getBoundingClientRect().width); commit();
+})();
+</script>
+{% endraw %}
