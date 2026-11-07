@@ -163,8 +163,85 @@
     return m;
   }
 
+  /* ---------------- the birthday paradox ---------------- */
+  /** Exact probability that at least two of n people share a birthday, with d equally likely days:
+   *  1 − ∏_{k=0}^{n−1} (d − k)/d. */
+  function birthdayExact(n, d) {
+    d = d || 365;
+    if (n > d) return 1;
+    let q = 1;
+    for (let k = 0; k < n; k++) q *= (d - k) / d;
+    return 1 - q;
+  }
+  /** Smallest group with at least probability p of a shared birthday (23 for p = ½, d = 365). */
+  function birthdayThreshold(p, d) {
+    d = d || 365;
+    for (let n = 1; n <= d + 1; n++) if (birthdayExact(n, d) >= p) return n;
+    return d + 1;
+  }
+  /** One room of n people with uniformly random birthdays 0 … d−1.
+   *  Returns {days, shared, pairs (number of matching pairs), sharedDays: Set of days held by ≥ 2 people}. */
+  function birthdayRoom(n, d, r) {
+    d = d || 365;
+    const days = Array.from({ length: n }, () => randInt(r, d)), count = new Map();
+    days.forEach((x) => count.set(x, (count.get(x) || 0) + 1));
+    let pairs = 0; const sharedDays = new Set();
+    count.forEach((c, x) => { if (c > 1) { pairs += (c * (c - 1)) / 2; sharedDays.add(x); } });
+    return { days, shared: pairs > 0, pairs, sharedDays };
+  }
+  /** Fast check used for large batches: does a room of n share a birthday? (stops at the first match) */
+  function birthdayHasMatch(n, d, r, seen) {
+    d = d || 365;
+    if (n > d) return true;
+    seen = seen && seen.length >= d ? seen.fill(0) : new Uint8Array(d);
+    for (let i = 0; i < n; i++) { const x = randInt(r, d); if (seen[x]) return true; seen[x] = 1; }
+    return false;
+  }
+  /** Expected number of matching pairs, C(n, 2)/d (exact, by linearity of expectation). */
+  const birthdayExpectedPairs = (n, d) => (n * (n - 1)) / 2 / (d || 365);
+
+  /* ---------------- Simpson's paradox ---------------- */
+  /**
+   * Two treatments (A, B) in two groups (1, 2). t = {A: [[s1, n1], [s2, n2]], B: [[s1, n1], [s2, n2]]},
+   * s = successes, n = cases. Returns the success rates in each group and overall, which treatment wins
+   * each comparison, and whether the overall comparison reverses both within-group comparisons.
+   */
+  function simpson(t) {
+    const rate = (s, n) => (n > 0 ? s / n : NaN);
+    const out = {};
+    ["A", "B"].forEach((k) => {
+      const [[s1, n1], [s2, n2]] = t[k];
+      out[k] = { g1: rate(s1, n1), g2: rate(s2, n2), all: rate(s1 + s2, n1 + n2), share2: rate(n2, n1 + n2), n: n1 + n2, s: s1 + s2 };
+    });
+    const cmp = (a, b) => (!isFinite(a) || !isFinite(b) ? 0 : a > b ? 1 : a < b ? -1 : 0);
+    const w1 = cmp(out.A.g1, out.B.g1), w2 = cmp(out.A.g2, out.B.g2), wAll = cmp(out.A.all, out.B.all);
+    out.winner = { g1: w1, g2: w2, all: wAll }; // +1: A higher, −1: B higher, 0: tie
+    out.reversal = w1 !== 0 && w1 === w2 && wAll === -w1;
+    return out;
+  }
+  /**
+   * Keep a treatment's group success rates and its total number of cases, and move cases between the
+   * groups so that a fraction `share2` of them is in group 2. Successes are rounded to whole people.
+   */
+  function reallocate(row, share2) {
+    const [[s1, n1], [s2, n2]] = row, N = n1 + n2;
+    const p1 = n1 ? s1 / n1 : 0, p2 = n2 ? s2 / n2 : 0;
+    const m2 = Math.round(N * Math.min(1, Math.max(0, share2))), m1 = N - m2;
+    return [[Math.round(p1 * m1), m1], [Math.round(p2 * m2), m2]];
+  }
+  /** Classic data sets. Kidney stones: Charig et al., BMJ 292, 879 (1986); A = open surgery, B = percutaneous nephrolithotomy. */
+  const SIMPSON_PRESETS = {
+    kidney: { name: "Kidney-stone treatments (1986)", groups: ["Small stones", "Large stones"], labels: ["Open surgery", "Keyhole surgery"], outcome: "treatment success",
+      A: [[81, 87], [192, 263]], B: [[234, 270], [55, 80]] },
+    batting: { name: "Batting averages, 1995–96", groups: ["1995", "1996"], labels: ["Derek Jeter", "David Justice"], outcome: "hits per at-bat",
+      A: [[12, 48], [183, 582]], B: [[104, 411], [45, 140]] },
+    none: { name: "No paradox (balanced groups)", groups: ["Group 1", "Group 2"], labels: ["Treatment A", "Treatment B"], outcome: "success",
+      A: [[90, 100], [70, 100]], B: [[85, 100], [65, 100]] },
+  };
+
   return {
     rng, randInt, diceSumDistribution, rollDice, binomialPMF, longestRun, expectedLongestRunApprox,
     montyGame, montyTheory, WAVES, wrap, fourierCoefficients, partialSum, dftCoefficients, powerFraction, maxOfPartialSum,
+    birthdayExact, birthdayThreshold, birthdayRoom, birthdayHasMatch, birthdayExpectedPairs, simpson, reallocate, SIMPSON_PRESETS,
   };
 });

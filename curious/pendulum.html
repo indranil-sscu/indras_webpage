@@ -1,0 +1,297 @@
+---
+layout: page
+title: Pendulum Playground
+permalink: /curious/pendulum/
+crumbs:
+  - title: Science for the Curious
+    url: /curious/
+short_title: Pendulums
+lead: A single pendulum keeps time so well that it ran the world's clocks for three centuries. Hang a second pendulum from the first and its motion becomes chaotic. Compare the two.
+description: Simulate a simple and a double pendulum with RK4 integration, compare the measured period with 2π√(L/g), watch chaos grow between twin double pendulums and check energy conservation.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/physics-core.js
+---
+{% raw %}
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li>Choose a <b>simple</b> or a <b>double</b> pendulum. Drag a bob with the mouse or a finger to set where it starts, or use the angle sliders, then let go.</li>
+    <li>Simple pendulum: change the length, gravity or release angle and compare the <b>measured period</b> with the textbook formula 2π√(L/g), which is exact only for small swings.</li>
+    <li>Double pendulum: switch on the <b>twin</b>, started a thousandth of a degree away, and watch the two separate. The chart shows how well the simulation conserves energy; try a larger time step.</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="pd-ctl">
+    <h2 id="pd-ctl">Controls</h2>
+    <div class="ctl">
+      <span class="ctl-label" id="pd-mode-l">Pendulum</span>
+      <div class="segmented" role="group" aria-labelledby="pd-mode-l">
+        <button type="button" data-mode="simple" aria-pressed="true">Simple</button>
+        <button type="button" data-mode="double" aria-pressed="false">Double</button>
+      </div>
+    </div>
+    <div class="ctl"><label for="pd-g">Gravity</label>
+      <select id="pd-g"><option value="earth" selected>Earth (9.81 m/s²)</option><option value="moon">Moon (1.62 m/s²)</option><option value="mars">Mars (3.72 m/s²)</option><option value="jupiter">Jupiter (24.8 m/s²)</option></select></div>
+    <div class="ctl"><label for="pd-L">Length <span id="pd-L-l"></span> <output id="pd-L-o">1.00 m</output></label><input type="range" id="pd-L" min="0.1" max="3" step="0.05" value="1"></div>
+    <div class="ctl"><label for="pd-a1">Release angle <span data-for="double">(upper)</span> <output id="pd-a1-o">20°</output></label><input type="range" id="pd-a1" min="-179" max="179" step="1" value="20"></div>
+    <div class="ctl" data-for="double" hidden><label for="pd-a2">Release angle (lower) <output id="pd-a2-o">0°</output></label><input type="range" id="pd-a2" min="-179" max="179" step="1" value="0"></div>
+    <div class="ctl" data-for="simple"><label for="pd-gam">Damping γ <output id="pd-gam-o">0.00 s⁻¹</output></label><input type="range" id="pd-gam" min="0" max="1" step="0.01" value="0"></div>
+    <div class="ctl" data-for="double" hidden><label for="pd-mr">Mass ratio m₂/m₁ <output id="pd-mr-o">1.0</output></label><input type="range" id="pd-mr" min="0.2" max="5" step="0.1" value="1"></div>
+    <div class="ctl" data-for="double" hidden><label for="pd-lr">Length ratio L₂/L₁ <output id="pd-lr-o">1.0</output></label><input type="range" id="pd-lr" min="0.3" max="2" step="0.1" value="1"></div>
+    <label class="ctl-check" data-for="double" hidden><input type="checkbox" id="pd-twin" checked> Twin started 0.001° away</label>
+    <label class="ctl-check"><input type="checkbox" id="pd-trail" checked> Show trail</label>
+    <div class="ctl"><label for="pd-dt">Time step (RK4)</label>
+      <select id="pd-dt"><option value="0.0005">0.5 ms</option><option value="0.001">1 ms</option><option value="0.002" selected>2 ms (default)</option><option value="0.005">5 ms</option><option value="0.01">10 ms</option><option value="0.02">20 ms</option><option value="0.05">50 ms</option></select></div>
+    <div class="ctl"><label for="pd-speed">Playback speed <output id="pd-speed-o">1.00×</output></label><input type="range" id="pd-speed" min="0.1" max="2" step="0.05" value="1"></div>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="pd-play" aria-pressed="true">❚❚ Pause</button>
+      <button type="button" class="btn" id="pd-restart">Release again</button>
+      <button type="button" class="btn" id="pd-reset">Reset</button>
+    </div>
+    <dl class="stats" id="pd-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="pd-stage">
+    <h2 id="pd-stage">The pendulum</h2>
+    <canvas id="pd-cv" class="drag" tabindex="0" role="img" aria-label="Animated pendulum. Drag a bob to set the starting angle; with the canvas focused, the left and right arrow keys change the release angle."></canvas>
+    <p class="kbd-hint">Drag a bob to move it. Keyboard: focus the picture and use ← → to change the release angle, Space to pause.</p>
+    <canvas id="pd-plot" role="img" aria-label="Chart: angle against time for the simple pendulum, or relative energy error against time for the double pendulum"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>What is going on?</h2>
+  <p>A <b>simple pendulum</b> is a weight on a light rod. Gravity pulls it back towards the bottom with a force proportional to sin θ. For small swings sin θ ≈ θ, the motion is a pure sine wave, and the period is <b>2π√(L/g)</b>: it depends on the length and on gravity, but not on the mass or on how far you pull it. That is why pendulums made good clocks. For larger swings the period grows: about 1.7% longer at 30°, 18% at 90°. The dashed curve on the chart is the small-angle prediction; release the pendulum from 90° and watch the real motion fall behind it.</p>
+  <p>A <b>double pendulum</b> obeys equally simple laws, yet for large swings it is <b>chaotic</b>: tiny differences in the start grow exponentially until the two motions have nothing in common. Turn on the twin, started 0.001° away. For a few seconds the two overlap perfectly, then they separate. Long-term prediction is impossible in practice, even though nothing random is involved. This sensitivity is what limits weather forecasts to about two weeks.</p>
+  <p>The computer cannot solve these equations exactly. It steps forward in time with the <b>fourth-order Runge–Kutta</b> method (RK4), whose error per step shrinks as the fifth power of the step. Because there is no friction, the total energy should stay constant, so the drift in energy measures the numerical error. At the default 2 ms step it stays below one part in a million; at 50 ms it becomes visible.</p>
+  <details class="theory-card">
+    <summary>The mathematics</summary>
+    <div class="eq">simple: &nbsp; θ̈ = −(<i>g</i>/<i>L</i>) sin θ − γ θ̇, &nbsp; small angles: <i>T</i>₀ = 2π√(<i>L</i>/<i>g</i>), &nbsp; with damping: <i>T</i> = 2π/√(<i>g</i>/<i>L</i> − γ²/4)</div>
+    <div class="eq">any amplitude θ₀: &nbsp; <i>T</i> = 4√(<i>L</i>/<i>g</i>) <i>K</i>(sin(θ₀/2)) = <i>T</i>₀ / AGM(1, cos(θ₀/2)) &nbsp; (<i>K</i>: complete elliptic integral; AGM: arithmetic–geometric mean)</div>
+    <div class="eq">double (Δ = θ₁ − θ₂, <i>D</i> = 2<i>m</i>₁ + <i>m</i>₂ − <i>m</i>₂ cos 2Δ):<br>
+      θ̈₁ = [−<i>g</i>(2<i>m</i>₁ + <i>m</i>₂) sin θ₁ − <i>m</i>₂<i>g</i> sin(θ₁ − 2θ₂) − 2 sin Δ · <i>m</i>₂(θ̇₂²<i>L</i>₂ + θ̇₁²<i>L</i>₁ cos Δ)] / (<i>L</i>₁<i>D</i>)<br>
+      θ̈₂ = 2 sin Δ [θ̇₁²<i>L</i>₁(<i>m</i>₁ + <i>m</i>₂) + <i>g</i>(<i>m</i>₁ + <i>m</i>₂) cos θ₁ + θ̇₂²<i>L</i>₂<i>m</i>₂ cos Δ] / (<i>L</i>₂<i>D</i>)</div>
+    <div class="eq"><i>E</i> = ½<i>m</i>₁<i>L</i>₁²θ̇₁² + ½<i>m</i>₂[<i>L</i>₁²θ̇₁² + <i>L</i>₂²θ̇₂² + 2<i>L</i>₁<i>L</i>₂θ̇₁θ̇₂ cos Δ] + (<i>m</i>₁ + <i>m</i>₂)<i>gL</i>₁(1 − cos θ₁) + <i>m</i>₂<i>gL</i>₂(1 − cos θ₂)</div>
+    <div class="eq">RK4: <i>y</i><sub>n+1</sub> = <i>y</i><sub>n</sub> + (<i>h</i>/6)(<i>k</i>₁ + 2<i>k</i>₂ + 2<i>k</i>₃ + <i>k</i>₄), global error ∝ <i>h</i>⁴</div>
+    <p>The period is measured from the simulation by timing successive upward passes through the bottom, interpolated between steps. Automated tests check that RK4 converges at fourth order, that the measured period matches 2π√(<i>L</i>/<i>g</i>) for small swings and the elliptic-integral value for large ones, that damping removes energy as e<sup>−γ<i>t</i></sup>, that the double pendulum's small-oscillation frequencies equal √((2 ∓ √2)<i>g</i>/<i>L</i>), and that its relative energy drift over 30 s at the default step stays below 10⁻³.</p>
+    <ol class="refs"><li>L. D. Landau and E. M. Lifshitz, <i>Mechanics</i>, 3rd ed. (Pergamon, 1976), §5 and §11.</li><li>T. Shinbrot, C. Grebogi, J. Wisdom and J. A. Yorke, “Chaos in a double pendulum,” <i>Am. J. Phys.</i> <b>60</b>, 491 (1992).</li><li>W. H. Press, S. A. Teukolsky, W. T. Vetterling and B. P. Flannery, <i>Numerical Recipes</i>, 3rd ed. (Cambridge, 2007), §17.1.</li><li>F. W. J. Olver <i>et al.</i>, eds., <i>NIST Digital Library of Mathematical Functions</i>, §19.8 (AGM and complete elliptic integrals).</li></ol>
+  </details>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/physics-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const Ph = window.Physics, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const deg = Math.PI / 180, reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const DEF = { mode: "simple", g: "earth", L: 1, a1: 20, a2: 0, gam: 0, mr: 1, lr: 1, twin: true, trail: true, dt: "0.002", speed: 1 };
+  let S = Object.assign({}, DEF), playing = !reduceMotion;
+  let y, twin, t, E0, maxDrift, meter, hist, drift, trail, trailT, sep, last = 0, drag = null, tSinceSample;
+
+  // in double mode the slider sets the total length L1 + L2 so the picture keeps its size
+  function dparams() { const g = Ph.GRAVITY[S.g], L1 = S.L / (1 + S.lr), L2 = S.L - L1; return { m1: 1, m2: S.mr, L1, L2, g }; }
+  const P_ = () => (S.mode === "simple" ? { L: S.L, g: Ph.GRAVITY[S.g], gamma: S.gam } : dparams());
+  const energy = (yy) => (S.mode === "simple" ? Ph.simpleEnergy(yy, P_()) : Ph.doubleEnergy(yy, P_()));
+  const step = (yy, dt) => (S.mode === "simple" ? Ph.simpleStep(yy, P_(), dt) : Ph.doubleStep(yy, P_(), dt));
+
+  function release() {
+    y = S.mode === "simple" ? [S.a1 * deg, 0] : [S.a1 * deg, S.a2 * deg, 0, 0];
+    twin = S.mode === "double" && S.twin ? [y[0] + 0.001 * deg, y[1], 0, 0] : null;
+    t = 0; E0 = energy(y); maxDrift = 0; meter = Ph.periodMeter(); meter.push(0, y[0]);
+    hist = [[0, y[0]]]; drift = []; trail = []; trailT = []; sep = 0; tSinceSample = 0;
+    draw(); drawPlot(); drawStats();
+  }
+  function advance(realDt) {
+    const h = +S.dt; let target = realDt * S.speed, n = Math.min(20000, Math.round(target / h));
+    for (let i = 0; i < n; i++) {
+      y = step(y, h); if (twin) twin = step(twin, h); t += h;
+      meter.push(t, y[0]);
+      if (S.mode === "double" && E0 > 0) { const e = Math.abs(energy(y) - E0) / E0; if (e > maxDrift) maxDrift = e; }
+    }
+    if (n) {
+      tSinceSample += n * h;
+      if (tSinceSample >= 1 / 60 || hist.length < 2) {
+        tSinceSample = 0; hist.push([t, y[0]]); if (hist.length > 1500) hist.splice(0, hist.length - 1500);
+        if (S.mode === "double") { drift.push([t, E0 > 0 ? Math.abs(energy(y) - E0) / E0 : 0]); if (drift.length > 4000) drift = drift.filter((_, i) => i % 2 === 0); }
+      }
+      if (twin) sep = Math.hypot(...["x2", "y2"].map((k) => Ph.doublePositions(y, P_())[k] - Ph.doublePositions(twin, P_())[k]));
+    }
+  }
+
+  /* ---------- drawing ---------- */
+  let geo = null;
+  function draw() {
+    const pal = PK.palette(), cv = $("pd-cv");
+    const P = PK.frame(cv, { height: Math.min(360, Math.max(260, cv.getBoundingClientRect().width * 0.62)), x0: 0, x1: 1, y0: 0, y1: 1, bare: true }), c = P.ctx;
+    // pivot near the top for a simple pendulum that hangs down, in the centre when it can go over the top
+    const Ltot = S.L, top = S.mode === "simple" && Math.abs(S.a1) <= 90;
+    const ox = P.W / 2, oy = top ? 28 : P.H / 2;
+    const s = top ? Math.min((P.H - oy - 22) / Ltot, (P.W / 2 - 22) / Ltot) : (Math.min(P.H, P.W) / 2 - 22) / Ltot;
+    const px = (x, yy) => [ox + x * s, oy - yy * s];
+    geo = { px, s, ox, oy };
+    // ceiling / pivot
+    c.strokeStyle = P.K.frame; c.lineWidth = 1; c.setLineDash([3, 4]);
+    c.beginPath(); c.moveTo(ox, oy); c.lineTo(ox, oy + Ltot * s); c.stroke(); c.setLineDash([]);
+    if (S.mode === "simple") {
+      const p = { x1: S.L * Math.sin(y[0]), y1: -S.L * Math.cos(y[0]) };
+      // arc of the release amplitude
+      c.strokeStyle = P.K.grid; c.lineWidth = 6; c.beginPath(); c.arc(ox, oy, S.L * s, Math.PI / 2 - Math.abs(S.a1) * deg, Math.PI / 2 + Math.abs(S.a1) * deg); c.stroke();
+      if (S.trail) { trail.push(px(p.x1, p.y1)); if (trail.length > 90) trail.shift(); drawTrail(c, trail, pal.a); }
+      bob(c, px(0, 0), px(p.x1, p.y1), 9 + 3 * 1, pal.a, P);
+    } else {
+      const Pp = P_(), p = Ph.doublePositions(y, Pp);
+      if (twin) {
+        const q = Ph.doublePositions(twin, Pp);
+        if (S.trail) { trailT.push(px(q.x2, q.y2)); if (trailT.length > 400) trailT.shift(); drawTrail(c, trailT, pal.b); }
+      }
+      if (S.trail) { trail.push(px(p.x2, p.y2)); if (trail.length > 400) trail.shift(); drawTrail(c, trail, pal.a); }
+      if (twin) { const q = Ph.doublePositions(twin, Pp); c.globalAlpha = 0.85; bob(c, px(0, 0), px(q.x1, q.y1), 7, pal.b, P); bob(c, px(q.x1, q.y1), px(q.x2, q.y2), 6 + 3 * Math.sqrt(S.mr), pal.b, P); c.globalAlpha = 1; }
+      bob(c, px(0, 0), px(p.x1, p.y1), 8, pal.a, P);
+      bob(c, px(p.x1, p.y1), px(p.x2, p.y2), 6 + 3 * Math.sqrt(S.mr), pal.a, P);
+    }
+    c.fillStyle = P.K.fg; c.beginPath(); c.arc(ox, oy, 3.5, 0, 2 * Math.PI); c.fill();
+    c.fillStyle = P.K.muted; c.font = "11px " + P.font; c.textAlign = "left";
+    c.fillText(`t = ${t.toFixed(2)} s`, 10, 18);
+    const bar = Ltot >= 1.5 ? 1 : Ltot >= 0.4 ? 0.25 : 0.05; // scale bar
+    c.strokeStyle = P.K.muted; c.lineWidth = 1.5; c.beginPath(); c.moveTo(10, P.H - 12); c.lineTo(10 + bar * s, P.H - 12); c.moveTo(10, P.H - 16); c.lineTo(10, P.H - 8); c.moveTo(10 + bar * s, P.H - 16); c.lineTo(10 + bar * s, P.H - 8); c.stroke();
+    c.fillText(bar >= 1 ? "1 m" : bar * 100 + " cm", 16 + bar * s, P.H - 8);
+    if (!playing) { c.textAlign = "right"; c.fillText("paused", P.W - 10, 18); }
+  }
+  function drawTrail(c, pts, col) {
+    if (pts.length < 2) return;
+    c.strokeStyle = col; c.lineWidth = 1.4;
+    for (let i = 1; i < pts.length; i++) { c.globalAlpha = (0.55 * i) / pts.length; c.beginPath(); c.moveTo(...pts[i - 1]); c.lineTo(...pts[i]); c.stroke(); }
+    c.globalAlpha = 1;
+  }
+  function bob(c, a, b, r, col, P) {
+    c.strokeStyle = P.K.fg; c.lineWidth = 1.6; c.beginPath(); c.moveTo(...a); c.lineTo(...b); c.stroke();
+    c.fillStyle = col; c.strokeStyle = P.K.bg; c.lineWidth = 1.5; c.beginPath(); c.arc(b[0], b[1], r, 0, 2 * Math.PI); c.fill(); c.stroke();
+  }
+  function drawPlot() {
+    const pal = PK.palette();
+    if (S.mode === "simple") {
+      const span = 10, t1 = Math.max(span, t), t0 = t1 - span, A = Math.ceil((1.1 * Math.max(Math.abs(S.a1), 5)) / 10) * 10;
+      const P = PK.frame($("pd-plot"), { height: 210, x0: t0, x1: t1, y0: -A, y1: A, xlabel: "Time (s)", ylabel: "Angle (°)", xfmt: (v) => v.toFixed(0), yfmt: (v) => v.toFixed(0) });
+      // small-angle (linear) solution from the same release: θ0 e^{−γt/2} (cos ωd t + γ/(2ωd) sin ωd t)
+      const p = P_(), w0 = Math.sqrt(p.g / p.L), wd2 = w0 * w0 - (p.gamma * p.gamma) / 4;
+      const xs = Array.from({ length: 600 }, (_, i) => t0 + (span * i) / 599);
+      if (wd2 > 0) {
+        const wd = Math.sqrt(wd2);
+        PK.line(P, xs, xs.map((tt) => S.a1 * Math.exp((-p.gamma * tt) / 2) * (Math.cos(wd * tt) + (p.gamma / (2 * wd)) * Math.sin(wd * tt))), { color: pal.b, width: 1.4, dash: [5, 4] });
+      }
+      const h = hist.filter((q) => q[0] >= t0);
+      PK.line(P, h.map((q) => q[0]), h.map((q) => q[1] / deg), { color: pal.a, width: 2 });
+      PK.legend(P, [{ label: "simulation (RK4)", color: pal.a }, { label: "small-angle formula", color: pal.b, dash: [5, 4] }]);
+    } else {
+      const t1 = Math.max(10, t), lo = -16, hi = 0;
+      const P = PK.frame($("pd-plot"), { height: 210, x0: 0, x1: t1, y0: lo, y1: hi, yticks: 4, xlabel: "Time (s)", ylabel: "Energy error |ΔE|/E₀", xfmt: (v) => v.toFixed(0), yfmt: (v) => (v === 0 ? "1" : "1e" + v.toFixed(0)) });
+      PK.line(P, [0, t1], [-3, -3], { color: pal.e, width: 1.2, dash: [5, 4] });
+      const d = drift.filter((q) => q[1] > 0);
+      PK.line(P, d.map((q) => q[0]), d.map((q) => Math.max(lo, Math.log10(q[1]))), { color: pal.a, width: 1.6 });
+      P.ctx.fillStyle = pal.e; P.ctx.font = "11px " + P.font; P.ctx.textAlign = "left"; P.ctx.fillText("10⁻³ target", P.pad.l + 6, P.Y(-3) - 5);
+      if (!d.length) { P.ctx.fillStyle = P.K.muted; P.ctx.textAlign = "center"; P.ctx.fillText("below double-precision rounding so far", P.pad.l + P.pw / 2, P.pad.t + P.ph - 14); }
+    }
+  }
+  const fmtT = (v) => (isFinite(v) ? v.toFixed(3) + " s" : "–");
+  function drawStats() {
+    let rows;
+    if (S.mode === "simple") {
+      const p = P_(), T0 = Ph.smallAnglePeriod(p.L, p.g), Te = p.gamma > 0 ? NaN : Ph.exactPeriod(p.L, p.g, S.a1 * deg), Tm = meter.period;
+      const Td = p.gamma > 0 ? Ph.dampedPeriod(p.L, p.g, p.gamma) : NaN;
+      rows = [["Measured period", fmtT(Tm)], ["Small-angle formula", fmtT(T0)],
+        p.gamma > 0 ? ["Damped, small-angle", fmtT(Td)] : ["Exact (any angle)", fmtT(Te)],
+        ["Measured vs formula", isFinite(Tm) ? ((Tm / T0 - 1) * 100 >= 0 ? "+" : "") + ((Tm / T0 - 1) * 100).toFixed(2) + "%" : "–"]];
+    } else {
+      rows = [["Time", t.toFixed(1) + " s"], ["Energy E₀", E0.toFixed(3) + " J"], ["Max energy drift", maxDrift > 0 ? maxDrift.toExponential(1) : "0"], ["Twin separation", twin ? (sep * 100).toFixed(sep < 0.001 ? 3 : 1) + " cm" : "off"]];
+    }
+    $("pd-stats").innerHTML = rows.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+
+  /* ---------- animation ---------- */
+  let statT = 0, plotT = 0;
+  function frame(ts) {
+    const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+    if (playing && !drag && !document.hidden && dt > 0) {
+      advance(dt); draw();
+      if ((plotT += dt) > 0.1) { plotT = 0; drawPlot(); }
+      if ((statT += dt) > 0.25) { statT = 0; drawStats(); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ---------- controls ---------- */
+  function setPlay(p) { playing = p; $("pd-play").setAttribute("aria-pressed", String(p)); $("pd-play").textContent = p ? "❚❚ Pause" : "▶ Play"; draw(); }
+  function showFor() {
+    document.querySelectorAll(".app-controls [data-for]").forEach((el) => (el.hidden = el.dataset.for !== S.mode));
+    document.querySelectorAll(".segmented [data-mode]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.mode === S.mode)));
+    $("pd-L-l").textContent = S.mode === "double" ? "(L₁ + L₂)" : "";
+    $("pd-stage").textContent = S.mode === "double" ? "The double pendulum" : "The pendulum";
+  }
+  function syncOutputs() {
+    $("pd-L").value = S.L; $("pd-L-o").textContent = S.L.toFixed(2) + " m";
+    $("pd-a1").value = S.a1; $("pd-a1-o").textContent = S.a1 + "°";
+    $("pd-a2").value = S.a2; $("pd-a2-o").textContent = S.a2 + "°";
+    $("pd-gam").value = S.gam; $("pd-gam-o").textContent = S.gam.toFixed(2) + " s⁻¹";
+    $("pd-mr").value = S.mr; $("pd-mr-o").textContent = S.mr.toFixed(1);
+    $("pd-lr").value = S.lr; $("pd-lr-o").textContent = S.lr.toFixed(1);
+    $("pd-speed").value = S.speed; $("pd-speed-o").textContent = S.speed.toFixed(2) + "×";
+    $("pd-g").value = S.g; $("pd-dt").value = S.dt; $("pd-twin").checked = S.twin; $("pd-trail").checked = S.trail;
+  }
+  function setMode(m) {
+    S.mode = m;
+    if (m === "double") { S.a1 = 120; S.a2 = -10; S.L = 2; } else { S.a1 = 20; S.a2 = 0; S.L = 1; }
+    showFor(); syncOutputs(); release();
+  }
+  document.querySelectorAll(".segmented [data-mode]").forEach((b) => b.addEventListener("click", () => setMode(b.dataset.mode)));
+  const num = (id, key, fn) => $(id).addEventListener("input", () => { S[key] = +$(id).value; syncOutputs(); fn ? fn() : release(); });
+  num("pd-L", "L"); num("pd-a1", "a1"); num("pd-a2", "a2"); num("pd-gam", "gam"); num("pd-mr", "mr"); num("pd-lr", "lr");
+  num("pd-speed", "speed", () => {});
+  $("pd-g").addEventListener("change", () => { S.g = $("pd-g").value; release(); });
+  $("pd-dt").addEventListener("change", () => { S.dt = $("pd-dt").value; release(); });
+  $("pd-twin").addEventListener("change", () => { S.twin = $("pd-twin").checked; release(); });
+  $("pd-trail").addEventListener("change", () => { S.trail = $("pd-trail").checked; trail = []; trailT = []; draw(); });
+  $("pd-play").addEventListener("click", () => setPlay(!playing));
+  $("pd-restart").addEventListener("click", () => { release(); setPlay(true); });
+  $("pd-reset").addEventListener("click", () => { S = Object.assign({}, DEF); showFor(); syncOutputs(); release(); setPlay(!reduceMotion); });
+
+  /* ---------- drag a bob (mouse, pen or touch) ---------- */
+  const cv = $("pd-cv");
+  function local(e) { const r = cv.getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; }
+  function pick(pt) {
+    if (!geo) return null;
+    const Pp = P_();
+    const b = S.mode === "simple" ? [geo.px(S.L * Math.sin(y[0]), -S.L * Math.cos(y[0]))] : (() => { const p = Ph.doublePositions(y, Pp); return [geo.px(p.x1, p.y1), geo.px(p.x2, p.y2)]; })();
+    let best = null, bd = 40;
+    b.forEach((q, i) => { const dd = Math.hypot(q[0] - pt[0], q[1] - pt[1]); if (dd < bd) { bd = dd; best = i; } });
+    return best;
+  }
+  const angleAt = (pt, from) => Math.round(Math.atan2(pt[0] - from[0], pt[1] - from[1]) / deg);
+  cv.addEventListener("pointerdown", (e) => {
+    const k = pick(local(e)); if (k === null) return;
+    drag = { k }; cv.setPointerCapture(e.pointerId); e.preventDefault();
+  });
+  cv.addEventListener("pointermove", (e) => {
+    if (!drag) return;
+    const pt = local(e);
+    if (drag.k === 0) S.a1 = angleAt(pt, [geo.ox, geo.oy]);
+    else { const p = Ph.doublePositions(y, P_()); S.a2 = angleAt(pt, geo.px(p.x1, p.y1)); }
+    S.a1 = Math.max(-179, Math.min(179, S.a1)); S.a2 = Math.max(-179, Math.min(179, S.a2));
+    syncOutputs(); release();
+  });
+  const endDrag = () => { if (drag) { drag = null; last = 0; setPlay(true); } };
+  cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+  cv.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { S.a1 = Math.max(-179, Math.min(179, S.a1 + (e.key === "ArrowRight" ? 5 : -5))); syncOutputs(); release(); e.preventDefault(); }
+    else if (e.key === " ") { setPlay(!playing); e.preventDefault(); }
+  });
+
+  window.SiteTheme.onChange(() => { draw(); drawPlot(); });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { trail = []; trailT = []; draw(); drawPlot(); }, 150); });
+  showFor(); syncOutputs(); release(); setPlay(playing); requestAnimationFrame(frame);
+})();
+</script>
+{% endraw %}

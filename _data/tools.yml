@@ -76,6 +76,27 @@
   badge: New
   featured: true
   description: Build square, sawtooth and triangle waves out of rotating circles and pure tones, one harmonic at a time.
+- id: paradoxes
+  title: Birthday & Simpson's paradoxes
+  url: /curious/paradoxes/
+  category: math
+  preview: birthday
+  badge: New
+  description: Why 23 people are enough for a shared birthday, and how a treatment can win in every group yet lose overall. Simulate both.
+- id: pendulum
+  title: Pendulum playground
+  url: /curious/pendulum/
+  category: math
+  preview: pendulum
+  badge: New
+  description: Simple and double pendulums integrated with RK4. Compare the period with 2π√(L/g) and watch chaos separate two near-identical twins.
+- id: fractals
+  title: Mandelbrot & Julia set explorer
+  url: /curious/fractals/
+  category: math
+  preview: fractal
+  badge: New
+  description: Zoom into the Mandelbrot set, coloured by escape time, follow the orbit of any point and open the Julia set it belongs to.
 - id: batchplot
   title: Batch plotting in Python
   url: /posts/batch-plotting.html

@@ -497,6 +497,35 @@ a.btn.primary, a.btn.primary:visited { color: var(--accent-contrast); }
 .linklike { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; cursor: pointer; }
 .stat dd small { font-size: .7rem; color: var(--text-muted); font-weight: 400; }
 
+/* shared bits of the newer apps (paradoxes, pendulum, fractals) */
+.app-part { margin-top: 2.2rem; }
+.app-part > h2:first-child { margin-top: 0; }
+.ctl-check { display: flex; align-items: center; gap: .5em; margin: 0 0 .7rem; font-size: .8rem; color: var(--text-secondary); cursor: pointer; }
+.ctl-check input { width: 16px; height: 16px; margin: 0; }
+.ctl-pair { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.ctl-pair input { width: 100%; box-sizing: border-box; }
+.app-stage canvas.drag { touch-action: none; cursor: grab; }
+.app-stage canvas.drag:active { cursor: grabbing; }
+.app-stage canvas:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.verdict { margin: .7rem 0; padding: .55rem .75rem; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); background: var(--bg-muted); font-size: .9rem; }
+.verdict.flip { border-color: var(--accent-accent); background: color-mix(in srgb, var(--accent-accent) 10%, var(--bg-surface)); }
+.kbd-hint { margin: .45rem 0 0; font-size: .78rem; color: var(--text-muted); }
+
+/* Simpson's paradox table */
+.page-content table.sp-table { display: table; width: 100%; table-layout: fixed; margin: 0; }
+.sp-table th, .sp-table td { padding: .4rem .35rem; vertical-align: top; }
+.sp-table thead th { font-size: .74rem; }
+.sp-table tbody th { font-size: .8rem; font-weight: 600; overflow-wrap: anywhere; }
+.sp-table td { text-align: center; }
+.sp-table .sp-in { display: flex; flex-direction: column; align-items: stretch; gap: .15rem; }
+.sp-table .sp-in span { font-size: .68rem; color: var(--text-muted); }
+.page-content .sp-table input[type="number"] { width: 100%; min-width: 0; height: 30px; padding: 0 4px; box-sizing: border-box; text-align: center; }
+.sp-table .sp-rate { display: block; margin-top: .25rem; font-weight: 600; }
+.sp-table .sp-sum { display: block; color: var(--text-secondary); font-size: .85em; }
+.sp-table td.win .sp-rate { color: var(--badge-se); }
+.sp-table td.win { background: color-mix(in srgb, var(--badge-se) 9%, transparent); }
+@media (max-width: 420px) { .sp-table th, .sp-table td { padding: .3rem .15rem; } .sp-table thead th { font-size: .66rem; } }
+
 /* ======================= container widths ======================= */
 .wrapper { max-width: 1120px; }
 .page-content .wrapper:has(.layout-wide) { max-width: 1200px; }
