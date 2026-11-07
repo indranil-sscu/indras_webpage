@@ -10,30 +10,38 @@ I am a PhD candidate in the Solid State and Structural Chemistry Unit (SSCU), In
 
 [Google Scholar](https://scholar.google.com/citations?user=Cz84z-0AAAAJ) · [ORCID](https://orcid.org/0009-0006-3503-9150) · [LinkedIn](https://www.linkedin.com/in/skew-hermitian/) · [indranilroy@iisc.ac.in](mailto:indranilroy@iisc.ac.in)
 
-## Features
+## What is here
 
-- Light and dark themes (toggle in the header; follows the system setting until you choose), defined as CSS custom properties in `assets/css/site.css`, with the theme applied before first paint by an inline script in `_includes/head.html`; canvas helpers in `assets/js/theme.js`
-- Blog-style code notes and project logs
-- Tips and scripts for scientific computing
-- [Spectroscopy & optics calculators](https://indranil-sscu.github.io/indras_webpage/tools/) (`tools.html`, logic in `assets/js/sci-tools.js` and `assets/js/optics-tools.js`; plot digitizer in `digitizer.html` + `assets/js/digitizer-core.js`; Feynman diagram generator in `dsfd.html` + `assets/js/dsfd-core.js`; multilayer TMM / polariton solver in `tmm.html` + `assets/js/tmm-engine.js`; reference sheet in `reference.md`; run the tests with `node --test tests/*.test.js`)
+**Indra's Lab** is an interactive science site: laboratory tools for spectroscopy and optics, data utilities, hands-on mathematics experiments for everyone, and tutorials. Everything runs client-side (plain HTML, CSS and JavaScript on GitHub Pages; no frameworks, no tracking).
+
+- **Explore Tools** (`/explore/`): every tool as a card with a live preview, filterable by category and searchable. Cards come from `_data/tools.yml`.
+- **Physics & optics:** calculators (`/tools/`), multilayer TMM and polariton solver (`/tools/tmm/`), double-sided Feynman diagram generator (`/tools/dsfd/`), constants cheat sheet (`/reference/`).
+- **Data & analysis:** plot digitizer (`/tools/digitizer/`), spectral Jacobian and FFT axis designer (sections of `/tools/`).
+- **Science for the Curious** (`/curious/`): probability playground, Monty Hall problem, Fourier series visualiser.
+- **Tutorials & Notes** (`/posts/`) and **About** (`/about/`).
+
+Run the tests (scientific calculations against analytical results and benchmarks) with `node --test tests/*.test.js`.
 
 ## Structure
 
 ```plaintext
 .
-├── index.md       # Home page (Markdown)
-├── tools.html     # Calculators page (each with a theory card: equations, symbols, references)
-├── tmm.html       # Multilayer TMM / polariton solver (/tools/tmm/)
-├── dsfd.html      # Double-sided Feynman diagram generator (/tools/dsfd/)
-├── digitizer.html # Plot digitizer (/tools/digitizer/)
-├── reference.md   # Constants & lab cheat sheet
-├── assets/css/    # Design tokens and light/dark themes (site.css)
-├── assets/js/     # Tool logic, no dependencies (sci-, optics-, spectra-tools, tmm-engine, dsfd-core, digitizer-core, theme)
-├── tests/         # Node unit tests (node --test tests/*.test.js)
-├── posts.md       # Listing of all posts
-├── posts/         # Individual project notes
-├── _config.yml    # Jekyll site configuration
-├── _layouts/      # Page layouts
-├── _includes/     # head (theme script), header (theme toggle) and footer partials
-└── README.md      # This file
+├── index.html            # Homepage
+├── explore.html          # Tool directory (/explore/)
+├── curious/              # Science for the Curious: index, probability, monty-hall, fourier
+├── tools.html            # Spectroscopy & optics calculators (/tools/)
+├── tmm.html              # Multilayer TMM / polariton solver (/tools/tmm/)
+├── dsfd.html             # Double-sided Feynman diagram generator (/tools/dsfd/)
+├── digitizer.html        # Plot digitizer (/tools/digitizer/)
+├── reference.md          # Constants & lab cheat sheet (/reference/)
+├── posts.md, posts/      # Tutorials & notes
+├── about.md              # About the author and the site
+├── _data/                # tools.yml (tool catalogue), categories.yml
+├── _includes/            # head (theme script), header, footer, tool card, breadcrumbs, tool metadata
+├── _layouts/             # default (skip link, landmarks) and page (breadcrumbs, title, version bar)
+├── assets/css/site.css   # Design tokens, light/dark themes and components
+├── assets/js/            # Tool engines (sci-, optics-, spectra-tools, tmm-engine, dsfd-core, digitizer-core,
+│                         #   curious-core), plotkit (charts), previews (card previews), theme
+├── assets/img/           # Social-sharing image
+└── tests/                # Node unit tests
 ```

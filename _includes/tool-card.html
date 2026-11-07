@@ -1,0 +1,16 @@
+{%- assign t = include.tool -%}
+{%- assign cat = site.data.categories[t.category] -%}
+<article class="tool-card" data-cat="{{ t.category }}">
+  <a class="tool-card-preview" href="{{ t.url | relative_url }}" tabindex="-1" aria-hidden="true">
+    <div class="preview" data-preview="{{ t.preview }}"></div>
+  </a>
+  <div class="tool-card-body">
+    <p class="tool-card-tags">
+      <span class="chip chip-{{ t.category }}">{{ cat.short }}</span>
+      {%- if t.badge %}<span class="badge badge-{{ t.badge | downcase }}">{{ t.badge }}</span>{% endif -%}
+    </p>
+    <h3 class="tool-card-title"><a href="{{ t.url | relative_url }}">{{ t.title }}</a></h3>
+    <p class="tool-card-desc">{{ t.description }}</p>
+    <a class="btn tool-card-cta" href="{{ t.url | relative_url }}" aria-label="{{ t.action | default: 'Open tool' }}: {{ t.title }}">{{ t.action | default: "Open tool" }} <span aria-hidden="true">→</span></a>
+  </div>
+</article>

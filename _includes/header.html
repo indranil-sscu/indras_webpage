@@ -1,18 +1,21 @@
-<header class="site-header" role="banner">
+<header class="site-header">
   <div class="wrapper site-header-inner">
-    <a class="site-title" href="{{ "/" | relative_url }}">{{ site.title | escape }}</a>
-
+    <a class="site-title" href="{{ '/' | relative_url }}" aria-label="{{ site.title }}, home">
+      <svg class="brand-mark" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><rect x="1" y="1" width="22" height="22" rx="5" fill="var(--accent)"/><path d="M4 15c2.5 0 3-6 5.5-6S12 15 14.5 15 17 9 20 9" fill="none" stroke="var(--accent-contrast)" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>{{ site.title }}</span>
+    </a>
     <nav class="site-nav" aria-label="Main">
-      <input type="checkbox" id="menu-toggle" />
-      <label for="menu-toggle" class="menu-icon" aria-label="Menu">&#9776;</label>
-      <div class="menu">
-        {% for item in site.minima.navigation %}
-          <a class="page-link" href="{{ item.url | relative_url }}">{{ item.title | escape }}</a>
-        {% endfor %}
+      <button type="button" class="menu-button" aria-expanded="false" aria-controls="site-menu" onclick="var n=this.parentNode,o=n.classList.toggle('open');this.setAttribute('aria-expanded',o)"><span class="sr-only">Menu</span><svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></button>
+      <div class="menu" id="site-menu">
+        {%- for item in site.minima.navigation -%}
+          {%- assign current = false -%}
+          {%- if page.url == item.url -%}{%- assign current = true -%}{%- endif -%}
+          {%- if item.match -%}{%- for m in item.match -%}{%- if page.url contains m -%}{%- assign current = true -%}{%- endif -%}{%- endfor -%}{%- endif -%}
+          <a class="page-link" href="{{ item.url | relative_url }}"{% if current %} aria-current="page"{% endif %}>{{ item.title | escape }}</a>
+        {%- endfor -%}
       </div>
     </nav>
-
-    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch colour theme" title="Switch light / dark theme">
+    <button type="button" class="theme-toggle" id="theme-toggle" aria-label="Switch between light and dark theme">
       <svg class="icon-moon" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>
       <svg class="icon-sun" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="12" cy="12" r="4.2" fill="none" stroke="currentColor" stroke-width="1.7"/><path d="M12 2.5v2.4M12 19.1v2.4M2.5 12h2.4M19.1 12h2.4M5.3 5.3l1.7 1.7M17 17l1.7 1.7M5.3 18.7 7 17M17 7l1.7-1.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
     </button>

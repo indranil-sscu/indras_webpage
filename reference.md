@@ -2,6 +2,14 @@
 layout: page
 title: Constants & Lab Cheat Sheet
 permalink: /reference/
+crumbs:
+  - title: Explore Tools
+    url: /explore/
+short_title: Cheat sheet
+description: Physical constants (CODATA), laser and calibration lines, and optics rules of thumb for the spectroscopy lab.
+version: "1.0"
+updated: 2026-11-07
+source: reference.md
 ---
 
 A quick reference for the optics and spectroscopy lab. For conversions, use the [calculators](../tools/).

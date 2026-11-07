@@ -1,6 +1,10 @@
 ---
 layout: page
 title: "Batch Plotting in Python"
+crumbs:
+  - title: Tutorials & Notes
+    url: /posts/
+description: Overlay many data files in one publication-style plot from the command line with a short Python script.
 ---
 
 ## Batch Plotting multiple datasets in Python

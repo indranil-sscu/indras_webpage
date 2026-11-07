@@ -1,0 +1,16 @@
+physics:
+  title: Physics & Optics
+  short: Physics & optics
+  blurb: Laboratory calculators and solvers for ultrafast spectroscopy, thin films and light–matter coupling.
+data:
+  title: Data & Analysis
+  short: Data & analysis
+  blurb: Get numbers out of figures, convert spectra correctly and design sampled measurements.
+math:
+  title: Mathematics & Probability
+  short: Maths & probability
+  blurb: Hands-on experiments with chance, paradoxes and waves, for students and the curious.
+learn:
+  title: Learning & Notes
+  short: Learning & notes
+  blurb: Tutorials, scientific-computing workflows, theory notes and lab references.

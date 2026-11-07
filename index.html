@@ -1,0 +1,45 @@
+---
+layout: default
+title: Explore. Calculate. Understand.
+description: Interactive scientific tools, computational experiments and visual explanations, from spectroscopy calculators and a polariton solver to probability and Fourier experiments. Built by Indranil Roy, IISc Bengaluru.
+---
+<section class="hero" aria-labelledby="hero-title">
+  <p class="hero-eyebrow">{{ site.title }}</p>
+  <h1 id="hero-title">Explore. Calculate. Understand.</h1>
+  <p class="hero-sub">Interactive scientific tools, computational experiments and visual explanations of the world around us.</p>
+  <p class="hero-by">Built by <a href="{{ '/about/' | relative_url }}">Indranil Roy</a>, researcher at the Indian Institute of Science, Bengaluru.</p>
+  <div class="cta-row">
+    <a class="btn primary lg" href="{{ '/explore/' | relative_url }}">Explore tools</a>
+    <a class="btn lg" href="{{ '/curious/' | relative_url }}">Discover science</a>
+    <a class="btn lg ghost" href="{{ '/posts/' | relative_url }}">Read tutorials</a>
+  </div>
+</section>
+
+<section class="section" aria-labelledby="ways-title">
+  <div class="section-head"><h2 id="ways-title">Four ways in</h2></div>
+  <div class="cat-grid">
+    {%- assign targets = "physics:/explore/#physics,data:/explore/#data,math:/curious/,learn:/posts/" | split: "," -%}
+    {%- for pair in targets -%}
+      {%- assign kv = pair | split: ":" -%}
+      {%- assign key = kv[0] -%}
+      {%- assign cat = site.data.categories[key] -%}
+      {%- assign n = site.data.tools | where: "category", key | size -%}
+      <a class="cat-tile cat-{{ key }}" href="{{ kv[1] | relative_url }}">
+        <span class="cat-icon">{% include cat-icon.html cat=key %}</span>
+        <h3>{{ cat.title }}</h3>
+        <p>{{ cat.blurb }}</p>
+        <span class="count">{{ n }} {% if n == 1 %}item{% else %}items{% endif %} →</span>
+      </a>
+    {%- endfor -%}
+  </div>
+</section>
+
+<section class="section" aria-labelledby="featured-title">
+  <div class="section-head"><h2 id="featured-title">Featured</h2><a class="more" href="{{ '/explore/' | relative_url }}">All tools →</a></div>
+  <div class="card-grid">
+    {%- assign featured = site.data.tools | where: "featured", true -%}
+    {%- for t in featured -%}{% include tool-card.html tool=t %}{%- endfor -%}
+  </div>
+</section>
+
+{% include preview-scripts.html %}

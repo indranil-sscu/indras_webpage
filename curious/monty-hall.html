@@ -1,0 +1,160 @@
+---
+layout: page
+title: The Monty Hall Problem
+permalink: /curious/monty-hall/
+crumbs:
+  - title: Science for the Curious
+    url: /curious/
+short_title: Monty Hall
+lead: A car is hidden behind one door, goats behind the others. You pick a door, the host opens a door with a goat, and offers you a switch. Should you take it?
+description: Play the Monty Hall game, then simulate thousands of games to see why switching wins two times out of three, with an explanation of the probability.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/curious-core.js
+---
+{% raw %}
+<div class="howto">
+  <b>How to play.</b>
+  <ol>
+    <li>Click (or tab to and press Enter on) a door to pick it.</li>
+    <li>The host, who knows where the car is, opens the other doors except one, always revealing goats.</li>
+    <li>Decide: <b>stay</b> with your door or <b>switch</b> to the one still closed. Play a few rounds, then press <b>Simulate</b> to run thousands of games.</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="mh-ctl">
+    <h2 id="mh-ctl">Controls</h2>
+    <div class="ctl"><label for="mh-doors">Number of doors <output id="mh-doors-o">3</output></label><input type="range" id="mh-doors" min="3" max="10" value="3"></div>
+    <div class="ctl"><label for="mh-n">Games per simulation</label>
+      <select id="mh-n"><option value="100">100</option><option value="1000" selected>1 000</option><option value="10000">10 000</option><option value="100000">100 000</option></select></div>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="mh-sim">Simulate</button>
+      <button type="button" class="btn" id="mh-new">New game</button>
+      <button type="button" class="btn" id="mh-reset">Reset</button>
+    </div>
+    <dl class="stats" id="mh-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="mh-stage">
+    <h2 id="mh-stage">The game</h2>
+    <div class="doors" id="mh-doors-row" role="group" aria-label="Doors"></div>
+    <p class="live" id="mh-msg" aria-live="polite"></p>
+    <div class="btn-row" id="mh-choice" hidden>
+      <button type="button" class="btn" id="mh-stay">Stay with my door</button>
+      <button type="button" class="btn primary" id="mh-switch">Switch doors</button>
+    </div>
+    <canvas id="mh-plot" role="img" aria-label="Fraction of games won by staying and by switching, against the number of games simulated"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>Why switching wins</h2>
+  <p>When you first pick, your door hides the car with probability <b>1/3</b>, so the car is behind one of the <i>other</i> two doors with probability <b>2/3</b>. The host then opens one of those two, but he <b>always opens a goat</b>: he knows where the car is and never reveals it. Opening it tells you nothing new about your own door, which stays at 1/3. The whole 2/3 now sits on the one door he left closed.</p>
+  <p>Put another way: switching loses only if your first pick was right (1 time in 3). Staying wins only in that same case.</p>
+  <p>With <b>n</b> doors, where the host opens all but one of the others, staying wins 1/n of the time and switching (n − 1)/n. With 10 doors, switching wins 90% of the time, which makes the logic easier to feel.</p>
+  <details class="theory-card">
+    <summary>The mathematics (Bayes' theorem)</summary>
+    <div class="eq">Let C<sub><i>i</i></sub> = “car behind door <i>i</i>”, you picked door 1, host opened door 3 (H<sub>3</sub>).</div>
+    <div class="eq">P(H<sub>3</sub> | C<sub>1</sub>) = ½, &nbsp; P(H<sub>3</sub> | C<sub>2</sub>) = 1, &nbsp; P(H<sub>3</sub> | C<sub>3</sub>) = 0</div>
+    <div class="eq">P(C<sub>2</sub> | H<sub>3</sub>) = P(H<sub>3</sub> | C<sub>2</sub>) P(C<sub>2</sub>) / Σ<sub><i>i</i></sub> P(H<sub>3</sub> | C<sub><i>i</i></sub>) P(C<sub><i>i</i></sub>) = (1 · ⅓) / (½ · ⅓ + 1 · ⅓ + 0) = <b>2/3</b></div>
+    <p><b>Assumptions that matter:</b> the host always opens a door, never reveals the car, and always offers the switch. If he opened a door at random and happened to show a goat, the odds would be 50 : 50. The simulation uses the standard rules; the automated tests check that it reproduces 1/n and (n − 1)/n.</p>
+    <ol class="refs"><li>S. Selvin, “A problem in probability,” <i>The American Statistician</i> <b>29</b>, 67 (1975).</li><li>M. vos Savant, “Ask Marilyn,” <i>Parade Magazine</i>, 9 September 1990.</li></ol>
+  </details>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/curious-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const C = window.Curious, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const r = C.rng();
+  let doors = 3, game = null, phase = "pick", T, sim;
+
+  function resetAll() {
+    T = { stayN: 0, stayW: 0, swN: 0, swW: 0 };
+    sim = { N: 0, stay: 0, sw: 0, run: [] };
+    newGame(); drawPlot(); drawStats();
+  }
+  function newGame() {
+    game = null; phase = "pick";
+    $("mh-choice").hidden = true;
+    $("mh-msg").textContent = "Pick a door.";
+    renderDoors();
+  }
+  function renderDoors() {
+    const row = $("mh-doors-row");
+    row.style.setProperty("--n", doors);
+    row.innerHTML = Array.from({ length: doors }, (_, d) => {
+      let state = "closed", label = `Door ${d + 1}`, inner = `<span class="door-num">${d + 1}</span>`;
+      if (game) {
+        const open = phase === "done" || game.opened.includes(d);
+        if (open) { state = d === game.car ? "car" : "goat"; inner = `<span class="door-num">${d + 1}</span><span class="door-prize">${d === game.car ? "car" : "goat"}</span>`; label += d === game.car ? ", car" : ", goat"; }
+        if (d === game.pick) { state += " picked"; label += ", your pick"; }
+        if (phase === "decide" && d === game.offered) { state += " offered"; label += ", still closed"; }
+      }
+      const disabled = phase === "done" || (phase === "decide" && d !== game.pick && d !== game.offered) || (game && game.opened.includes(d));
+      return `<button type="button" class="door ${state}" data-d="${d}" aria-label="${label}"${disabled ? " disabled" : ""}>${inner}</button>`;
+    }).join("");
+  }
+  $("mh-doors-row").addEventListener("click", (e) => {
+    const b = e.target.closest(".door"); if (!b || b.disabled) return;
+    const d = +b.dataset.d;
+    if (phase === "pick") {
+      game = C.montyGame(doors, r, d); phase = "decide";
+      const left = game.offered + 1;
+      $("mh-msg").textContent = `You picked door ${d + 1}. The host opens ${doors - 2 === 1 ? "door " + (game.opened[0] + 1) : doors - 2 + " doors"}: ${doors - 2 === 1 ? "a goat" : "all goats"}. Door ${left} is still closed. Stay or switch?`;
+      $("mh-choice").hidden = false; $("mh-switch").textContent = `Switch to door ${left}`; $("mh-stay").textContent = `Stay with door ${d + 1}`;
+      renderDoors(); $("mh-switch").focus();
+    } else if (phase === "decide") finish(d === game.offered);
+  });
+  function finish(switched) {
+    phase = "done"; $("mh-choice").hidden = true;
+    const final = switched ? game.offered : game.pick, won = final === game.car;
+    if (switched) { T.swN++; T.swW += won; } else { T.stayN++; T.stayW += won; }
+    $("mh-msg").innerHTML = `You ${switched ? "switched" : "stayed"} and ${won ? "<b>won the car</b>" : "<b>got a goat</b>"}. The car was behind door ${game.car + 1}. ${switched ? (won ? "Switching wins whenever your first pick was wrong." : "Switching loses only when your first pick was right.") : won ? "Staying wins only when your first pick was right." : "Staying loses whenever your first pick was wrong."} <button type="button" class="linklike" id="mh-again">Play again</button>`;
+    $("mh-again").addEventListener("click", () => { newGame(); $("mh-doors-row").querySelector(".door").focus(); });
+    renderDoors(); drawStats();
+  }
+  $("mh-stay").addEventListener("click", () => finish(false));
+  $("mh-switch").addEventListener("click", () => finish(true));
+  $("mh-new").addEventListener("click", newGame);
+  $("mh-reset").addEventListener("click", resetAll);
+  $("mh-doors").addEventListener("input", () => { doors = +$("mh-doors").value; $("mh-doors-o").textContent = doors; resetAll(); });
+
+  $("mh-sim").addEventListener("click", () => {
+    const n = +$("mh-n").value;
+    for (let i = 0; i < n; i++) {
+      const g = C.montyGame(doors, r); sim.N++; sim.stay += g.winStay; sim.sw += g.winSwitch;
+      if (sim.N < 60 || sim.N % Math.ceil(sim.N / 300) === 0) sim.run.push([sim.N, sim.stay / sim.N, sim.sw / sim.N]);
+    }
+    drawPlot(); drawStats();
+  });
+
+  function drawPlot() {
+    const pal = PK.palette(), th = C.montyTheory(doors);
+    const N = Math.max(10, sim.N), lx = Math.ceil(Math.log10(N));
+    const P = PK.frame($("mh-plot"), { height: 250, x0: 0, x1: lx, y0: 0, y1: 1, xlabel: "Games simulated (log scale)", ylabel: "Fraction won", xticks: lx, xfmt: (v) => Math.round(10 ** v).toLocaleString("en"), yfmt: (v) => (100 * v).toFixed(0) + "%" });
+    PK.line(P, [0, lx], [th.switch, th.switch], { color: pal.a, width: 1.2, dash: [5, 4] });
+    PK.line(P, [0, lx], [th.stay, th.stay], { color: pal.b, width: 1.2, dash: [5, 4] });
+    if (sim.run.length) {
+      PK.line(P, sim.run.map((p) => Math.log10(p[0])), sim.run.map((p) => p[2]), { color: pal.a, width: 2 });
+      PK.line(P, sim.run.map((p) => Math.log10(p[0])), sim.run.map((p) => p[1]), { color: pal.b, width: 2 });
+    } else {
+      P.ctx.fillStyle = P.K.muted; P.ctx.font = "12px " + P.font; P.ctx.textAlign = "center"; P.ctx.fillText(P.pw < 420 ? "Press Simulate" : "Press Simulate to play many games automatically", P.pad.l + P.pw / 2, P.pad.t + P.ph / 2);
+    }
+    PK.legend(P, [{ label: `switch (theory ${(100 * th.switch).toFixed(1)}%)`, color: pal.a }, { label: `stay (theory ${(100 * th.stay).toFixed(1)}%)`, color: pal.b }]);
+  }
+  function pct(w, n) { return n ? `${((100 * w) / n).toFixed(1)}% <small>(${w}/${n})</small>` : "–"; }
+  function drawStats() {
+    $("mh-stats").innerHTML = [["You, staying", pct(T.stayW, T.stayN)], ["You, switching", pct(T.swW, T.swN)], ["Simulated, staying", pct(sim.stay, sim.N)], ["Simulated, switching", pct(sim.sw, sim.N)]]
+      .map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+  window.SiteTheme.onChange(drawPlot);
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(drawPlot, 150); });
+  resetAll();
+})();
+</script>
+{% endraw %}

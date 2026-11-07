@@ -1,0 +1,20 @@
+{%- if page.crumbs -%}
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <ol>
+    <li><a href="{{ '/' | relative_url }}">Home</a></li>
+    {%- for c in page.crumbs %}
+    <li><a href="{{ c.url | relative_url }}">{{ c.title }}</a></li>
+    {%- endfor %}
+    <li><span aria-current="page">{{ page.short_title | default: page.title }}</span></li>
+  </ol>
+</nav>
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[
+  {"@type":"ListItem","position":1,"name":"Home","item":"{{ '/' | absolute_url }}"},
+  {%- for c in page.crumbs %}
+  {"@type":"ListItem","position":{{ forloop.index | plus: 1 }},"name":{{ c.title | jsonify }},"item":"{{ c.url | absolute_url }}"},
+  {%- endfor %}
+  {"@type":"ListItem","position":{{ page.crumbs.size | plus: 2 }},"name":{{ page.short_title | default: page.title | jsonify }}}
+]}
+</script>
+{%- endif -%}

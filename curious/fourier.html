@@ -1,0 +1,150 @@
+---
+layout: page
+title: Fourier Series Visualiser
+permalink: /curious/fourier/
+crumbs:
+  - title: Science for the Curious
+    url: /curious/
+short_title: Fourier series
+lead: Any repeating signal, even one with sharp corners, can be built by adding up pure tones. Watch the rotating circles draw a wave, one harmonic at a time.
+description: Build square, sawtooth, triangle and pulse waves from rotating circles (epicycles) and sine waves, see the Gibbs overshoot, and read the frequency spectrum.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/curious-core.js
+---
+{% raw %}
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li>Choose a target waveform.</li>
+    <li>Increase the number of <b>harmonics</b> and watch the sum (solid line) approach the target (dashed).</li>
+    <li>Each circle spins at a whole-number multiple of the slowest one; the height of the last circle's tip traces the wave. Pause or change the speed at any time.</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="fo-ctl">
+    <h2 id="fo-ctl">Controls</h2>
+    <div class="ctl"><label for="fo-wave">Target waveform</label>
+      <select id="fo-wave"><option value="square">Square wave</option><option value="sawtooth">Sawtooth wave</option><option value="triangle">Triangle wave</option><option value="pulse">Pulse train</option></select></div>
+    <div class="ctl" id="fo-duty-box" hidden><label for="fo-duty">Pulse width (duty cycle) <output id="fo-duty-o">0.25</output></label><input type="range" id="fo-duty" min="0.05" max="0.95" step="0.05" value="0.25"></div>
+    <div class="ctl"><label for="fo-k">Harmonics <output id="fo-k-o">5</output></label><input type="range" id="fo-k" min="1" max="60" value="5"></div>
+    <div class="ctl"><label for="fo-speed">Speed <output id="fo-speed-o">1.0×</output></label><input type="range" id="fo-speed" min="0.2" max="3" step="0.1" value="1"></div>
+    <div class="btn-row">
+      <button type="button" class="btn primary" id="fo-play" aria-pressed="true">❚❚ Pause</button>
+      <button type="button" class="btn" id="fo-reset">Reset</button>
+    </div>
+    <dl class="stats" id="fo-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="fo-stage">
+    <h2 id="fo-stage">Circles drawing the wave</h2>
+    <canvas id="fo-epi" role="img" aria-label="Rotating circles whose combined motion traces the partial Fourier sum"></canvas>
+    <canvas id="fo-sum" role="img" aria-label="One period of the target waveform and its Fourier partial sum"></canvas>
+    <canvas id="fo-spec" role="img" aria-label="Amplitude of each harmonic"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>What is going on?</h2>
+  <p>A <b>Fourier series</b> writes a repeating signal as a sum of sine and cosine waves whose frequencies are whole-number multiples (harmonics) of the basic repetition rate. Each term is a circle turning at its own speed. Add the circles tip to tail and the height of the last tip traces the signal.</p>
+  <p>The <b>spectrum</b> (bottom plot) shows how much of each harmonic is needed. A square wave uses only odd harmonics, with amplitudes falling as 1/k. A triangle wave's fall much faster, as 1/k², because it has no jumps, so a few harmonics already look right.</p>
+  <p>Near a jump the sum always overshoots by about <b>9% of the jump</b>, however many harmonics you add: the <b>Gibbs phenomenon</b>. The overshoot gets narrower but never smaller. This is why sharp edges in signals and images ring after filtering.</p>
+  <p>Fourier analysis is everywhere: in music and audio compression, in MRI scanners, and in spectrometers like the ones in our lab, which measure signals against time and Fourier-transform them into colours. For sampling and FFT axes in the lab, see the <a href="../../tools/#fft">FFT axis designer</a>.</p>
+  <details class="theory-card">
+    <summary>The mathematics</summary>
+    <div class="eq"><i>f</i>(<i>x</i>) = <i>a</i>₀/2 + Σ<sub><i>k</i>≥1</sub> [<i>a<sub>k</sub></i> cos <i>kx</i> + <i>b<sub>k</sub></i> sin <i>kx</i>], &nbsp; <i>a<sub>k</sub></i> = (1/π)∫ <i>f</i>(<i>x</i>) cos <i>kx</i> d<i>x</i>, &nbsp; <i>b<sub>k</sub></i> = (1/π)∫ <i>f</i>(<i>x</i>) sin <i>kx</i> d<i>x</i></div>
+    <div class="eq">square: <i>b<sub>k</sub></i> = 4/(π<i>k</i>), odd <i>k</i>; &nbsp; sawtooth: <i>b<sub>k</sub></i> = 2(−1)<sup><i>k</i>+1</sup>/(π<i>k</i>); &nbsp; triangle: <i>b<sub>k</sub></i> = 8(−1)<sup>(<i>k</i>−1)/2</sup>/(π²<i>k</i>²), odd <i>k</i>; &nbsp; pulse (width <i>d</i>): <i>a<sub>k</sub></i> = 2 sin(π<i>kd</i>)/(π<i>k</i>)</div>
+    <div class="eq">Parseval: ⟨<i>f</i>²⟩ = (<i>a</i>₀/2)² + ½ Σ (<i>a<sub>k</sub></i>² + <i>b<sub>k</sub></i>²); &nbsp; Gibbs: max <i>S<sub>K</sub></i> → (2/π) Si(π) ≈ 1.179 for a ±1 square wave</div>
+    <p>Each circle has radius √(<i>a<sub>k</sub></i>² + <i>b<sub>k</sub></i>²) and turns <i>k</i> times per period. The coefficients are exact formulas, checked by automated tests against numerical integration, and the tests also confirm the Gibbs limit.</p>
+  </details>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/curious-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const C = window.Curious, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let wave = "square", K = 5, d = 0.25, speed = 1, playing = !reduceMotion, theta = 0, co = [], a0 = 0, last = 0;
+
+  function update() {
+    co = C.fourierCoefficients(wave, K, d); a0 = C.WAVES[wave].a0half(d);
+    drawSum(); drawSpec(); drawStats(); if (!playing) drawEpi();
+  }
+  /* epicycles and the wave they draw */
+  function drawEpi() {
+    const cv = $("fo-epi"), P = PK.frame(cv, { height: 260, x0: 0, x1: 1, y0: 0, y1: 1, bare: true }), c = P.ctx, pal = PK.palette();
+    const H = P.H, W = P.W, ext = wave === "pulse" ? 1.25 : 1.4, scale = (H / 2 - 14) / ext;
+    const cx = Math.min(W * 0.28, H * 0.55), cy = H / 2 + (wave === "pulse" ? scale * 0.5 : 0);
+    let x = cx, y = cy - a0 * scale;
+    c.lineWidth = 1;
+    co.forEach((t) => {
+      if (t.amp < 1e-12) return;
+      const R = t.amp * scale, ang = t.k * theta + t.phase;
+      c.strokeStyle = P.K.grid; c.beginPath(); c.arc(x, y, R, 0, 2 * Math.PI); c.stroke();
+      const nx = x + R * Math.cos(ang), ny = y - R * Math.sin(ang);
+      c.strokeStyle = P.K.muted; c.beginPath(); c.moveTo(x, y); c.lineTo(nx, ny); c.stroke();
+      x = nx; y = ny;
+    });
+    const x0 = Math.min(W * 0.5, cx + 1.5 * scale), dth = (2 * Math.PI) / 260;
+    // pixel i to the right shows angle θ − i·dθ, so the curve flows away from the circles;
+    // its first point is exactly the tip height S_K(θ)
+    c.strokeStyle = P.K.muted; c.setLineDash([2, 3]); c.beginPath(); c.moveTo(x, y); c.lineTo(x0, y); c.stroke(); c.setLineDash([]);
+    c.strokeStyle = pal.b; c.globalAlpha = 0.6; c.setLineDash([4, 3]); c.beginPath();
+    for (let i = 0; i < W - x0; i++) { const py = cy - C.WAVES[wave].f(theta - i * dth, d) * scale; i ? c.lineTo(x0 + i, py) : c.moveTo(x0, py); }
+    c.stroke(); c.setLineDash([]); c.globalAlpha = 1;
+    c.strokeStyle = pal.a; c.lineWidth = 2; c.beginPath();
+    for (let i = 0; i < W - x0; i++) { const py = cy - C.partialSum(co, theta - i * dth, a0) * scale; i ? c.lineTo(x0 + i, py) : c.moveTo(x0, py); }
+    c.stroke();
+    c.fillStyle = pal.a; c.beginPath(); c.arc(x, y, 3, 0, 2 * Math.PI); c.fill();
+  }
+  function drawSum() {
+    const pal = PK.palette(), xs = Array.from({ length: 800 }, (_, i) => -Math.PI + (2 * Math.PI * i) / 799);
+    const lo = wave === "pulse" ? -0.35 : -1.4, hi = wave === "pulse" ? 1.35 : 1.4;
+    const P = PK.frame($("fo-sum"), { height: 210, x0: -Math.PI, x1: Math.PI, y0: lo, y1: hi, xlabel: "x (one period, −π to π)", ylabel: "f(x)", xticks: 4, xfmt: (v) => ({ "-3.142": "−π", "-1.571": "−π/2", "0": "0", "1.571": "π/2", "3.142": "π" }[v.toFixed(3)] || v.toFixed(2)) });
+    PK.line(P, xs, xs.map((x) => C.WAVES[wave].f(x, d)), { color: pal.b, width: 1.5, dash: [5, 4] });
+    PK.line(P, xs, xs.map((x) => C.partialSum(co, x, a0)), { color: pal.a, width: 2 });
+    PK.legend(P, [{ label: `sum of ${K} harmonic${K === 1 ? "" : "s"}`, color: pal.a }, { label: "target", color: pal.b, dash: [5, 4] }]);
+  }
+  function drawSpec() {
+    const pal = PK.palette(), ks = co.map((t) => t.k), amps = co.map((t) => t.amp), top = Math.max(...amps, Math.abs(a0), 0.05) * 1.15;
+    const P = PK.frame($("fo-spec"), { height: 170, x0: -0.6, x1: K + 0.6, y0: 0, y1: top, xlabel: "Harmonic number k", ylabel: "Amplitude", xints: true });
+    if (a0) PK.bars(P, [0], [Math.abs(a0)], { color: P.K.muted, w: 0.5 });
+    PK.bars(P, ks, amps, { color: pal.a, w: K > 30 ? 0.7 : 0.5 });
+  }
+  function drawStats() {
+    const pf = C.powerFraction(wave, K, d);
+    const jumps = wave !== "triangle";
+    let over = "–";
+    if (wave === "square" || wave === "sawtooth") over = (((C.maxOfPartialSum(wave, K, d) - 1) / 2) * 100).toFixed(1) + "% of the jump";
+    if (wave === "pulse") over = ((C.maxOfPartialSum(wave, K, d) - 1) * 100).toFixed(1) + "% of the jump";
+    $("fo-stats").innerHTML = [["Harmonics", K], ["Power captured", (100 * pf).toFixed(pf > 0.999 ? 3 : 1) + "%"], ["Overshoot", jumps ? over : "none (no jumps)"]]
+      .map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+  function frame(ts) {
+    const dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+    if (playing && !document.hidden) { theta += dt * speed * 1.6; drawEpi(); }
+    requestAnimationFrame(frame);
+  }
+
+  $("fo-wave").addEventListener("change", () => { wave = $("fo-wave").value; $("fo-duty-box").hidden = wave !== "pulse"; update(); });
+  $("fo-k").addEventListener("input", () => { K = +$("fo-k").value; $("fo-k-o").textContent = K; update(); });
+  $("fo-duty").addEventListener("input", () => { d = +$("fo-duty").value; $("fo-duty-o").textContent = d.toFixed(2); update(); });
+  $("fo-speed").addEventListener("input", () => { speed = +$("fo-speed").value; $("fo-speed-o").textContent = speed.toFixed(1) + "×"; });
+  function setPlay(p) { playing = p; $("fo-play").setAttribute("aria-pressed", String(p)); $("fo-play").textContent = p ? "❚❚ Pause" : "▶ Play"; if (!p) drawEpi(); }
+  $("fo-play").addEventListener("click", () => setPlay(!playing));
+  $("fo-reset").addEventListener("click", () => {
+    wave = "square"; K = 5; d = 0.25; speed = 1; theta = 0;
+    $("fo-wave").value = wave; $("fo-k").value = K; $("fo-k-o").textContent = K; $("fo-duty").value = d; $("fo-duty-o").textContent = "0.25";
+    $("fo-speed").value = 1; $("fo-speed-o").textContent = "1.0×"; $("fo-duty-box").hidden = true;
+    setPlay(!reduceMotion); update();
+  });
+  window.SiteTheme.onChange(() => { drawSum(); drawSpec(); drawEpi(); });
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(() => { drawSum(); drawSpec(); drawEpi(); }, 150); });
+  setPlay(playing); update(); requestAnimationFrame(frame);
+})();
+</script>
+{% endraw %}

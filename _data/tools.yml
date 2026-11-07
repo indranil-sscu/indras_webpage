@@ -1,0 +1,92 @@
+# The tool catalogue: one entry per card. Used by the homepage, /explore/ and /curious/.
+# preview: key of a live preview drawn by assets/js/previews.js from the tool's own code.
+- id: tmm
+  title: Multilayer TMM & polariton solver
+  url: /tools/tmm/
+  category: physics
+  preview: tmm
+  badge: Updated
+  featured: true
+  description: Reflection, transmission and fields of thin-film stacks, cavities and plasmonic sensors, with anticrossing fits that give the Rabi splitting.
+- id: calculators
+  title: Spectroscopy & optics calculators
+  url: /tools/
+  category: physics
+  preview: dispersion
+  description: Unit conversion, dispersion, compressors, phase matching, Gaussian beams and pulse parameters, each with its equations and references.
+- id: bandwidth
+  title: Pulse bandwidth & transform limit
+  url: /tools/#bandwidth
+  category: physics
+  preview: pulse
+  description: How short can a pulse with this spectrum be? Convert bandwidth between nm, cm⁻¹, THz and eV and get the transform-limited duration.
+- id: dsfd
+  title: Double-sided Feynman diagrams
+  url: /tools/dsfd/
+  category: physics
+  preview: dsfd
+  badge: Updated
+  featured: true
+  description: Every Liouville pathway of a nonlinear signal, drawn in textbook style with signs and phase factors; export SVG, PNG or TikZ.
+- id: reference
+  title: Constants & lab cheat sheet
+  url: /reference/
+  category: physics
+  preview: reference
+  action: Open sheet
+  description: CODATA constants, laser and calibration lines and the optics rules of thumb that are easy to forget.
+- id: digitizer
+  title: Plot digitizer
+  url: /tools/digitizer/
+  category: data
+  preview: digitizer
+  description: Turn an image of a published plot back into numbers. Linear or log axes, several series, CSV export; the image stays on your device.
+- id: jacobian
+  title: Spectral Jacobian converter
+  url: /tools/#jacobian
+  category: data
+  preview: jacobian
+  description: Convert a measured spectrum between wavelength and wavenumber without distorting band shapes and areas.
+- id: fft
+  title: Sampling & FFT axis designer
+  url: /tools/#fft
+  category: data
+  preview: sampling
+  description: Pick the time step and number of points for a scan, and see where a signal appears and whether it aliases.
+- id: probability
+  title: Probability playground
+  url: /curious/probability/
+  category: math
+  preview: dice
+  badge: New
+  featured: true
+  description: Roll dice and toss coins thousands of times and watch the experiment converge on the theory, the law of large numbers in action.
+- id: montyhall
+  title: The Monty Hall problem
+  url: /curious/monty-hall/
+  category: math
+  preview: montyhall
+  badge: New
+  description: Should you switch doors? Play the game, then simulate ten thousand games and see why switching wins two times out of three.
+- id: fourier
+  title: Fourier series visualiser
+  url: /curious/fourier/
+  category: math
+  preview: fourier
+  badge: New
+  featured: true
+  description: Build square, sawtooth and triangle waves out of rotating circles and pure tones, one harmonic at a time.
+- id: batchplot
+  title: Batch plotting in Python
+  url: /posts/batch-plotting.html
+  category: learn
+  preview: python
+  action: Read tutorial
+  description: Overlay many data files in one publication-style figure from the command line, a practical scientific-computing workflow.
+- id: tmmtheory
+  title: Transfer matrices & strong coupling, explained
+  url: /tools/tmm/#tm-theory
+  category: learn
+  preview: equation
+  action: Read notes
+  description: The Abelès matrix method, material models, Rabi splitting and the strong-coupling criterion, with references.

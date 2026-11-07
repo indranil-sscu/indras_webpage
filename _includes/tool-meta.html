@@ -1,0 +1,8 @@
+{%- if page.version -%}
+<p class="tool-meta">
+  <span class="tool-meta-item">Version {{ page.version }}</span>
+  {%- if page.updated %}<span class="tool-meta-item">Updated <time datetime="{{ page.updated | date: '%Y-%m-%d' }}">{{ page.updated | date: '%-d %B %Y' }}</time></span>{% endif -%}
+  {%- if page.source %}<a class="tool-meta-item" href="https://github.com/{{ site.github_username }}/indras_webpage/blob/main/{{ page.source }}">Source on GitHub</a>{% endif -%}
+  <a class="tool-meta-item" href="https://github.com/{{ site.github_username }}/indras_webpage/issues/new?title={{ '[' | append: page.title | append: '] ' | url_encode }}">Report an issue</a>
+</p>
+{%- endif -%}
