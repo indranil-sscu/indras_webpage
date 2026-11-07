@@ -28,6 +28,14 @@
   badge: Updated
   featured: true
   description: Every Liouville pathway of a nonlinear signal, drawn in textbook style with signs and phase factors; export SVG, PNG or TikZ.
+- id: twodes
+  title: 2D electronic spectroscopy simulator
+  url: /tools/2des/
+  category: physics
+  preview: twodes
+  badge: New
+  featured: true
+  description: Rephasing, non-rephasing and absorptive 2D spectra from a response function (built-in models, your own formula or CSV data), with documented conventions and validation tests.
 - id: reference
   title: Constants & lab cheat sheet
   url: /reference/
