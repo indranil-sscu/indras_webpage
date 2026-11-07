@@ -1,0 +1,204 @@
+---
+layout: page
+title: Probability Playground
+permalink: /curious/probability/
+crumbs:
+  - title: Science for the Curious
+    url: /curious/
+lead: Roll dice and toss coins, a few times or a few thousand, and watch your experiment settle onto the prediction of probability theory.
+description: Roll virtual dice and toss coins thousands of times, compare experimental and theoretical probabilities, and see the law of large numbers in action.
+version: "1.0"
+updated: 2026-11-07
+source: assets/js/curious-core.js
+---
+{% raw %}
+<div class="howto">
+  <b>How to use.</b>
+  <ol>
+    <li>Choose <b>Dice</b> or <b>Coins</b>, and set how many dice (or how biased the coin is).</li>
+    <li>Roll once, or 10, 100 or 1000 times. <b>Auto</b> keeps rolling.</li>
+    <li>Compare the bars (your results) with the dots (theory). Watch the running average close in on the prediction.</li>
+  </ol>
+</div>
+
+<div class="app">
+  <section class="app-controls" aria-labelledby="pp-ctl">
+    <h2 id="pp-ctl">Controls</h2>
+    <div class="ctl">
+      <span class="ctl-label" id="pp-mode-l">Experiment</span>
+      <div class="segmented" role="group" aria-labelledby="pp-mode-l">
+        <button type="button" data-mode="dice" aria-pressed="true">Dice</button>
+        <button type="button" data-mode="coins" aria-pressed="false">Coins</button>
+      </div>
+    </div>
+    <div class="ctl" data-for="dice"><label for="pp-n">Number of dice <output id="pp-n-o">2</output></label><input type="range" id="pp-n" min="1" max="6" value="2"></div>
+    <div class="ctl" data-for="dice"><label for="pp-s">Faces per die</label>
+      <select id="pp-s"><option value="4">4 (tetrahedron)</option><option value="6" selected>6 (cube)</option><option value="8">8</option><option value="10">10</option><option value="12">12</option><option value="20">20</option></select></div>
+    <div class="ctl" data-for="coins" hidden><label for="pp-p">Probability of heads <output id="pp-p-o">0.50</output></label><input type="range" id="pp-p" min="0.05" max="0.95" step="0.05" value="0.5"></div>
+    <div class="ctl">
+      <span class="ctl-label" id="pp-roll-l"><span id="pp-verb">Roll</span></span>
+      <div class="btn-row" role="group" aria-labelledby="pp-roll-l">
+        <button type="button" class="btn primary" data-n="1">×1</button>
+        <button type="button" class="btn" data-n="10">×10</button>
+        <button type="button" class="btn" data-n="100">×100</button>
+        <button type="button" class="btn" data-n="1000">×1000</button>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn" id="pp-auto" aria-pressed="false">▶ Auto</button>
+      <button type="button" class="btn" id="pp-reset">Reset</button>
+    </div>
+    <dl class="stats" id="pp-stats"></dl>
+  </section>
+
+  <section class="app-stage" aria-labelledby="pp-stage">
+    <h2 id="pp-stage">Results</h2>
+    <div id="pp-last" class="last-roll" aria-live="polite"></div>
+    <canvas id="pp-hist" role="img" aria-label="Histogram of results compared with theory"></canvas>
+    <canvas id="pp-run" role="img" aria-label="Running average converging to the expected value"></canvas>
+  </section>
+</div>
+
+<section class="explain">
+  <h2>What is going on?</h2>
+  <p><b>Probability</b> tells you what fraction of many repeated trials will give each outcome. One roll of a fair die is unpredictable, but in many rolls each face turns up about 1/6 of the time.</p>
+  <p><b>Sums of dice are not equally likely.</b> With two dice there is one way to make 2 (1 + 1) but six ways to make 7 (1+6, 2+5, 3+4, 4+3, 5+2, 6+1), so 7 is six times as likely as 2. With more dice the distribution becomes a smooth bell curve, an example of the <b>central limit theorem</b>.</p>
+  <p><b>The law of large numbers</b> says that the average of many trials approaches the expected value. The shaded band shows where the running average is expected to be (±2 standard deviations); it narrows as 1/√N, so a hundred times more rolls make your estimate ten times more precise.</p>
+  <p><b>The gambler's fallacy.</b> A coin has no memory: after five heads in a row the next toss is still 50 : 50. Long streaks are normal. In N fair tosses the longest run is typically about log₂ N long (about 10 in a thousand tosses).</p>
+  <details class="theory-card">
+    <summary>The mathematics</summary>
+    <div class="eq">P(sum = s) for <i>n</i> dice with <i>m</i> faces = coefficient of <i>x<sup>s</sup></i> in ((<i>x</i> + <i>x</i>² + … + <i>x<sup>m</sup></i>)/<i>m</i>)<sup><i>n</i></sup> &nbsp; (computed exactly by convolution)</div>
+    <div class="eq">E[sum] = <i>n</i>(<i>m</i> + 1)/2, &nbsp; Var[sum] = <i>n</i>(<i>m</i>² − 1)/12, &nbsp; running mean ≈ E ± 2√(Var/<i>N</i>)</div>
+    <div class="eq">P(<i>k</i> heads in 10 tosses) = C(10, <i>k</i>) <i>p<sup>k</sup></i>(1 − <i>p</i>)<sup>10−<i>k</i></sup> &nbsp; (binomial distribution)</div>
+    <p>Random numbers come from a fast pseudo-random generator (mulberry32). The calculations are checked by automated tests against the exact formulas above.</p>
+  </details>
+</section>
+{% endraw %}
+<script src="{{ '/assets/js/curious-core.js' | relative_url }}"></script>
+<script src="{{ '/assets/js/plotkit.js' | relative_url }}"></script>
+{% raw %}
+<script>
+(function () {
+  "use strict";
+  const C = window.Curious, PK = window.PlotKit, $ = (id) => document.getElementById(id);
+  const r = C.rng();
+  let mode = "dice", S;
+  const reduceMotion = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function reset() {
+    const n = +$("pp-n").value, m = +$("pp-s").value, p = +$("pp-p").value;
+    S = { n, m, p, N: 0, counts: [], sum: 0, run: [], last: [], tosses: [], blocks: new Array(11).fill(0), block: 0, blockLen: 0, heads: 0, streak: 0, cur: 0, prev: null };
+    if (mode === "dice") { const d = C.diceSumDistribution(n, m); S.theory = d; S.counts = new Array(d.p.length).fill(0); }
+    draw();
+  }
+  function step(k) {
+    for (let i = 0; i < k; i++) {
+      S.N++;
+      if (mode === "dice") {
+        const f = C.rollDice(S.n, S.m, r), s = f.reduce((a, b) => a + b, 0);
+        S.counts[s - S.n]++; S.sum += s; S.last = f;
+      } else {
+        const h = r() < S.p ? 1 : 0;
+        S.heads += h; S.sum += h; S.tosses.push(h); if (S.tosses.length > 24) S.tosses.shift();
+        S.cur = h === S.prev ? S.cur + 1 : 1; S.prev = h; S.streak = Math.max(S.streak, S.cur);
+        S.block += h; S.blockLen++;
+        if (S.blockLen === 10) { S.blocks[S.block]++; S.block = 0; S.blockLen = 0; }
+      }
+      // keep the running mean at ~logarithmically spaced N (enough for a smooth curve)
+      if (S.N < 50 || S.N % Math.ceil(S.N / 200) === 0) S.run.push([S.N, S.sum / S.N]);
+    }
+  }
+  function roll(k) { step(k); draw(); }
+
+  /* ---------- drawing ---------- */
+  const pips = { 1: [[1, 1]], 2: [[0, 0], [2, 2]], 3: [[0, 0], [1, 1], [2, 2]], 4: [[0, 0], [2, 0], [0, 2], [2, 2]], 5: [[0, 0], [2, 0], [1, 1], [0, 2], [2, 2]], 6: [[0, 0], [2, 0], [0, 1], [2, 1], [0, 2], [2, 2]] };
+  function dieSVG(v, m) {
+    const body = m === 6 ? pips[v].map(([x, y]) => `<circle cx="${9 + x * 9}" cy="${9 + y * 9}" r="2.6"/>`).join("") : `<text x="18" y="23" text-anchor="middle" font-size="14" font-weight="600">${v}</text>`;
+    return `<svg viewBox="0 0 36 36" width="40" height="40" aria-hidden="true"><rect x="1.5" y="1.5" width="33" height="33" rx="7" fill="var(--bg-surface)" stroke="var(--border-strong)" stroke-width="1.5"/><g fill="var(--text-primary)" style="font-family:var(--font-mono)">${body}</g></svg>`;
+  }
+  function drawLast() {
+    const el = $("pp-last");
+    if (!S.N) { el.innerHTML = `<span class="muted">Press a button to ${mode === "dice" ? "roll" : "toss"}.</span>`; return; }
+    if (mode === "dice") {
+      const s = S.last.reduce((a, b) => a + b, 0);
+      el.innerHTML = `<div class="dice-row">${S.last.map((v) => dieSVG(v, S.m)).join("")}</div><span>Last roll: <b>${S.last.join(" + ")}${S.last.length > 1 ? " = " + s : ""}</b></span>`;
+    } else {
+      el.innerHTML = `<div class="coin-row">${S.tosses.map((h) => `<span class="coin ${h ? "h" : "t"}" title="${h ? "heads" : "tails"}">${h ? "H" : "T"}</span>`).join("")}</div><span>Last ${S.tosses.length} tosses (newest on the right)</span>`;
+    }
+  }
+  function drawHist() {
+    const cv = $("pp-hist"), pal = PK.palette();
+    if (mode === "dice") {
+      const d = S.theory, xs = d.p.map((_, i) => i + d.min), f = S.counts.map((c) => (S.N ? c / S.N : 0));
+      const ymax = Math.max(...d.p, ...f) * 1.18;
+      const P = PK.frame(cv, { height: 260, x0: d.min - 0.6, x1: d.max + 0.6, y0: 0, y1: ymax, xlabel: `Sum of ${S.n} dice`, ylabel: "Fraction of rolls", xints: true, yfmt: (v) => (100 * v).toFixed(0) + "%" });
+      PK.bars(P, xs, f, { color: pal.a, w: Math.min(0.8, 0.8) });
+      PK.dots(P, xs, d.p, { color: pal.b, r: xs.length > 40 ? 1.8 : 3.2 });
+      PK.legend(P, [{ label: `your ${S.N} roll${S.N === 1 ? "" : "s"}`, color: pal.a }, { label: "theory", color: pal.b, dot: true }]);
+    } else {
+      const nb = S.blocks.reduce((a, b) => a + b, 0), xs = [...Array(11).keys()];
+      const th = xs.map((k) => C.binomialPMF(10, k, S.p)), f = S.blocks.map((c) => (nb ? c / nb : 0));
+      const P = PK.frame(cv, { height: 260, x0: -0.6, x1: 10.6, y0: 0, y1: Math.max(...th, ...f) * 1.2, xlabel: "Heads in each group of 10 tosses", ylabel: "Fraction of groups", xints: true, yfmt: (v) => (100 * v).toFixed(0) + "%" });
+      PK.bars(P, xs, f, { color: pal.a, w: 0.7 });
+      PK.dots(P, xs, th, { color: pal.b, r: 3.2 });
+      PK.legend(P, [{ label: `${nb} group${nb === 1 ? "" : "s"} of 10`, color: pal.a }, { label: "binomial theory", color: pal.b, dot: true }]);
+    }
+  }
+  function drawRun() {
+    const cv = $("pp-run"), pal = PK.palette();
+    const mean = mode === "dice" ? S.theory.mean : S.p, sd = Math.sqrt(mode === "dice" ? S.theory.variance : S.p * (1 - S.p));
+    const Nmax = Math.max(10, S.N), lx = Math.log10(Nmax);
+    const half = mode === "dice" ? Math.max(sd * 1.2, 0.5) : 0.5;
+    const y0 = mode === "dice" ? mean - half * 1.6 : 0, y1 = mode === "dice" ? mean + half * 1.6 : 1;
+    const P = PK.frame(cv, { height: 220, x0: 0, x1: Math.ceil(lx), y0, y1, xlabel: "Number of " + (mode === "dice" ? "rolls" : "tosses") + " (log scale)", ylabel: mode === "dice" ? "Running mean" : "Fraction heads", xticks: Math.ceil(lx), xfmt: (v) => Math.round(10 ** v).toLocaleString("en") });
+    // ±2σ/√N funnel
+    const c = P.ctx, xs = Array.from({ length: 120 }, (_, i) => (Math.ceil(lx) * i) / 119);
+    c.save(); c.beginPath(); c.rect(P.pad.l, P.pad.t, P.pw, P.ph); c.clip();
+    c.fillStyle = pal.b; c.globalAlpha = 0.13; c.beginPath();
+    xs.forEach((x, i) => { const N = 10 ** x, y = mean + (2 * sd) / Math.sqrt(N); i ? c.lineTo(P.X(x), P.Y(y)) : c.moveTo(P.X(x), P.Y(y)); });
+    xs.slice().reverse().forEach((x) => { const N = 10 ** x; c.lineTo(P.X(x), P.Y(mean - (2 * sd) / Math.sqrt(N))); });
+    c.closePath(); c.fill(); c.restore();
+    PK.line(P, [0, Math.ceil(lx)], [mean, mean], { color: pal.b, width: 1.5, dash: [5, 4] });
+    if (S.run.length) PK.line(P, S.run.map((p) => Math.log10(p[0])), S.run.map((p) => p[1]), { color: pal.a, width: 1.8 });
+    PK.legend(P, [{ label: "your running average", color: pal.a }, { label: `expected ${mode === "dice" ? mean.toFixed(1) : mean.toFixed(2)} ± 2σ/√N`, color: pal.b, dash: [5, 4] }]);
+  }
+  function drawStats() {
+    const rows = [];
+    if (mode === "dice") {
+      const mean = S.N ? S.sum / S.N : NaN;
+      let worst = 0; S.counts.forEach((c, i) => { if (S.N) worst = Math.max(worst, Math.abs(c / S.N - S.theory.p[i])); });
+      const pm = Math.max(...S.theory.p), modes = S.theory.p.map((v, i) => [v, i + S.theory.min]).filter(([v]) => v > pm * (1 - 1e-9)).map((x) => x[1]);
+      rows.push(["Rolls", S.N.toLocaleString("en")], ["Average sum", S.N ? mean.toFixed(3) : "–"], ["Expected", S.theory.mean.toFixed(3)], ["Most likely sum", modes.length > 3 ? "all equal" : modes.join(" & ")], ["Largest gap to theory", S.N ? (100 * worst).toFixed(1) + " pts" : "–"]);
+    } else {
+      rows.push(["Tosses", S.N.toLocaleString("en")], ["Heads", S.N ? ((100 * S.heads) / S.N).toFixed(1) + "%" : "–"], ["Expected", (100 * S.p).toFixed(0) + "%"], ["Longest streak", S.N ? S.streak : "–"], ["Typical longest", S.N ? "≈ " + C.expectedLongestRunApprox(S.N).toFixed(1) : "–"]);
+    }
+    $("pp-stats").innerHTML = rows.map(([k, v]) => `<div class="stat"><dt>${k}</dt><dd>${v}</dd></div>`).join("");
+  }
+  function draw() { drawLast(); drawHist(); drawRun(); drawStats(); }
+
+  /* ---------- controls ---------- */
+  document.querySelectorAll("[data-mode]").forEach((b) => b.addEventListener("click", () => {
+    mode = b.dataset.mode;
+    document.querySelectorAll("[data-mode]").forEach((x) => x.setAttribute("aria-pressed", String(x === b)));
+    document.querySelectorAll("[data-for]").forEach((el) => (el.hidden = el.dataset.for !== mode));
+    $("pp-verb").textContent = mode === "dice" ? "Roll" : "Toss";
+    stopAuto(); reset();
+  }));
+  document.querySelectorAll("[data-n]").forEach((b) => b.addEventListener("click", () => roll(+b.dataset.n)));
+  $("pp-n").addEventListener("input", () => { $("pp-n-o").textContent = $("pp-n").value; reset(); });
+  $("pp-s").addEventListener("change", reset);
+  $("pp-p").addEventListener("input", () => { $("pp-p-o").textContent = (+$("pp-p").value).toFixed(2); reset(); });
+  $("pp-reset").addEventListener("click", () => { stopAuto(); reset(); });
+  let timer = null;
+  function stopAuto() { if (timer) clearInterval(timer); timer = null; $("pp-auto").setAttribute("aria-pressed", "false"); $("pp-auto").textContent = "▶ Auto"; }
+  $("pp-auto").addEventListener("click", () => {
+    if (timer) return stopAuto();
+    $("pp-auto").setAttribute("aria-pressed", "true"); $("pp-auto").textContent = "❚❚ Pause";
+    timer = setInterval(() => { roll(S.N < 100 ? 1 : S.N < 2000 ? 10 : 100); if (S.N > 200000) stopAuto(); }, reduceMotion ? 400 : 60);
+  });
+  window.SiteTheme.onChange(draw);
+  let rt; window.addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(draw, 150); });
+  reset();
+})();
+</script>
+{% endraw %}

@@ -1,24 +1,52 @@
-title: Indranil Roy · Code Notes
-description: Programming snippets, data visualisation and scientific computing
+title: Indra's Lab
+tagline: Explore. Calculate. Understand.
+description: Interactive scientific tools, computational experiments and visual explanations, from spectroscopy calculators to probability experiments. Built by Indranil Roy, IISc Bengaluru.
 name: Indranil Roy
+lang: en
+url: "https://indranil-sscu.github.io"
+baseurl: "/indras_webpage"
 author:
   name: Indranil Roy
   email: indranilroy@iisc.ac.in
 github_username: indranil-sscu
+twitter:
+  card: summary_large_image
+social:
+  name: Indranil Roy
+  links:
+    - https://github.com/indranil-sscu
+    - https://orcid.org/0009-0006-3503-9150
+    - https://scholar.google.com/citations?user=Cz84z-0AAAAJ
+    - https://www.linkedin.com/in/skew-hermitian/
 
 theme: minima
+plugins:
+  - jekyll-seo-tag
+  - jekyll-feed
+
+defaults:
+  - scope:
+      path: ""
+    values:
+      image: /assets/img/og-default.png
 
 minima:
   navigation:
     - title: "Home"
       url: "/"
-    - title: "Posts"
+    - title: "Explore Tools"
+      url: "/explore/"
+      match: ["/tools/", "/reference/"]
+    - title: "Science for the Curious"
+      url: "/curious/"
+      match: ["/curious/"]
+    - title: "Tutorials & Notes"
       url: "/posts/"
-    - title: "Tools"
-      url: "/tools/"
-    - title: "Homepage"
-      url: "https://sites.google.com/iisc.ac.in/indranilroy"
+      match: ["/posts/"]
+    - title: "About"
+      url: "/about/"
 
 exclude:
   - tests/
   - README.md
+  - .sass-cache/
